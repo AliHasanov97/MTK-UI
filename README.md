@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MTK-UI
 
-## Getting Started
+Mənzil-Tikinti Kooperativi (MTK) idarəetmə sisteminin frontend hissəsi. Next.js (App Router) üzərində qurulub, giriş üçün Keycloak-dan, məlumatlar üçün isə ayrıca [MTK API](https://github.com/AliHasanov97/MTK) (.NET backend) layihəsindən istifadə edir.
 
-First, run the development server:
+## Tərkib
+
+- **Landing səhifə** — sistemin təqdimatı, "Daxil ol" düyməsi.
+- **Giriş (auth)** — Keycloak ilə Authorization Code + PKCE axını (public client). Access token bitməzdən əvvəl fonda avtomatik yenilənir (refresh token ilə), istifadəçi sistemdən çıxarılmır.
+- **Panel** (`/panel`) — rol əsaslı, tək panel. Sol menyu istifadəçinin roluna görə fərqli bölmələr göstərir:
+  - **Binalar və mənzillər** — MTK API-nin Buildings modulu ilə canlı işləyir.
+  - **Hesablar / Maliyyə / Müraciətlər** — hazırda placeholder (backend-də uyğun modullar hələ yazılmayıb).
+  - **İstifadəçilər / Rollar / Qruplar / Audit qeydləri** — MTK API-nin Identity modulu ilə canlı işləyir (yalnız İdarəçi rolu üçün görünür).
+
+## Tələb olunanlar
+
+- Node.js 20+
+- İşləyən [MTK API](https://github.com/AliHasanov97/MTK) backend-i və onun Keycloak/Postgres infrastrukturu (bax: həmin repo-nun README-si)
+
+## Quraşdırma
+
+```bash
+npm install
+```
+
+Layihənin kökündə `.env.local` faylı yaradın:
+
+```bash
+KEYCLOAK_URL=http://localhost:8080/
+KEYCLOAK_REALM=mtk
+KEYCLOAK_CLIENT_ID=mtk-web
+APP_URL=http://localhost:3000/
+NEXT_PUBLIC_API_URL=http://localhost:5000/
+```
+
+Dev serveri işə salın:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Sayt `http://localhost:3000` ünvanında açılacaq.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Keycloak konfiqurasiyası
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`mtk-web` public client-də aşağıdakılar təyin olunmalıdır:
 
-## Learn More
+- **Valid redirect URIs**: `http://localhost:3000/auth/callback` (və lazım gələrsə `http://localhost:3000/*`)
+- **Valid post logout redirect URIs**: `http://localhost:3000/*`
+- Access token-in `aud` sahəsində backend-in gözlədiyi audience-in olması (bax: MTK API-nin `Authentication:Audience` konfiqurasiyası)
 
-To learn more about Next.js, take a look at the following resources:
+Rol əsaslı panel bölmələri istifadəçinin `realm_access.roles` daxilindəki adlara görə göstərilir (bax: `app/lib/auth/roles.ts`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Layihə strukturu
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+  components/       Landing səhifə komponentləri (Header, Hero, Footer və s.)
+  lib/
+    auth/            Keycloak/PKCE giriş axını, AuthContext, rol tərifləri
+    api/             Backend API-yə tipli sorğular (buildings.ts, identity.ts)
+  panel/             Panel layout-u, naviqasiya, hər modulun səhifələri
+  auth/callback/     Keycloak-dan qayıdış nöqtəsi (kod → token mübadiləsi)
+```
 
-## Deploy on Vercel
+## Skriptlər
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run dev      # dev server
+npm run build    # production build
+npm run start    # production server
+npm run lint     # ESLint
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Əlaqəli layihə
+
+Backend API: [AliHasanov97/MTK](https://github.com/AliHasanov97/MTK) — .NET modular monolith, Keycloak-la inteqrasiya olunub, PostgreSQL istifadə edir.
