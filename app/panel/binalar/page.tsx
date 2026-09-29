@@ -6,9 +6,9 @@ export default function BinalarPage() {
   return (
     <RequireRole allowed={[ROLES.ADMIN, ROLES.STAFF]}>
       <div className="panel-page">
-        <h1>Binalar və mənzillər</h1>
+        <h1>Mənzillər</h1>
         <p className="panel-page-lead">
-          Bloklar, mənzillər və sahiblik məlumatları backend-dən canlı gəlir.
+          Bütün mənzillər və sahiblik məlumatları — bina üzrə filtrləyə bilərsiniz.
         </p>
         <BuildingsView />
       </div>

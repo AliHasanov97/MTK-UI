@@ -1,90 +1,111 @@
 import { ROLES, type Role } from "../lib/auth/roles";
 
-export type NavItem = {
+export type SubPage = {
+  href: string;
+  label: string;
+};
+
+export type NavModule = {
   href: string;
   label: string;
   icon: string;
   roles?: Role[];
+  /** When present, this module gets a secondary tab strip for these sub-pages. */
+  tabs?: SubPage[];
 };
 
-export type NavGroup = {
-  label: string;
-  items: NavItem[];
-};
-
-export const NAV_GROUPS: NavGroup[] = [
+/**
+ * The sidebar shows exactly one row per module — never per page. As more
+ * modules (HR, Anbar, ...) are added over time, this list only grows by a
+ * row each; a module's own sub-pages live in its secondary tab strip
+ * instead, so the sidebar never needs scrolling or an accordion.
+ */
+export const NAV_MODULES: NavModule[] = [
+  { href: "/panel", label: "Ümumi baxış", icon: "◎" },
   {
-    label: "Ümumi",
-    items: [{ href: "/panel", label: "Ümumi baxış", icon: "◎" }],
-  },
-  {
-    label: "Binalar modulu",
-    items: [
-      {
-        href: "/panel/binalar",
-        label: "Binalar və mənzillər",
-        icon: "⌂",
-        roles: [ROLES.ADMIN, ROLES.STAFF],
-      },
+    href: "/panel/binalar",
+    label: "Binalar",
+    icon: "⌂",
+    roles: [ROLES.ADMIN, ROLES.STAFF],
+    tabs: [
+      { href: "/panel/binalar/bina-siyahisi", label: "Binalar" },
+      { href: "/panel/binalar", label: "Mənzillər" },
+      { href: "/panel/binalar/qarajlar", label: "Qarajlar" },
+      { href: "/panel/binalar/sahibler", label: "Sahiblər" },
     ],
   },
   {
-    label: "Maliyyə modulu",
-    items: [
-      {
-        href: "/panel/hesablar",
-        label: "Hesablar və ödənişlər",
-        icon: "₼",
-        roles: [ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.OWNER],
-      },
-      {
-        href: "/panel/maliyye",
-        label: "Maliyyə şəffaflığı",
-        icon: "↗",
-        roles: [ROLES.ADMIN, ROLES.ACCOUNTANT],
-      },
+    href: "/panel/inventar/anbar",
+    label: "İnventar",
+    icon: "▦",
+    roles: [ROLES.ADMIN, ROLES.STAFF],
+    tabs: [
+      { href: "/panel/inventar/anbar", label: "Anbar" },
+      { href: "/panel/inventar/materiallar", label: "Materiallar" },
+      { href: "/panel/inventar/daxilolmalar", label: "Daxilolmalar" },
+      { href: "/panel/inventar/cixarislar", label: "Çıxarışlar" },
     ],
   },
   {
-    label: "Əməliyyatlar modulu",
-    items: [
-      {
-        href: "/panel/muraciyetler",
-        label: "Müraciətlər",
-        icon: "✳",
-        roles: [ROLES.ADMIN, ROLES.STAFF, ROLES.OWNER],
-      },
+    href: "/panel/muqavileler",
+    label: "Əməliyyatlar",
+    icon: "₼",
+    roles: [ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.OWNER],
+    tabs: [
+      { href: "/panel/muqavileler", label: "Müqavilələr" },
+      { href: "/panel/borclar", label: "Borclar" },
+      { href: "/panel/maliyye-emeliyyatlari", label: "Maliyyə əməliyyatları" },
     ],
   },
   {
-    label: "İdentifikasiya modulu",
-    items: [
-      {
-        href: "/panel/istifadeciler",
-        label: "İstifadəçilər",
-        icon: "◐",
-        roles: [ROLES.ADMIN],
-      },
-      {
-        href: "/panel/rollar",
-        label: "Rollar",
-        icon: "◆",
-        roles: [ROLES.ADMIN],
-      },
-      {
-        href: "/panel/qruplar",
-        label: "Qruplar",
-        icon: "▣",
-        roles: [ROLES.ADMIN],
-      },
-      {
-        href: "/panel/audit",
-        label: "Audit qeydləri",
-        icon: "▤",
-        roles: [ROLES.ADMIN],
-      },
+    href: "/panel/tranzaksiyalar",
+    label: "Tranzaksiyalar",
+    icon: "⇄",
+    roles: [ROLES.ADMIN, ROLES.ACCOUNTANT],
+  },
+  {
+    href: "/panel/hesabatlar",
+    label: "Hesabatlar",
+    icon: "▩",
+    roles: [ROLES.ADMIN, ROLES.ACCOUNTANT],
+  },
+  {
+    href: "/panel/muraciyetler",
+    label: "Müraciətlər",
+    icon: "✳",
+    roles: [ROLES.ADMIN, ROLES.STAFF, ROLES.OWNER],
+  },
+  {
+    href: "/panel/hr/isciler",
+    label: "HR",
+    icon: "◈",
+    roles: [ROLES.ADMIN],
+    tabs: [
+      { href: "/panel/hr/isciler", label: "İşçilər" },
+      { href: "/panel/hr/erizeler", label: "Ərizələr" },
+      { href: "/panel/hr/emrler", label: "Əmrlər" },
+      { href: "/panel/hr/davamiyyet", label: "Davamiyyət" },
+    ],
+  },
+  {
+    href: "/panel/istifadeciler",
+    label: "İdentifikasiya",
+    icon: "◐",
+    roles: [ROLES.ADMIN],
+    tabs: [
+      { href: "/panel/istifadeciler", label: "İstifadəçilər" },
+      { href: "/panel/rollar", label: "Rollar" },
+      { href: "/panel/qruplar", label: "Qruplar" },
+    ],
+  },
+  {
+    href: "/panel/idareetme",
+    label: "İdarəetmə",
+    icon: "⚙",
+    roles: [ROLES.ADMIN],
+    tabs: [
+      { href: "/panel/idareetme", label: "Sistem idarəetməsi" },
+      { href: "/panel/audit", label: "Audit qeydləri" },
     ],
   },
 ];
-
-export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((group) => group.items);

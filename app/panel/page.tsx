@@ -1,34 +1,37 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "../lib/auth/AuthContext";
-import { NAV_ITEMS } from "./nav";
+import { NAV_MODULES } from "./nav";
 
 export default function PanelOverviewPage() {
   const auth = useAuth();
   if (auth.status !== "authenticated") return null;
 
-  const sections = NAV_ITEMS.filter(
-    (item) =>
-      item.href !== "/panel" &&
-      (!item.roles || item.roles.some((role) => auth.user.roles.includes(role))),
+  const modules = NAV_MODULES.filter(
+    (mod) =>
+      mod.href !== "/panel" &&
+      (!mod.roles || mod.roles.some((role) => auth.user.roles.includes(role))),
   );
 
   return (
     <div className="panel-page">
       <h1>Xoş gəldiniz, {auth.user.name ?? auth.user.username}</h1>
       <p className="panel-page-lead">
-        Bu, MTK idarəetmə panelinizin ümumi baxışıdır. Aşağıdakı bölmələr rolunuza
+        Bu, MTK idarəetmə panelinizin ümumi baxışıdır. Aşağıdakı modullar rolunuza
         uyğun olaraq göstərilir.
       </p>
       <div className="panel-card-grid">
-        {sections.map((item) => (
-          <div className="panel-card" key={item.href}>
+        {modules.map((mod) => (
+          <Link className="panel-card" href={mod.href} key={mod.href}>
             <span className="panel-card-icon" aria-hidden="true">
-              {item.icon}
+              {mod.icon}
             </span>
-            <h3>{item.label}</h3>
-            <p>Tezliklə burada {item.label.toLowerCase()} məlumatları olacaq.</p>
-          </div>
+            <h3>{mod.label}</h3>
+            {mod.tabs && (
+              <p>{mod.tabs.map((tab) => tab.label).join(" · ")}</p>
+            )}
+          </Link>
         ))}
       </div>
     </div>

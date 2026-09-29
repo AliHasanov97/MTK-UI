@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "../components/Logo";
-import { NAV_GROUPS } from "./nav";
+import { NAV_MODULES } from "./nav";
 import { UserMenu } from "../components/UserMenu";
 import { useAuth } from "../lib/auth/AuthContext";
 
@@ -16,12 +16,13 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   if (auth.status !== "authenticated") return null;
   const { user, logout } = auth;
 
-  const visibleGroups = NAV_GROUPS.map((group) => ({
-    ...group,
-    items: group.items.filter(
-      (item) => !item.roles || item.roles.some((role) => user.roles.includes(role)),
-    ),
-  })).filter((group) => group.items.length > 0);
+  const visibleModules = NAV_MODULES.filter(
+    (mod) => !mod.roles || mod.roles.some((role) => user.roles.includes(role)),
+  );
+
+  const activeModule = visibleModules.find(
+    (mod) => mod.href === pathname || mod.tabs?.some((tab) => tab.href === pathname),
+  );
 
   return (
     <div className="panel-shell">
@@ -42,23 +43,16 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
         <nav className="panel-nav" aria-label="Panel naviqasiyası">
-          {visibleGroups.map((group) => (
-            <div className="panel-nav-group" key={group.label}>
-              <div className="panel-nav-group-label">{group.label}</div>
-              {group.items.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={
-                    pathname === item.href ? "panel-nav-item active" : "panel-nav-item"
-                  }
-                  onClick={() => setMobileNavOpen(false)}
-                >
-                  <span aria-hidden="true">{item.icon}</span>
-                  {item.label}
-                </Link>
-              ))}
-            </div>
+          {visibleModules.map((mod) => (
+            <Link
+              key={mod.href}
+              href={mod.href}
+              className={mod === activeModule ? "panel-nav-item active" : "panel-nav-item"}
+              onClick={() => setMobileNavOpen(false)}
+            >
+              <span aria-hidden="true">{mod.icon}</span>
+              {mod.label}
+            </Link>
           ))}
         </nav>
         <button type="button" className="panel-sidebar-logout" onClick={logout}>
@@ -80,6 +74,19 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
           </button>
           <UserMenu />
         </header>
+        {activeModule?.tabs && (
+          <nav className="panel-tabs" aria-label={`${activeModule.label} bölmələri`}>
+            {activeModule.tabs.map((tab) => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={pathname === tab.href ? "panel-tab active" : "panel-tab"}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </nav>
+        )}
         <main className="panel-content">{children}</main>
       </div>
     </div>

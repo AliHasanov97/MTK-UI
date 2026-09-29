@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { exchangeCodeForTokens, toTokenSet } from "../../lib/auth/client";
@@ -11,8 +11,19 @@ export default function CallbackPage() {
   const router = useRouter();
   const { completeLogin } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  // An authorization code can only be exchanged once — Keycloak rejects a
+  // replay, and can even revoke the whole grant as a security precaution.
+  // In development, React's Strict Mode deliberately runs this effect
+  // twice, so without this guard the second run replays the same code and
+  // silently kills the session a few minutes later. The ref survives that
+  // simulated remount (unlike a plain variable), so it reliably makes the
+  // exchange run exactly once.
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
+
     const params = new URLSearchParams(window.location.search);
     const errorParam = params.get("error_description") ?? params.get("error");
     const code = params.get("code");
@@ -35,10 +46,10 @@ export default function CallbackPage() {
       setError("Giriş sessiyası bitib. Zəhmət olmasa yenidən cəhd edin.");
       return;
     }
+    sessionStorage.removeItem(PKCE_VERIFIER_KEY);
 
     exchangeCodeForTokens(keycloakConfig, code, codeVerifier)
       .then((res) => {
-        sessionStorage.removeItem(PKCE_VERIFIER_KEY);
         completeLogin(toTokenSet(res));
         router.replace("/panel");
       })
