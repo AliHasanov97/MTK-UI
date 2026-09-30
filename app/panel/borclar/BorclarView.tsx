@@ -74,10 +74,12 @@ export function BorclarView() {
           resolveOwnerNames(auth.accessToken, res.charges.map((c) => c.ownerId)),
           resolvePropertyLabels(
             auth.accessToken,
-            res.charges.map((c) => ({
-              propertyType: c.propertyType === 0 ? "Apartment" : "Garage",
-              propertyId: c.propertyId,
-            })),
+            res.charges
+              .filter((c) => c.propertyId != null)
+              .map((c) => ({
+                propertyType: c.propertyType === 0 ? "Apartment" : "Garage",
+                propertyId: c.propertyId as string,
+              })),
           ),
         ]);
       })
@@ -120,8 +122,8 @@ export function BorclarView() {
     if (scope === "paid" && status !== "Paid") return false;
     if (term) {
       const owner = ownerNames[c.ownerId] ?? "";
-      const property = propertyLabels[c.propertyId] ?? "";
-      const haystack = `${owner} ${property} ${c.period} ${c.description ?? ""}`.toLowerCase();
+      const property = c.propertyId ? propertyLabels[c.propertyId] ?? "" : "";
+      const haystack = `${owner} ${property} ${c.period ?? ""} ${c.description ?? ""}`.toLowerCase();
       if (!haystack.includes(term)) return false;
     }
     return true;
@@ -287,7 +289,7 @@ export function BorclarView() {
                           {c.description && <span className="vendor-cell-sub">{c.description}</span>}
                           {fromAdvance && <span className="vendor-cell-sub">avansdan ödənilib</span>}
                         </td>
-                        <td>{propertyLabels[c.propertyId] ?? "…"}</td>
+                        <td>{c.propertyId ? propertyLabels[c.propertyId] ?? "…" : "…"}</td>
                         <td>
                           {c.period || "—"}
                           <span className="vendor-cell-sub">borc tarixi {c.issuedOn.slice(0, 10)}</span>
@@ -317,7 +319,7 @@ export function BorclarView() {
                             {remaining > 0 && (
                               <PayButton
                                 ownerId={c.ownerId}
-                                propertyId={c.propertyId}
+                                propertyId={c.propertyId ?? undefined}
                                 propertyType={propertyType}
                                 balance={-remaining}
                                 onPaid={load}

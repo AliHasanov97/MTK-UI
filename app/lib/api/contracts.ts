@@ -62,17 +62,6 @@ export type ContractServiceResponse = {
   isActive: boolean;
 };
 
-export type ContractGoodsItemResponse = {
-  id: string;
-  name: string;
-  description: string | null;
-  unit: string;
-  unitPrice: number;
-  agreedQuantity: number | null;
-  paymentTermDays: number | null;
-  isActive: boolean;
-};
-
 export type ContractResponse = {
   id: string;
   number: string;
@@ -91,7 +80,6 @@ export type ContractResponse = {
   createdAt: string;
   updatedAt: string | null;
   services: ContractServiceResponse[];
-  goodsItems: ContractGoodsItemResponse[];
 };
 
 export type SearchContractsResult = {
@@ -222,66 +210,6 @@ export function activateContract(accessToken: string, contractId: string) {
   return apiFetch<MessageOnly>(`api/payments/contracts/${contractId}/activate`, accessToken, {
     method: "POST",
   });
-}
-
-// ---------------------------------------------------------------------------
-// Mal sətirləri — müqavilə üzrə razılaşdırılmış qiymətli mal (nomenklatura
-// modulu gələnə qədər ad + vahid sərbəst mətn saxlanılır). Borc özü mal
-// tədarükü (qaimə) anında yaranır — VendorCharges API-sində.
-// ---------------------------------------------------------------------------
-
-export type ContractGoodsItemRequest = {
-  name: string;
-  unit: string;
-  unitPrice: number;
-  agreedQuantity?: number | null;
-  paymentTermDays?: number | null;
-  description?: string | null;
-};
-
-export function addContractGoodsItem(
-  accessToken: string,
-  contractId: string,
-  request: ContractGoodsItemRequest,
-) {
-  return apiFetch<Envelope<string>>(`api/payments/contracts/${contractId}/goods`, accessToken, {
-    method: "POST",
-    body: JSON.stringify(request),
-  }).then((e) => e.data);
-}
-
-export function updateContractGoodsItem(
-  accessToken: string,
-  contractId: string,
-  goodsItemId: string,
-  request: ContractGoodsItemRequest,
-) {
-  return apiFetch<MessageOnly>(
-    `api/payments/contracts/${contractId}/goods/${goodsItemId}`,
-    accessToken,
-    { method: "PUT", body: JSON.stringify(request) },
-  );
-}
-
-export function removeContractGoodsItem(accessToken: string, contractId: string, goodsItemId: string) {
-  return apiFetch<MessageOnly>(
-    `api/payments/contracts/${contractId}/goods/${goodsItemId}`,
-    accessToken,
-    { method: "DELETE" },
-  );
-}
-
-export function setContractGoodsItemStatus(
-  accessToken: string,
-  contractId: string,
-  goodsItemId: string,
-  isActive: boolean,
-) {
-  return apiFetch<MessageOnly>(
-    `api/payments/contracts/${contractId}/goods/${goodsItemId}/status`,
-    accessToken,
-    { method: "PUT", body: JSON.stringify({ isActive }) },
-  );
 }
 
 export function suspendContract(accessToken: string, contractId: string, note?: string | null) {

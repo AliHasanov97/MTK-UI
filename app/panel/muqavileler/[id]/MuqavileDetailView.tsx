@@ -10,36 +10,28 @@ import {
   BILLING_PERIOD_LABELS,
   CONTRACT_STATUS_LABELS,
   activateContract,
-  addContractGoodsItem,
   addContractService,
   billingPeriodFromOrdinal,
   contractStatusFromOrdinal,
   deleteContract,
   getContract,
-  removeContractGoodsItem,
   removeContractService,
-  setContractGoodsItemStatus,
   setContractServiceStatus,
   suspendContract,
   terminateContract,
   updateContract,
-  updateContractGoodsItem,
   updateContractService,
   type BillingPeriodKey,
-  type ContractGoodsItemResponse,
   type ContractResponse,
   type ContractServiceResponse,
 } from "../../../lib/api/contracts";
 import {
   PAYMENT_METHODS_ORDERED,
   PAYMENT_METHOD_LABELS,
-  VENDOR_CHARGE_SOURCE_LABELS,
   VENDOR_CHARGE_STATUS_LABELS,
   cancelVendorCharge,
   createVendorPayment,
-  recordGoodsDelivery,
   searchVendorCharges,
-  vendorChargeSourceFromOrdinal,
   vendorChargeStatusFromOrdinal,
   type PaymentMethodKey,
   type VendorChargeResponse,
@@ -64,8 +56,6 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [serviceForm, setServiceForm] = useState<{ service: ContractServiceResponse | null } | null>(null);
-  const [goodsForm, setGoodsForm] = useState<{ item: ContractGoodsItemResponse | null } | null>(null);
-  const [deliveryForm, setDeliveryForm] = useState<{ item: ContractGoodsItemResponse } | null>(null);
   const [payForm, setPayForm] = useState<VendorChargeResponse | null>(null);
   const [datesOpen, setDatesOpen] = useState(false);
   const [terminateOpen, setTerminateOpen] = useState(false);
@@ -181,10 +171,6 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
           <div className="owner-hero-stat">
             <span className="owner-stat-label">Xidmət sayı</span>
             <strong>{contract.services.length}</strong>
-          </div>
-          <div className="owner-hero-stat">
-            <span className="owner-stat-label">Mal sətri</span>
-            <strong>{contract.goodsItems.length}</strong>
           </div>
         </div>
 
@@ -358,120 +344,13 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
       </section>
 
       <section className="panel-card owner-section-card">
-        <h4 style={{ justifyContent: "space-between" }}>
-          <span>Müqavilə üzrə mallar</span>
-          {isDraft && (
-            <button
-              type="button"
-              className="panel-btn panel-btn-sm panel-btn-primary"
-              onClick={() => setGoodsForm({ item: null })}
-            >
-              + Mal əlavə et
-            </button>
-          )}
-        </h4>
-
-        {contract.goodsItems.length === 0 ? (
-          <p className="panel-page-lead">
-            Hələ mal sətri yoxdur. Mal sətirləri razılaşdırılmış qiymətli malları saxlayır — borc isə
-            konkret tədarük (qaimə) anında yaranır.
-          </p>
-        ) : (
-          <div className="owner-table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Mal</th>
-                  <th>Vahid qiymət</th>
-                  <th>Vahid</th>
-                  <th>Gözlənilən miqdar</th>
-                  <th>Ödəniş müddəti</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {contract.goodsItems.map((i) => (
-                  <tr key={i.id}>
-                    <td>
-                      {i.name}
-                      {i.description && <span style={{ color: "#8a938c" }}> · {i.description}</span>}
-                    </td>
-                    <td>{money(i.unitPrice)}</td>
-                    <td>{i.unit}</td>
-                    <td>{i.agreedQuantity ?? "—"}</td>
-                    <td>{i.paymentTermDays != null ? `${i.paymentTermDays} gün` : "—"}</td>
-                    <td>
-                      <span className={`panel-role-tag${i.isActive ? "" : " panel-role-tag-inactive"}`}>
-                        {i.isActive ? "Aktiv" : "Dayandırılıb"}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="data-table-actions">
-                        {contract.isActive && i.isActive && (
-                          <button
-                            type="button"
-                            className="panel-btn panel-btn-sm panel-btn-primary"
-                            disabled={busy}
-                            onClick={() => setDeliveryForm({ item: i })}
-                          >
-                            Tədarük qeydə al
-                          </button>
-                        )}
-                        {isDraft && (
-                          <>
-                            <button
-                              type="button"
-                              className="panel-btn panel-btn-sm"
-                              disabled={busy}
-                              onClick={() => setGoodsForm({ item: i })}
-                            >
-                              Redaktə
-                            </button>
-                            <button
-                              type="button"
-                              className="panel-btn panel-btn-sm panel-btn-danger"
-                              disabled={busy}
-                              onClick={() => {
-                                if (!window.confirm(`"${i.name}" mal sətri silinsin?`)) return;
-                                void run(() => removeContractGoodsItem(accessToken, contract.id, i.id));
-                              }}
-                            >
-                              Sil
-                            </button>
-                          </>
-                        )}
-                        {!isDraft && (
-                          <button
-                            type="button"
-                            className="panel-btn panel-btn-sm"
-                            disabled={busy}
-                            onClick={() =>
-                              run(() => setContractGoodsItemStatus(accessToken, contract.id, i.id, !i.isActive))
-                            }
-                          >
-                            {i.isActive ? "Dayandır" : "Bərpa et"}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="panel-card owner-section-card">
         <h4>Tədarükçü borcları</h4>
         {chargesError && <p className="form-error">{chargesError}</p>}
         {charges === null && !chargesError ? (
           <p className="panel-page-lead">Yüklənir…</p>
         ) : (charges ?? []).length === 0 ? (
           <p className="panel-page-lead">
-            Bu müqavilə üzrə hələ borc yaranmayıb. Cədvəl üzrə xidmət borcları avtomatik yaradılır;
-            mal borcları «Tədarük qeydə al» düyməsi ilə.
+            Bu müqavilə üzrə hələ borc yaranmayıb. Cədvəl üzrə xidmət borcları avtomatik yaradılır.
           </p>
         ) : (
           <div className="owner-table-scroll">
@@ -479,7 +358,6 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
               <thead>
                 <tr>
                   <th>Təsvir</th>
-                  <th>Mənbə</th>
                   <th>Məbləğ</th>
                   <th>Ödənilib</th>
                   <th>Qalıq</th>
@@ -491,14 +369,9 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
               <tbody>
                 {(charges ?? []).map((c) => {
                   const chargeStatus = vendorChargeStatusFromOrdinal(c.status);
-                  const source = vendorChargeSourceFromOrdinal(c.source);
                   return (
                     <tr key={c.id}>
-                      <td>
-                        {c.description}
-                        {c.reference && <span style={{ color: "#8a938c" }}> · №{c.reference}</span>}
-                      </td>
-                      <td>{VENDOR_CHARGE_SOURCE_LABELS[source]}</td>
+                      <td>{c.description}</td>
                       <td>{money(c.amount)}</td>
                       <td>{money(c.paidAmount)}</td>
                       <td>
@@ -544,7 +417,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                               disabled={busy}
                               onClick={() => {
                                 if (!window.confirm(`"${c.description}" borcu ləğv edilsin?`)) return;
-                                void run(() => cancelVendorCharge(accessToken, c.id, null));
+                                void run(() => cancelVendorCharge(accessToken, c.id));
                               }}
                             >
                               Ləğv et
@@ -592,30 +465,6 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
         />
       )}
 
-      {goodsForm && (
-        <GoodsFormModal
-          contract={contract}
-          item={goodsForm.item}
-          onClose={() => setGoodsForm(null)}
-          onSaved={() => {
-            setGoodsForm(null);
-            reload();
-          }}
-        />
-      )}
-
-      {deliveryForm && (
-        <DeliveryModal
-          contract={contract}
-          item={deliveryForm.item}
-          onClose={() => setDeliveryForm(null)}
-          onSaved={() => {
-            setDeliveryForm(null);
-            reload();
-          }}
-        />
-      )}
-
       {payForm && (
         <PayChargeModal
           charge={payForm}
@@ -639,256 +488,6 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
         />
       )}
     </div>
-  );
-}
-
-function GoodsFormModal({
-  contract,
-  item,
-  onClose,
-  onSaved,
-}: {
-  contract: ContractResponse;
-  item: ContractGoodsItemResponse | null;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const auth = useAuth();
-  const [name, setName] = useState(item?.name ?? "");
-  const [unit, setUnit] = useState(item?.unit ?? "ədəd");
-  const [unitPrice, setUnitPrice] = useState(item ? String(item.unitPrice) : "");
-  const [agreedQuantity, setAgreedQuantity] = useState(
-    item?.agreedQuantity != null ? String(item.agreedQuantity) : "",
-  );
-  const [paymentTermDays, setPaymentTermDays] = useState(
-    item?.paymentTermDays != null ? String(item.paymentTermDays) : "",
-  );
-  const [description, setDescription] = useState(item?.description ?? "");
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  if (auth.status !== "authenticated") return null;
-  const accessToken = auth.accessToken;
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const price = Number(unitPrice);
-    if (Number.isNaN(price) || price < 0) {
-      setError("Vahid qiymət mənfi ola bilməz.");
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    try {
-      const request = {
-        name,
-        unit,
-        unitPrice: price,
-        agreedQuantity: agreedQuantity ? Number(agreedQuantity) : null,
-        paymentTermDays: paymentTermDays ? Number(paymentTermDays) : null,
-        description: description || null,
-      };
-
-      if (item) {
-        await updateContractGoodsItem(accessToken, contract.id, item.id, request);
-      } else {
-        await addContractGoodsItem(accessToken, contract.id, request);
-      }
-      onSaved();
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Modal title={item ? "Mal sətrini redaktə et" : "Yeni mal sətri"} onClose={onClose}>
-      <form onSubmit={handleSubmit}>
-        {error && <p className="form-error">{error}</p>}
-        <div className="form-field">
-          <label htmlFor="goods-name">Malın adı</label>
-          <input
-            id="goods-name"
-            required
-            placeholder="Sement M500"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="goods-unit">Ölçü vahidi</label>
-            <input
-              id="goods-unit"
-              required
-              placeholder="torba / ədəd / kq"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="goods-price">Vahid qiymət ({contract.currency})</label>
-            <input
-              id="goods-price"
-              type="number"
-              min={0}
-              step="0.01"
-              required
-              value={unitPrice}
-              onChange={(e) => setUnitPrice(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="goods-quantity">Gözlənilən miqdar (opsional)</label>
-            <input
-              id="goods-quantity"
-              type="number"
-              min={0.01}
-              step="0.01"
-              value={agreedQuantity}
-              onChange={(e) => setAgreedQuantity(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="goods-term">Ödəniş müddəti, gün (opsional)</label>
-            <input
-              id="goods-term"
-              type="number"
-              min={0}
-              step="1"
-              value={paymentTermDays}
-              onChange={(e) => setPaymentTermDays(e.target.value)}
-            />
-          </div>
-        </div>
-        <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
-          Mal sətri özü borc yaratmır — borc «Tədarük qeydə al» ilə, göndərilən miqdara görə yaranır.
-        </p>
-        <div className="form-field">
-          <label htmlFor="goods-description">Təsvir</label>
-          <input
-            id="goods-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </div>
-        <div className="form-actions">
-          <button type="button" className="panel-btn" onClick={onClose}>
-            Ləğv et
-          </button>
-          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
-            {saving ? "Saxlanılır…" : item ? "Saxla" : "Əlavə et"}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-}
-
-function DeliveryModal({
-  contract,
-  item,
-  onClose,
-  onSaved,
-}: {
-  contract: ContractResponse;
-  item: ContractGoodsItemResponse;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const auth = useAuth();
-  const [quantity, setQuantity] = useState("1");
-  const [reference, setReference] = useState("");
-  const [deliveredOn, setDeliveredOn] = useState(() => new Date().toISOString().slice(0, 10));
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  if (auth.status !== "authenticated") return null;
-  const accessToken = auth.accessToken;
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const qty = Number(quantity);
-    if (Number.isNaN(qty) || qty <= 0) {
-      setError("Tədarük miqdarı müsbət olmalıdır.");
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-    try {
-      await recordGoodsDelivery(accessToken, {
-        contractId: contract.id,
-        goodsItemId: item.id,
-        quantity: qty,
-        reference: reference || null,
-        deliveredOn: deliveredOn || null,
-      });
-      onSaved();
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Modal title={`Tədarük qeydə al — ${item.name}`} onClose={onClose}>
-      <p className="panel-page-lead">
-        Göndərilən miqdar müqavilə qiyməti ({item.unitPrice.toFixed(2)} {contract.currency}/
-        {item.unit}) ilə vurulub borc kimi yazılacaq.
-      </p>
-      <form onSubmit={handleSubmit}>
-        {error && <p className="form-error">{error}</p>}
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="delivery-qty">Miqdar ({item.unit})</label>
-            <input
-              id="delivery-qty"
-              type="number"
-              min={0.01}
-              step="0.01"
-              required
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="delivery-date">Tədarük tarixi</label>
-            <input
-              id="delivery-date"
-              type="date"
-              required
-              value={deliveredOn}
-              onChange={(e) => setDeliveredOn(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="form-field">
-          <label htmlFor="delivery-ref">Qaimə / sənəd nömrəsi (opsional)</label>
-          <input
-            id="delivery-ref"
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-          />
-        </div>
-        <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
-          Eyni qaimə nömrəsi ilə ikinci dəfə borc yaranmur.
-        </p>
-        <div className="form-actions">
-          <button type="button" className="panel-btn" onClick={onClose}>
-            Ləğv et
-          </button>
-          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
-            {saving ? "Qeydə alınır…" : "Qeydə al"}
-          </button>
-        </div>
-      </form>
-    </Modal>
   );
 }
 
@@ -921,16 +520,11 @@ function PayChargeModal({
       setError("Ödəniş məbləği müsbət olmalıdır.");
       return;
     }
-    if (value > charge.outstandingAmount) {
-      setError(`Ödəniş qalıq borcdan böyük ola bilməz (qalıq: ${charge.outstandingAmount}).`);
-      return;
-    }
-
     setSaving(true);
     setError(null);
     try {
       await createVendorPayment(accessToken, {
-        vendorChargeId: charge.id,
+        vendorId: charge.vendorId,
         amount: value,
         paymentMethod,
         paymentDate,

@@ -31,7 +31,8 @@ const AZ_MONTHS = [
 ];
 
 /** "2026-09" -> "Sentyabr 2026". Falls through unchanged for anything else (e.g. a manual charge's own period tag). */
-function formatPeriod(period: string): string {
+function formatPeriod(period: string | null): string {
+  if (!period) return "—";
   const m = /^(\d{4})-(\d{2})$/.exec(period);
   if (!m) return period;
   const monthName = AZ_MONTHS[Number(m[2]) - 1];
@@ -44,13 +45,13 @@ function formatPeriod(period: string): string {
  * never has to be taken on faith.
  */
 function chargeDescription(c: ChargeResponse): string {
-  const rateType = rateTypeFromOrdinal(c.rateType);
+  const rateType = c.rateType != null ? rateTypeFromOrdinal(c.rateType) : null;
   const periodLabel = formatPeriod(c.period);
 
-  if (rateType === "PerSquareMeter" && c.areaSquareMeters != null) {
+  if (rateType === "PerSquareMeter" && c.areaSquareMeters != null && c.rateAmount != null) {
     return `Aylıq mənzil haqqı (${periodLabel}): ${c.areaSquareMeters.toFixed(2)} m² × ${c.rateAmount.toFixed(2)} ₼/m²`;
   }
-  if (rateType === "FixedGarage") {
+  if (rateType === "FixedGarage" && c.rateAmount != null) {
     return `Aylıq qaraj haqqı (${periodLabel}): sabit ${c.rateAmount.toFixed(2)} ₼`;
   }
   // Manual (one-off) charges already carry a human-written reason.
@@ -352,6 +353,51 @@ export function usePropertyFinance(accessToken: string | undefined, ownerId: str
 }
 
 /**
+ * Mülkiyyət əməliyyatları üçün borc qapısı (transfer / sahibin çıxarılması):
+ * `active` true olan kimi əmlakın balansı birbaşa API-dan çəkilir və qalıq borc
+ * hesablanır. `blocked` yoxlama davam edəndə, yoxlama alınmadıqda və ya borc
+ * qalandıqda true-dur — əməliyyat yalnız false olanda icazələnir. Göndərmə
+ * anında `checkDebt()`-i təkrar çağırmaq modal açıldıqdan sonra yaranmış yeni
+ * borcu da tutur (null = yoxlama alınmadı).
+ */
+export function usePropertyDebtGate(accessToken: string | undefined, propertyId: string, active: boolean) {
+  const [checking, setChecking] = useState(false);
+  const [debt, setDebt] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const checkDebt = useCallback(async (): Promise<number | null> => {
+    if (!accessToken) return null;
+    setChecking(true);
+    setError(null);
+    try {
+      const balance = await getPropertyBalance(accessToken, propertyId);
+      const outstanding = Math.max(0, -balance.currentBalance);
+      setDebt(outstanding);
+      return outstanding;
+    } catch (err) {
+      setError(errorMessage(err));
+      setDebt(null);
+      return null;
+    } finally {
+      setChecking(false);
+    }
+  }, [accessToken, propertyId]);
+
+  useEffect(() => {
+    if (active) {
+      checkDebt();
+    } else {
+      setDebt(null);
+      setError(null);
+    }
+  }, [active, checkDebt]);
+
+  const blocked = checking || error !== null || (debt ?? 0) > 0.005;
+
+  return { checking, debt, error, blocked, checkDebt };
+}
+
+/**
  * Every charge this owner/property was billed, each row showing its own
  * paid/remaining amount directly — no need to cross-reference a separate list to
  * see whether a given charge is settled. Expand a row to see exactly which
@@ -424,7 +470,7 @@ export function ChargesTable({
                           {isOpen ? "▲" : "▼"}
                         </button>
                       </td>
-                      {propertyLabels && <td>{propertyLabels[c.propertyId] ?? "—"}</td>}
+                      {propertyLabels && <td>{c.propertyId ? propertyLabels[c.propertyId] ?? "—" : "—"}</td>}
                       <td>{c.createdAt.slice(0, 10)}</td>
                       <td>{chargeDescription(c)}</td>
                       <td>{c.amount.toFixed(2)}</td>
@@ -592,7 +638,7 @@ export function PaymentsTable({
                                 <tbody>
                                   {rows!.map((r) => (
                                     <tr key={r.chargeId}>
-                                      {propertyLabels && <td>{propertyLabels[r.propertyId] ?? "—"}</td>}
+                                      {propertyLabels && <td>{r.propertyId ? propertyLabels[r.propertyId] ?? "—" : "—"}</td>}
                                       <td>{r.description ?? formatPeriod(r.period)}</td>
                                       <td>{r.chargeAmount.toFixed(2)}</td>
                                       <td>{r.allocatedAmount.toFixed(2)}</td>

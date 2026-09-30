@@ -15,6 +15,7 @@ import {
   type Garage,
   type GarageTypeKey,
 } from "../../../../lib/api/garages";
+import { getPropertyBalance } from "../../../../lib/api/payments";
 import type { OwnerListItem } from "../../../../lib/api/owners";
 import { Modal } from "../../../Modal";
 import { OwnerPicker } from "../../OwnerPicker";
@@ -24,6 +25,7 @@ import {
   PayButton,
   formatSigned,
   lastPaymentDate,
+  usePropertyDebtGate,
   usePropertyFinance,
 } from "../../finance";
 
@@ -51,6 +53,14 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+
+  // "Sahibi çıxar" təsdiq pəncərəsi açılanda əmlakın borcu API-dan çəkilir —
+  // borc varsa təsdiq düyməsi bloklanır və səbəb göstərilir.
+  const debtGate = usePropertyDebtGate(
+    auth.status === "authenticated" ? auth.accessToken : undefined,
+    garageId,
+    showRemoveConfirm,
+  );
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -92,6 +102,16 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
     setWorking(true);
     setActionError(null);
     try {
+      // Sahiblikdən çıxarmadan əvvəl: əmlakın borcu API-dan yoxlanır — borcu
+      // olan qarajın sahibi çıxarıla bilməz.
+      const balance = await getPropertyBalance(accessToken, garageId);
+      const debt = Math.max(0, -balance.currentBalance);
+      if (debt > 0.005) {
+        setActionError(
+          `Bu qaraj üzrə ${debt.toFixed(2)} ₼ qalıq borc var. Əvvəlcə borcu ödənilməlidir — borcu olan qarajın sahibi çıxarıla bilməz.`,
+        );
+        return;
+      }
       await removeOwnerFromGarage(accessToken, garageId);
       setShowRemoveConfirm(false);
       load();
@@ -237,6 +257,16 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
           <p className="panel-page-lead">
             <strong>{garage.owner?.name}</strong> bu qarajın sahibliyindən çıxarılsın?
           </p>
+          {debtGate.checking && <p className="panel-page-lead">Borc yoxlanılır…</p>}
+          {debtGate.error && (
+            <p className="form-error">Borc yoxlanıla bilmədi: {debtGate.error}</p>
+          )}
+          {debtGate.debt !== null && debtGate.debt > 0.005 && (
+            <p className="form-error">
+              Bu qaraj üzrə <strong>{debtGate.debt.toFixed(2)} ₼</strong> qalıq borc var. Əvvəlcə borcu
+              ödənilməlidir — borcu olan qarajın sahibi çıxarıla bilməz.
+            </p>
+          )}
           <div className="form-actions">
             <button type="button" className="panel-btn" onClick={() => setShowRemoveConfirm(false)}>
               Ləğv et
@@ -245,7 +275,7 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
               type="button"
               className="panel-btn panel-btn-danger"
               onClick={handleRemoveOwner}
-              disabled={working}
+              disabled={working || debtGate.blocked}
             >
               {working ? "Yerinə yetirilir…" : "Çıxar"}
             </button>

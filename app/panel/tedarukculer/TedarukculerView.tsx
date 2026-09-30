@@ -20,12 +20,10 @@ import {
 import {
   PAYMENT_METHODS_ORDERED,
   PAYMENT_METHOD_LABELS,
-  VENDOR_CHARGE_SOURCE_LABELS,
   VENDOR_CHARGE_STATUS_LABELS,
   cancelVendorCharge,
   createVendorPayment,
   searchVendorCharges,
-  vendorChargeSourceFromOrdinal,
   vendorChargeStatusFromOrdinal,
   type PaymentMethodKey,
   type VendorChargeResponse,
@@ -387,7 +385,7 @@ function DebtsSegment() {
     if (scope === "open" && (status === "Paid" || status === "Cancelled")) return false;
     if (term) {
       const vendor = vendorNames[c.vendorId] ?? "";
-      const haystack = `${c.description} ${c.reference ?? ""} ${c.period ?? ""} ${vendor}`.toLowerCase();
+      const haystack = `${c.description} ${c.period ?? ""} ${vendor}`.toLowerCase();
       if (!haystack.includes(term)) return false;
     }
     return true;
@@ -407,7 +405,7 @@ function DebtsSegment() {
     setWorkingId(charge.id);
     setError(null);
     try {
-      await cancelVendorCharge(accessToken, charge.id, null);
+      await cancelVendorCharge(accessToken, charge.id);
       reload();
     } catch (err) {
       setError(errorMessage(err));
@@ -465,7 +463,7 @@ function DebtsSegment() {
           <input
             className="panel-search"
             style={{ maxWidth: 280 }}
-            placeholder="Axtar (təsvir, qaimə, tədarükçü…)"
+            placeholder="Axtar (təsvir, tədarükçü…)"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -493,7 +491,6 @@ function DebtsSegment() {
               <colgroup>
                 <col className="vendor-col-vendor" />
                 <col className="vendor-col-desc" />
-                <col className="vendor-col-source" />
                 <col className="vendor-col-amount" />
                 <col className="vendor-col-amount" />
                 <col className="vendor-col-status" />
@@ -503,7 +500,6 @@ function DebtsSegment() {
                 <tr>
                   <th>Tədarükçü</th>
                   <th>Təsvir</th>
-                  <th>Mənbə</th>
                   <th className="vendor-th-amount">Qalıq</th>
                   <th className="vendor-th-amount">Məbləğ</th>
                   <th>Status</th>
@@ -513,7 +509,6 @@ function DebtsSegment() {
               <tbody>
                 {visible.map((c) => {
                   const status = vendorChargeStatusFromOrdinal(c.status);
-                  const source = vendorChargeSourceFromOrdinal(c.source);
                   const canPay = status === "Unpaid" || status === "PartiallyPaid";
                   return (
                     <tr key={c.id}>
@@ -523,16 +518,12 @@ function DebtsSegment() {
                       </td>
                       <td className="ledger-cell-note">
                         {c.description}
-                        {c.reference && (
-                          <span className="vendor-cell-sub">Qaimə №{c.reference}</span>
-                        )}
                         {c.isOverdue && (
                           <span className="vendor-cell-sub vendor-value-danger">
                             Son tarix {dateOnly(c.dueDate!)} — gecikib
                           </span>
                         )}
                       </td>
-                      <td>{VENDOR_CHARGE_SOURCE_LABELS[source]}</td>
                       <td className="vendor-amount">
                         <strong className={c.outstandingAmount > 0 ? "vendor-value-danger" : "vendor-value-ok"}>
                           {formatMoney(c.outstandingAmount)}
@@ -581,9 +572,8 @@ function DebtsSegment() {
       </div>
 
       <p className="vendor-note">
-        Cədvəl üzrə xidmət borcları (texniki baxış, sığorta və s.) hər ayın 1-də avtomatik yaranır; mal
-        borcları müqavilə detalında «Tədarük qeydə al» ilə qaimə üzrə yazılır. Ödəniş tranzaksiyalar
-        jurnalına xərc kimi düşür.
+        Cədvəl üzrə xidmət borcları (texniki baxış, sığorta və s.) hər ayın 1-də avtomatik yaranır.
+        Ödəniş tranzaksiyalar jurnalına xərc kimi düşür.
       </p>
 
       {payCharge && (
@@ -631,16 +621,11 @@ function PayVendorChargeModal({
       setError("Ödəniş məbləği müsbət olmalıdır.");
       return;
     }
-    if (value > charge.outstandingAmount) {
-      setError(`Ödəniş qalıq borcdan böyük ola bilməz (qalıq: ${charge.outstandingAmount}).`);
-      return;
-    }
-
     setSaving(true);
     setError(null);
     try {
       await createVendorPayment(accessToken, {
-        vendorChargeId: charge.id,
+        vendorId: charge.vendorId,
         amount: value,
         paymentMethod,
         paymentDate,
@@ -658,15 +643,13 @@ function PayVendorChargeModal({
     <Modal title="Tədarükçüyə ödəniş" onClose={onClose}>
       <p className="panel-page-lead">
         {charge.description} · qalıq borc{" "}
-        <strong>
-          {charge.outstandingAmount.toFixed(2)} {charge.currency}
-        </strong>
+        <strong>{charge.outstandingAmount.toFixed(2)} ₼</strong>
       </p>
       <form onSubmit={handleSubmit}>
         {error && <p className="form-error">{error}</p>}
         <div className="form-row">
           <div className="form-field">
-            <label htmlFor="vpay-amount">Məbləğ ({charge.currency})</label>
+            <label htmlFor="vpay-amount">Məbləğ (₼)</label>
             <input
               id="vpay-amount"
               type="number"

@@ -19,6 +19,7 @@ import {
   PayButton,
   formatSigned,
   lastPaymentDate,
+  usePropertyDebtGate,
   usePropertyFinance,
 } from "../../finance";
 
@@ -255,12 +256,60 @@ function TransferOwnershipModal({
   if (auth.status !== "authenticated") return null;
   const accessToken = auth.accessToken;
 
+  // Transfer bundan əvvəl: əmlakın borcu API-dan yoxlanır — borcu olan mənzil
+  // köçürülə bilməz.
+  const debtGate = usePropertyDebtGate(accessToken, apartmentId, true);
+  if (debtGate.checking) {
+    return (
+      <Modal title="Mülkiyyəti köçür" onClose={onClose}>
+        <p className="panel-page-lead">Borc yoxlanılır…</p>
+      </Modal>
+   );
+  }
+  if (debtGate.error) {
+    return (
+      <Modal title="Mülkiyyəti köçür" onClose={onClose}>
+        <p className="form-error">Borc yoxlanıla bilmədi: {debtGate.error}</p>
+        <div className="form-actions">
+          <button type="button" className="panel-btn panel-btn-primary" onClick={debtGate.checkDebt}>
+            Yenidən cəhd et
+          </button>
+        </div>
+      </Modal>
+   );
+  }
+  if (debtGate.debt !== null && debtGate.debt > 0.005) {
+    return (
+      <Modal title="Mülkiyyəti köçür" onClose={onClose}>
+        <p className="form-error">
+          Bu mənzil üzrə <strong>{debtGate.debt.toFixed(2)} ₼</strong> qalıq borc var. Əvvəlcə borcu
+          ödənilməlidir — borcu olan mənzil köçürülə bilməz.
+        </p>
+        <div className="form-actions">
+          <button type="button" className="panel-btn panel-btn-primary" onClick={onClose}>
+            Bağla
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!owner) return;
     setSaving(true);
     setError(null);
     try {
+      // Göndərmə anında təkrar yoxla — modal açıldıqdan sonra yaranmış borcu da tutur.
+      const debt = await debtGate.checkDebt();
+      if (debt === null) {
+        setError("Borc yoxlanıla bilmədi, əməliyyat dayandırıldı.");
+        return;
+      }
+      if (debt > 0.005) {
+        setError(`Bu mənzil üzrə ${debt.toFixed(2)} ₼ qalıq borc var — köçürmə mümkün deyil.`);
+        return;
+      }
       await transferApartmentOwnership(accessToken, apartmentId, {
         newOwnerId: owner.id,
         transferDate,

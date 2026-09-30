@@ -15,7 +15,7 @@ export function dateOnlyToUtcIso(value: string): string {
 // wire as its numeric ordinal (both ways: in responses, and in request bodies).
 // These arrays are ordered to match the C# enum declarations exactly — index = ordinal.
 const PROPERTY_TYPES = ["Apartment", "Garage"] as const;
-const CHARGE_STATUSES = ["Unpaid", "PartiallyPaid", "Paid"] as const;
+const CHARGE_STATUSES = ["Unpaid", "PartiallyPaid", "Paid", "Cancelled"] as const;
 const PAYMENT_METHODS = ["Cash", "BankTransfer", "Card"] as const;
 const PAYMENT_STATUSES = ["Pending", "Completed"] as const;
 const RATE_TYPES = ["PerSquareMeter", "FixedGarage", "Manual"] as const;
@@ -51,6 +51,7 @@ export const CHARGE_STATUS_LABELS: Record<ChargeStatusKey, string> = {
   Unpaid: "Ödənilməyib",
   PartiallyPaid: "Qismən ödənilib",
   Paid: "Ödənilib",
+  Cancelled: "Ləğv edilib",
 };
 
 export const RATE_TYPE_LABELS: Record<RateTypeKey, string> = {
@@ -70,9 +71,9 @@ type MessageOnly = { message: string };
 export type ChargeResponse = {
   id: string;
   ownerId: string;
-  propertyType: number;
-  propertyId: string;
-  period: string;
+  propertyType: number | null;
+  propertyId: string | null;
+  period: string | null;
   amount: number;
   paidAmount: number;
   status: number;
@@ -81,9 +82,10 @@ export type ChargeResponse = {
   issuedOn: string;
   description: string | null;
   // Snapshot of how Amount was calculated (see Charge.RateAmount/RateType).
+  // Nullable now that owner and vendor charges share one aggregate.
   areaSquareMeters: number | null;
-  rateAmount: number;
-  rateType: number;
+  rateAmount: number | null;
+  rateType: number | null;
 };
 
 export type PaymentResponse = {
@@ -102,9 +104,9 @@ export type PaymentResponse = {
 
 export type PaymentAllocationDetailResponse = {
   chargeId: string;
-  propertyType: number;
-  propertyId: string;
-  period: string;
+  propertyType: number | null;
+  propertyId: string | null;
+  period: string | null;
   description: string | null;
   chargeAmount: number;
   allocatedAmount: number;
@@ -185,8 +187,9 @@ export function searchPayments(accessToken: string, params: SearchParams = {}) {
 }
 
 // General ledger entries — written by the backend only: a resident payment posts an
-// income row on creation, and cancelling that payment posts the matching reversal.
-// There is deliberately no create transaction call (the ledger is append-only).
+// income row and a vendor payment an expense row on creation. Payments are not
+// reversible, so there is no reversal entry. There is deliberately no create
+// transaction call (the ledger is append-only).
 export type TransactionResponse = {
   id: string;
   direction: number;
