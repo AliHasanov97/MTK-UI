@@ -274,3 +274,50 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
 @media(max-width:760px){.ledger-filter-fields{grid-template-columns:1fr 1fr}.ledger-filter-footer{align-items:stretch;flex-direction:column}.ledger-segmented{justify-content:space-between}.ledger-segmented button{flex:1}}
 @media(max-width:520px){.ledger-filter-fields{grid-template-columns:1fr}.ledger-quick{justify-content:space-between}.ledger-note{max-width:none}}
 @media(prefers-reduced-motion:reduce){.ledger-skeleton{animation:none}}
+
+/* Vendors (Tədarükçülər) — shared design language with the ledger */
+.vendor-segments{display:inline-flex;gap:2px;padding:3px;background:#f2f4ee;border-radius:9px;margin-bottom:18px}
+.vendor-segments button{font:inherit;font-size:13px;font-weight:700;color:#5c6963;background:none;border:none;border-radius:7px;padding:8px 18px;cursor:pointer;transition:background .15s,color .15s;display:inline-flex;align-items:center;gap:8px}
+.vendor-segments button:hover{color:#3c463f}
+.vendor-segments button.active{background:#fff;color:var(--green);box-shadow:0 1px 3px #1d352514}
+.vendor-segment-count{font-size:10px;font-weight:700;color:#6d7973;background:#f2f4ee;border-radius:20px;padding:2px 8px}
+.vendor-segments button.active .vendor-segment-count{color:#4c7a38;background:#eef6e6}
+.vendor-stat{position:relative;display:flex;flex-direction:column;gap:7px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:17px 20px;overflow:hidden}
+.vendor-stat:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:#dde3d9}
+.vendor-stat-warn:before{background:#d9b96a}
+.vendor-stat-danger:before{background:#cf9a9a}
+.vendor-stat-ok:before{background:#8ab168}
+.vendor-stat-label{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#8a938c}
+.vendor-stat strong{font-size:22px;letter-spacing:-.7px;font-variant-numeric:tabular-nums}
+.vendor-stat-caption{font-size:11px;color:#949d96}
+.vendor-value-danger{color:#a24a4a}
+.vendor-value-ok{color:#4c7a38}
+.vendor-value-warn{color:#8a6d1f}
+.vendor-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.vendor-head h3{font-size:14px;margin:0;letter-spacing:-.2px}
+.vendor-count{font-size:11px;font-weight:700;color:#6d7973;background:#f2f4ee;border-radius:20px;padding:3px 11px}
+.vendor-cell-vendor{font-weight:700;color:#3c463f;white-space:normal}
+.vendor-cell-sub{display:block;font-size:11px;color:#8a938c;margin-top:2px;white-space:normal}
+.vendor-note{font-size:11px;line-height:1.8;color:#8a938c;margin:14px 0 0;max-width:640px}
+.vendor-empty{text-align:center;padding:48px 24px;color:#6d7973}
+.vendor-empty span{display:block;font-size:26px;color:#b3bfab;margin-bottom:10px}
+.vendor-empty strong{display:block;font-size:14px;color:#3c463f;margin:0 0 6px}
+.vendor-empty p{margin:0;font-size:12px}
+.vendor-status{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.3px;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.vendor-status-active{color:#4c7a38;background:#eef6e6}
+.vendor-status-suspended{color:#8a6d1f;background:#fbf0d9}
+.vendor-status-open{color:#a24a4a;background:#fbf2f2}
+.vendor-status-partial{color:#8a6d1f;background:#fbf0d9}
+.vendor-status-paid{color:#4c7a38;background:#eef6e6}
+.vendor-status-cancelled{color:#8a938c;background:#f2f4ee}
+.vendor-amount{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.vendor-th-amount{text-align:right}
+.vendor-col-vendor{width:220px}
+.vendor-col-desc{width:auto}
+.vendor-col-source{width:150px}
+.vendor-col-amount{width:130px}
+.vendor-col-status{width:140px}
+.vendor-col-actions{width:230px}
+.vendor-table tbody tr:hover td{background:#fafbf8}
+@media(max-width:880px){.vendor-col-vendor{width:170px}.vendor-col-source{width:120px}.vendor-col-amount{width:110px}.vendor-col-actions{width:180px}}
+@media(max-width:640px){.vendor-segments{width:100%;justify-content:stretch}.vendor-segments button{flex:1;justify-content:center}.vendor-col-vendor{width:130px}.vendor-col-desc{width:150px}.vendor-col-source{width:100px}.vendor-col-amount{width:96px}.vendor-col-status{width:104px}.vendor-col-actions{width:150px}}

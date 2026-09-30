@@ -6,7 +6,7 @@ import { useAuth } from "../../../lib/auth/AuthContext";
 import { ApiError } from "../../../lib/api/client";
 import { getOwnerById, type Owner, type OwnerListItem } from "../../../lib/api/owners";
 import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../../lib/api/garages";
-import { getPaymentsByOwner, PAYMENT_METHOD_LABELS, paymentMethodFromOrdinal, paymentStatusFromOrdinal, type PaymentResponse, type PropertyTypeKey } from "../../../lib/api/payments";
+import { getChargesByOwner, getPaymentsByOwner, PAYMENT_METHOD_LABELS, paymentMethodFromOrdinal, paymentStatusFromOrdinal, type ChargeResponse, type PaymentResponse, type PropertyTypeKey } from "../../../lib/api/payments";
 import { OwnerPicker } from "../../binalar/OwnerPicker";
 import { PaymentForm } from "../../binalar/finance";
 
@@ -36,6 +36,7 @@ export function OdenislerView() {
   const [ownerDetail, setOwnerDetail] = useState<Owner | null>(null);
   const [target, setTarget] = useState("");
   const [recent, setRecent] = useState<PaymentResponse[]>([]);
+  const [ownerCharges, setOwnerCharges] = useState<ChargeResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const loadRecent = useCallback(
@@ -64,17 +65,30 @@ export function OdenislerView() {
       })
       .catch((err) => setError(errorMessage(err)));
     loadRecent(selectedOwner.id);
+    // Qalıq borc həddi üçün sahibin bütün haqqları (hər əmlaka düşən hissəsi ayrıca hesablanır).
+    getChargesByOwner(auth.accessToken, selectedOwner.id)
+      .then(setOwnerCharges)
+      .catch(() => setOwnerCharges([]));
   }, [auth, selectedOwner, loadRecent]);
 
   if (auth.status !== "authenticated") return null;
 
   const { propertyId, propertyType } = decodeTarget(target);
 
+  // Əmlak seçilibsə, həmin əmlakın qalıq borcu ödənişin yuxarı həddidir (avans
+  // yalnız ümumi sahib ödənişində mümkündür — backend də bunu təsdiqləyir).
+  const targetedDebt = propertyId
+    ? ownerCharges
+        .filter((c) => c.propertyId === propertyId)
+        .reduce((sum, c) => sum + (c.amount - c.paidAmount), 0)
+    : 0;
+
   return (
     <div className="panel-page">
       <h1>Ödənişlərin daxil edilməsi</h1>
       <p className="panel-page-lead">
-        Sahib seçin, istəsəniz konkret mənzil/qaraja hədəfləyin, sonra ödənişi qeyd edin.
+        Sahib seçin, istəsəniz konkret mənzil/qaraja hədəfləyin, sonra ödənişi qeyd edin. Əmlaka
+        hədəflənmiş ödəniş yalnız həmin əmlakın qalıq borcunu ödəyə bilər — avans üçün «Ümumi» seçin.
       </p>
 
       {error && <p className="form-error">{error}</p>}
@@ -109,6 +123,7 @@ export function OdenislerView() {
               ownerId={selectedOwner.id}
               propertyId={propertyId}
               propertyType={propertyType}
+              suggestedAmount={propertyId ? Math.max(0, targetedDebt) : 0}
               onSaved={() => loadRecent(selectedOwner.id)}
             />
           </section>
@@ -139,8 +154,8 @@ export function OdenislerView() {
                           <td>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(p.paymentMethod)]}</td>
                           <td>{p.reference ?? "—"}</td>
                           <td>
-                            <span className={`panel-role-tag${status === "Cancelled" ? " panel-role-tag-inactive" : ""}`}>
-                              {status === "Completed" ? "Tamamlanıb" : status === "Cancelled" ? "Ləğv edilib" : "Gözləyir"}
+                            <span className="panel-role-tag">
+                              {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}
                             </span>
                           </td>
                         </tr>

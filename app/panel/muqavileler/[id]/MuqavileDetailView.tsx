@@ -1,0 +1,1355 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../../../lib/auth/AuthContext";
+import { ApiError } from "../../../lib/api/client";
+import {
+  BILLING_PERIODS_ORDERED,
+  BILLING_PERIOD_LABELS,
+  CONTRACT_STATUS_LABELS,
+  activateContract,
+  addContractGoodsItem,
+  addContractService,
+  billingPeriodFromOrdinal,
+  contractStatusFromOrdinal,
+  deleteContract,
+  getContract,
+  removeContractGoodsItem,
+  removeContractService,
+  setContractGoodsItemStatus,
+  setContractServiceStatus,
+  suspendContract,
+  terminateContract,
+  updateContract,
+  updateContractGoodsItem,
+  updateContractService,
+  type BillingPeriodKey,
+  type ContractGoodsItemResponse,
+  type ContractResponse,
+  type ContractServiceResponse,
+} from "../../../lib/api/contracts";
+import {
+  PAYMENT_METHODS_ORDERED,
+  PAYMENT_METHOD_LABELS,
+  VENDOR_CHARGE_SOURCE_LABELS,
+  VENDOR_CHARGE_STATUS_LABELS,
+  cancelVendorCharge,
+  createVendorPayment,
+  recordGoodsDelivery,
+  searchVendorCharges,
+  vendorChargeSourceFromOrdinal,
+  vendorChargeStatusFromOrdinal,
+  type PaymentMethodKey,
+  type VendorChargeResponse,
+} from "../../../lib/api/vendorCharges";
+import { QueryComparisonType, type QueryFilter } from "../../../lib/api/buildings";
+import { Modal } from "../../Modal";
+
+function errorMessage(err: unknown) {
+  if (err instanceof ApiError) {
+    if (err.status === 401 || err.status === 403) return "Bu əməliyyat üçün icazəniz yoxdur.";
+    return `Backend xətası (${err.status}): ${err.message}`;
+  }
+  return "Backend-ə qoşulmaq mümkün olmadı.";
+}
+
+const dateOnly = (iso: string) => iso.slice(0, 10);
+
+export function MuqavileDetailView({ contractId }: { contractId: string }) {
+  const auth = useAuth();
+  const router = useRouter();
+  const [contract, setContract] = useState<ContractResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [serviceForm, setServiceForm] = useState<{ service: ContractServiceResponse | null } | null>(null);
+  const [goodsForm, setGoodsForm] = useState<{ item: ContractGoodsItemResponse | null } | null>(null);
+  const [deliveryForm, setDeliveryForm] = useState<{ item: ContractGoodsItemResponse } | null>(null);
+  const [payForm, setPayForm] = useState<VendorChargeResponse | null>(null);
+  const [datesOpen, setDatesOpen] = useState(false);
+  const [terminateOpen, setTerminateOpen] = useState(false);
+  const [charges, setCharges] = useState<VendorChargeResponse[] | null>(null);
+  const [chargesError, setChargesError] = useState<string | null>(null);
+
+  const loadCharges = useCallback(() => {
+    if (auth.status !== "authenticated") return;
+    // Borclar müqavilə üzrə filtrlənir — QueryFilter "contractId equals" (ordinal 0).
+    const filters: QueryFilter[] = [
+      { columnName: "contractId", comparison: QueryComparisonType.Equals, value: contractId },
+    ];
+    searchVendorCharges(auth.accessToken, { filters, pageSize: 50 })
+      .then((res) => {
+        setCharges(res.items);
+        setChargesError(null);
+      })
+      .catch((err) => setChargesError(errorMessage(err)));
+  }, [auth, contractId]);
+
+  const load = useCallback(() => {
+    if (auth.status !== "authenticated") return;
+    getContract(auth.accessToken, contractId)
+      .then((res) => {
+        setContract(res);
+        setError(null);
+      })
+      .catch((err) => setError(errorMessage(err)));
+  }, [auth, contractId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const reload = useCallback(() => {
+    load();
+    loadCharges();
+  }, [load, loadCharges]);
+
+  useEffect(() => {
+    loadCharges();
+  }, [loadCharges]);
+
+  if (auth.status !== "authenticated") return null;
+  const accessToken = auth.accessToken;
+
+  async function run(action: () => Promise<unknown>) {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+      reload();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (error && !contract) {
+    return (
+      <div className="panel-denied">
+        <h2>Məlumat alınmadı</h2>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  if (!contract) {
+    return <p className="panel-page-lead">Yüklənir…</p>;
+  }
+
+  const status = contractStatusFromOrdinal(contract.status);
+  const isDraft = status === "Draft";
+  const money = (n: number) => `${n.toFixed(2)} ${contract.currency}`;
+
+  return (
+    <div>
+      {error && <p className="form-error">{error}</p>}
+
+      <section className="panel-card owner-section-card">
+        <h4>
+          {contract.number} · {contract.vendorName ?? "Tədarükçü tapılmadı"}
+        </h4>
+        <div className="owner-hero-meta">
+          <span>
+            Müddət: {dateOnly(contract.startDate)} — {dateOnly(contract.endDate)}
+          </span>
+          <span>
+            Status:{" "}
+            <strong
+              className={
+                contract.isActive ? "owner-balance-tag-credit" : "owner-balance-tag-debt"
+              }
+            >
+              {CONTRACT_STATUS_LABELS[status]}
+            </strong>
+          </span>
+          {contract.isExpired && status === "Active" && <span>Müddəti bitib</span>}
+          <span>Valyuta: {contract.currency}</span>
+        </div>
+        {contract.note && <p className="panel-page-lead" style={{ marginTop: 12 }}>{contract.note}</p>}
+
+        <div className="owner-hero-stats" style={{ marginTop: 16 }}>
+          <div className="owner-hero-stat">
+            <span className="owner-stat-label">Aylıq yük</span>
+            <strong>{money(contract.monthlyAmount)}</strong>
+          </div>
+          <div className="owner-hero-stat">
+            <span className="owner-stat-label">Dövr üzrə cəm</span>
+            <strong>{money(contract.totalAmount)}</strong>
+          </div>
+          <div className="owner-hero-stat">
+            <span className="owner-stat-label">Xidmət sayı</span>
+            <strong>{contract.services.length}</strong>
+          </div>
+          <div className="owner-hero-stat">
+            <span className="owner-stat-label">Mal sətri</span>
+            <strong>{contract.goodsItems.length}</strong>
+          </div>
+        </div>
+
+        <div className="form-actions" style={{ justifyContent: "flex-start", flexWrap: "wrap" }}>
+          {status !== "Terminated" && (
+            <button type="button" className="panel-btn" disabled={busy} onClick={() => setDatesOpen(true)}>
+              Müddəti/qeydi dəyiş
+            </button>
+          )}
+          {(status === "Draft" || status === "Suspended") && (
+            <button
+              type="button"
+              className="panel-btn panel-btn-primary"
+              disabled={busy}
+              onClick={() => run(() => activateContract(accessToken, contract.id))}
+            >
+              Aktivləşdir
+            </button>
+          )}
+          {status === "Active" && (
+            <button
+              type="button"
+              className="panel-btn"
+              disabled={busy}
+              onClick={() => run(() => suspendContract(accessToken, contract.id, null))}
+            >
+              Dayandır
+            </button>
+          )}
+          {status !== "Terminated" && (
+            <button
+              type="button"
+              className="panel-btn panel-btn-danger"
+              disabled={busy}
+              onClick={() => setTerminateOpen(true)}
+            >
+              Ləğv et
+            </button>
+          )}
+          {status !== "Active" && (
+            <button
+              type="button"
+              className="panel-btn panel-btn-danger"
+              disabled={busy}
+              onClick={async () => {
+                if (!window.confirm(`${contract.number} müqaviləsi silinsin?`)) return;
+                setBusy(true);
+                setError(null);
+                try {
+                  await deleteContract(accessToken, contract.id);
+                  router.push("/panel/muqavileler");
+                } catch (err) {
+                  setError(errorMessage(err));
+                  setBusy(false);
+                }
+              }}
+            >
+              Sil
+            </button>
+          )}
+        </div>
+      </section>
+
+      <section className="panel-card owner-section-card">
+        <h4 style={{ justifyContent: "space-between" }}>
+          <span>Müqavilə üzrə xidmətlər</span>
+          {isDraft && (
+            <button
+              type="button"
+              className="panel-btn panel-btn-sm panel-btn-primary"
+              onClick={() => setServiceForm({ service: null })}
+            >
+              + Xidmət əlavə et
+            </button>
+          )}
+        </h4>
+
+        {contract.services.length === 0 ? (
+          <p className="panel-page-lead">
+            Hələ xidmət yoxdur. Müqavilə aktivləşməzdən əvvəl ən azı bir xidmət əlavə edilməlidir.
+          </p>
+        ) : (
+          <div className="owner-table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Xidmət</th>
+                  <th>Vahid qiymət</th>
+                  <th>Miqdar</th>
+                  <th>Dövr</th>
+                  <th>Dövr üzrə məbləğ</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {contract.services.map((s) => (
+                  <tr key={s.id}>
+                    <td>
+                      {s.name}
+                      {s.description && (
+                        <span style={{ color: "#8a938c" }}> · {s.description}</span>
+                      )}
+                      {s.paymentTermDays != null && (
+                        <span style={{ color: "#8a938c" }}> · ödəniş {s.paymentTermDays} gün</span>
+                      )}
+                    </td>
+                    <td>{money(s.unitPrice)}</td>
+                    <td>
+                      {s.quantity} {s.unit}
+                    </td>
+                    <td>{BILLING_PERIOD_LABELS[billingPeriodFromOrdinal(s.billingPeriod)]}</td>
+                    <td>
+                      <strong>{money(s.periodAmount)}</strong>
+                    </td>
+                    <td>
+                      <span className={`panel-role-tag${s.isActive ? "" : " panel-role-tag-inactive"}`}>
+                        {s.isActive ? "Aktiv" : "Dayandırılıb"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="data-table-actions">
+                        {isDraft && (
+                          <>
+                            <button
+                              type="button"
+                              className="panel-btn panel-btn-sm"
+                              disabled={busy}
+                              onClick={() => setServiceForm({ service: s })}
+                            >
+                              Redaktə
+                            </button>
+                            <button
+                              type="button"
+                              className="panel-btn panel-btn-sm panel-btn-danger"
+                              disabled={busy}
+                              onClick={() => {
+                                if (!window.confirm(`"${s.name}" xidməti silinsin?`)) return;
+                                void run(() => removeContractService(accessToken, contract.id, s.id));
+                              }}
+                            >
+                              Sil
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          className="panel-btn panel-btn-sm"
+                          disabled={busy}
+                          onClick={() =>
+                            run(() => setContractServiceStatus(accessToken, contract.id, s.id, !s.isActive))
+                          }
+                        >
+                          {s.isActive ? "Dayandır" : "Bərpa et"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {!isDraft && (
+          <p className="panel-page-lead" style={{ margin: "12px 0 0" }}>
+            Xidmətlərin qiyməti yalnız «Hazırlanır» mərhələsində dəyişdirilir — aktiv müqavilədə təsdiqlənmiş
+            qiymətin sonradan dəyişməsi auditə ziddir. Tək xidməti dayandırmaq isə mümkündür.
+          </p>
+        )}
+      </section>
+
+      <section className="panel-card owner-section-card">
+        <h4 style={{ justifyContent: "space-between" }}>
+          <span>Müqavilə üzrə mallar</span>
+          {isDraft && (
+            <button
+              type="button"
+              className="panel-btn panel-btn-sm panel-btn-primary"
+              onClick={() => setGoodsForm({ item: null })}
+            >
+              + Mal əlavə et
+            </button>
+          )}
+        </h4>
+
+        {contract.goodsItems.length === 0 ? (
+          <p className="panel-page-lead">
+            Hələ mal sətri yoxdur. Mal sətirləri razılaşdırılmış qiymətli malları saxlayır — borc isə
+            konkret tədarük (qaimə) anında yaranır.
+          </p>
+        ) : (
+          <div className="owner-table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Mal</th>
+                  <th>Vahid qiymət</th>
+                  <th>Vahid</th>
+                  <th>Gözlənilən miqdar</th>
+                  <th>Ödəniş müddəti</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {contract.goodsItems.map((i) => (
+                  <tr key={i.id}>
+                    <td>
+                      {i.name}
+                      {i.description && <span style={{ color: "#8a938c" }}> · {i.description}</span>}
+                    </td>
+                    <td>{money(i.unitPrice)}</td>
+                    <td>{i.unit}</td>
+                    <td>{i.agreedQuantity ?? "—"}</td>
+                    <td>{i.paymentTermDays != null ? `${i.paymentTermDays} gün` : "—"}</td>
+                    <td>
+                      <span className={`panel-role-tag${i.isActive ? "" : " panel-role-tag-inactive"}`}>
+                        {i.isActive ? "Aktiv" : "Dayandırılıb"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="data-table-actions">
+                        {contract.isActive && i.isActive && (
+                          <button
+                            type="button"
+                            className="panel-btn panel-btn-sm panel-btn-primary"
+                            disabled={busy}
+                            onClick={() => setDeliveryForm({ item: i })}
+                          >
+                            Tədarük qeydə al
+                          </button>
+                        )}
+                        {isDraft && (
+                          <>
+                            <button
+                              type="button"
+                              className="panel-btn panel-btn-sm"
+                              disabled={busy}
+                              onClick={() => setGoodsForm({ item: i })}
+                            >
+                              Redaktə
+                            </button>
+                            <button
+                              type="button"
+                              className="panel-btn panel-btn-sm panel-btn-danger"
+                              disabled={busy}
+                              onClick={() => {
+                                if (!window.confirm(`"${i.name}" mal sətri silinsin?`)) return;
+                                void run(() => removeContractGoodsItem(accessToken, contract.id, i.id));
+                              }}
+                            >
+                              Sil
+                            </button>
+                          </>
+                        )}
+                        {!isDraft && (
+                          <button
+                            type="button"
+                            className="panel-btn panel-btn-sm"
+                            disabled={busy}
+                            onClick={() =>
+                              run(() => setContractGoodsItemStatus(accessToken, contract.id, i.id, !i.isActive))
+                            }
+                          >
+                            {i.isActive ? "Dayandır" : "Bərpa et"}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="panel-card owner-section-card">
+        <h4>Tədarükçü borcları</h4>
+        {chargesError && <p className="form-error">{chargesError}</p>}
+        {charges === null && !chargesError ? (
+          <p className="panel-page-lead">Yüklənir…</p>
+        ) : (charges ?? []).length === 0 ? (
+          <p className="panel-page-lead">
+            Bu müqavilə üzrə hələ borc yaranmayıb. Cədvəl üzrə xidmət borcları avtomatik yaradılır;
+            mal borcları «Tədarük qeydə al» düyməsi ilə.
+          </p>
+        ) : (
+          <div className="owner-table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Təsvir</th>
+                  <th>Mənbə</th>
+                  <th>Məbləğ</th>
+                  <th>Ödənilib</th>
+                  <th>Qalıq</th>
+                  <th>Son tarix</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(charges ?? []).map((c) => {
+                  const chargeStatus = vendorChargeStatusFromOrdinal(c.status);
+                  const source = vendorChargeSourceFromOrdinal(c.source);
+                  return (
+                    <tr key={c.id}>
+                      <td>
+                        {c.description}
+                        {c.reference && <span style={{ color: "#8a938c" }}> · №{c.reference}</span>}
+                      </td>
+                      <td>{VENDOR_CHARGE_SOURCE_LABELS[source]}</td>
+                      <td>{money(c.amount)}</td>
+                      <td>{money(c.paidAmount)}</td>
+                      <td>
+                        <strong>{money(c.outstandingAmount)}</strong>
+                      </td>
+                      <td>
+                        {c.dueDate ? dateOnly(c.dueDate) : "—"}
+                        {c.isOverdue && (
+                          <span className="panel-role-tag panel-role-tag-inactive" style={{ marginLeft: 6 }}>
+                            gecikib
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            chargeStatus === "Paid"
+                              ? "owner-balance-tag-clear"
+                              : chargeStatus === "Cancelled"
+                                ? "panel-role-tag panel-role-tag-inactive"
+                                : "owner-balance-tag-debt"
+                          }
+                        >
+                          {VENDOR_CHARGE_STATUS_LABELS[chargeStatus]}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="data-table-actions">
+                          {(chargeStatus === "Unpaid" || chargeStatus === "PartiallyPaid") && (
+                            <button
+                              type="button"
+                              className="panel-btn panel-btn-sm panel-btn-primary"
+                              disabled={busy}
+                              onClick={() => setPayForm(c)}
+                            >
+                              Ödə
+                            </button>
+                          )}
+                          {chargeStatus !== "Paid" && chargeStatus !== "Cancelled" && (
+                            <button
+                              type="button"
+                              className="panel-btn panel-btn-sm panel-btn-danger"
+                              disabled={busy}
+                              onClick={() => {
+                                if (!window.confirm(`"${c.description}" borcu ləğv edilsin?`)) return;
+                                void run(() => cancelVendorCharge(accessToken, c.id, null));
+                              }}
+                            >
+                              Ləğv et
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <Link
+        className="panel-btn panel-btn-sm"
+        style={{ display: "inline-block" }}
+        href="/panel/muqavileler"
+      >
+        ← Müqavilələr siyahısına qayıt
+      </Link>
+
+      {serviceForm && (
+        <ServiceFormModal
+          contract={contract}
+          service={serviceForm.service}
+          onClose={() => setServiceForm(null)}
+          onSaved={() => {
+            setServiceForm(null);
+            load();
+          }}
+        />
+      )}
+
+      {datesOpen && (
+        <DatesModal
+          contract={contract}
+          onClose={() => setDatesOpen(false)}
+          onSaved={() => {
+            setDatesOpen(false);
+            load();
+          }}
+        />
+      )}
+
+      {goodsForm && (
+        <GoodsFormModal
+          contract={contract}
+          item={goodsForm.item}
+          onClose={() => setGoodsForm(null)}
+          onSaved={() => {
+            setGoodsForm(null);
+            reload();
+          }}
+        />
+      )}
+
+      {deliveryForm && (
+        <DeliveryModal
+          contract={contract}
+          item={deliveryForm.item}
+          onClose={() => setDeliveryForm(null)}
+          onSaved={() => {
+            setDeliveryForm(null);
+            reload();
+          }}
+        />
+      )}
+
+      {payForm && (
+        <PayChargeModal
+          charge={payForm}
+          currency={contract.currency}
+          onClose={() => setPayForm(null)}
+          onSaved={() => {
+            setPayForm(null);
+            reload();
+          }}
+        />
+      )}
+
+      {terminateOpen && (
+        <TerminateModal
+          contract={contract}
+          onClose={() => setTerminateOpen(false)}
+          onSaved={() => {
+            setTerminateOpen(false);
+            load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function GoodsFormModal({
+  contract,
+  item,
+  onClose,
+  onSaved,
+}: {
+  contract: ContractResponse;
+  item: ContractGoodsItemResponse | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const auth = useAuth();
+  const [name, setName] = useState(item?.name ?? "");
+  const [unit, setUnit] = useState(item?.unit ?? "ədəd");
+  const [unitPrice, setUnitPrice] = useState(item ? String(item.unitPrice) : "");
+  const [agreedQuantity, setAgreedQuantity] = useState(
+    item?.agreedQuantity != null ? String(item.agreedQuantity) : "",
+  );
+  const [paymentTermDays, setPaymentTermDays] = useState(
+    item?.paymentTermDays != null ? String(item.paymentTermDays) : "",
+  );
+  const [description, setDescription] = useState(item?.description ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  if (auth.status !== "authenticated") return null;
+  const accessToken = auth.accessToken;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const price = Number(unitPrice);
+    if (Number.isNaN(price) || price < 0) {
+      setError("Vahid qiymət mənfi ola bilməz.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const request = {
+        name,
+        unit,
+        unitPrice: price,
+        agreedQuantity: agreedQuantity ? Number(agreedQuantity) : null,
+        paymentTermDays: paymentTermDays ? Number(paymentTermDays) : null,
+        description: description || null,
+      };
+
+      if (item) {
+        await updateContractGoodsItem(accessToken, contract.id, item.id, request);
+      } else {
+        await addContractGoodsItem(accessToken, contract.id, request);
+      }
+      onSaved();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title={item ? "Mal sətrini redaktə et" : "Yeni mal sətri"} onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <p className="form-error">{error}</p>}
+        <div className="form-field">
+          <label htmlFor="goods-name">Malın adı</label>
+          <input
+            id="goods-name"
+            required
+            placeholder="Sement M500"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="goods-unit">Ölçü vahidi</label>
+            <input
+              id="goods-unit"
+              required
+              placeholder="torba / ədəd / kq"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="goods-price">Vahid qiymət ({contract.currency})</label>
+            <input
+              id="goods-price"
+              type="number"
+              min={0}
+              step="0.01"
+              required
+              value={unitPrice}
+              onChange={(e) => setUnitPrice(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="goods-quantity">Gözlənilən miqdar (opsional)</label>
+            <input
+              id="goods-quantity"
+              type="number"
+              min={0.01}
+              step="0.01"
+              value={agreedQuantity}
+              onChange={(e) => setAgreedQuantity(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="goods-term">Ödəniş müddəti, gün (opsional)</label>
+            <input
+              id="goods-term"
+              type="number"
+              min={0}
+              step="1"
+              value={paymentTermDays}
+              onChange={(e) => setPaymentTermDays(e.target.value)}
+            />
+          </div>
+        </div>
+        <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
+          Mal sətri özü borc yaratmır — borc «Tədarük qeydə al» ilə, göndərilən miqdara görə yaranır.
+        </p>
+        <div className="form-field">
+          <label htmlFor="goods-description">Təsvir</label>
+          <input
+            id="goods-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+        <div className="form-actions">
+          <button type="button" className="panel-btn" onClick={onClose}>
+            Ləğv et
+          </button>
+          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
+            {saving ? "Saxlanılır…" : item ? "Saxla" : "Əlavə et"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function DeliveryModal({
+  contract,
+  item,
+  onClose,
+  onSaved,
+}: {
+  contract: ContractResponse;
+  item: ContractGoodsItemResponse;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const auth = useAuth();
+  const [quantity, setQuantity] = useState("1");
+  const [reference, setReference] = useState("");
+  const [deliveredOn, setDeliveredOn] = useState(() => new Date().toISOString().slice(0, 10));
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  if (auth.status !== "authenticated") return null;
+  const accessToken = auth.accessToken;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const qty = Number(quantity);
+    if (Number.isNaN(qty) || qty <= 0) {
+      setError("Tədarük miqdarı müsbət olmalıdır.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await recordGoodsDelivery(accessToken, {
+        contractId: contract.id,
+        goodsItemId: item.id,
+        quantity: qty,
+        reference: reference || null,
+        deliveredOn: deliveredOn || null,
+      });
+      onSaved();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title={`Tədarük qeydə al — ${item.name}`} onClose={onClose}>
+      <p className="panel-page-lead">
+        Göndərilən miqdar müqavilə qiyməti ({item.unitPrice.toFixed(2)} {contract.currency}/
+        {item.unit}) ilə vurulub borc kimi yazılacaq.
+      </p>
+      <form onSubmit={handleSubmit}>
+        {error && <p className="form-error">{error}</p>}
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="delivery-qty">Miqdar ({item.unit})</label>
+            <input
+              id="delivery-qty"
+              type="number"
+              min={0.01}
+              step="0.01"
+              required
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="delivery-date">Tədarük tarixi</label>
+            <input
+              id="delivery-date"
+              type="date"
+              required
+              value={deliveredOn}
+              onChange={(e) => setDeliveredOn(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="form-field">
+          <label htmlFor="delivery-ref">Qaimə / sənəd nömrəsi (opsional)</label>
+          <input
+            id="delivery-ref"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+          />
+        </div>
+        <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
+          Eyni qaimə nömrəsi ilə ikinci dəfə borc yaranmur.
+        </p>
+        <div className="form-actions">
+          <button type="button" className="panel-btn" onClick={onClose}>
+            Ləğv et
+          </button>
+          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
+            {saving ? "Qeydə alınır…" : "Qeydə al"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function PayChargeModal({
+  charge,
+  currency,
+  onClose,
+  onSaved,
+}: {
+  charge: VendorChargeResponse;
+  currency: string;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const auth = useAuth();
+  const [amount, setAmount] = useState(String(charge.outstandingAmount));
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodKey>("BankTransfer");
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [reference, setReference] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  if (auth.status !== "authenticated") return null;
+  const accessToken = auth.accessToken;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const value = Number(amount);
+    if (Number.isNaN(value) || value <= 0) {
+      setError("Ödəniş məbləği müsbət olmalıdır.");
+      return;
+    }
+    if (value > charge.outstandingAmount) {
+      setError(`Ödəniş qalıq borcdan böyük ola bilməz (qalıq: ${charge.outstandingAmount}).`);
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await createVendorPayment(accessToken, {
+        vendorChargeId: charge.id,
+        amount: value,
+        paymentMethod,
+        paymentDate,
+        reference: reference || null,
+      });
+      onSaved();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title="Tədarükçüyə ödəniş" onClose={onClose}>
+      <p className="panel-page-lead">
+        {charge.description} · qalıq borc <strong>{charge.outstandingAmount.toFixed(2)} {currency}</strong>
+      </p>
+      <form onSubmit={handleSubmit}>
+        {error && <p className="form-error">{error}</p>}
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="pay-amount">Məbləğ ({currency})</label>
+            <input
+              id="pay-amount"
+              type="number"
+              min={0.01}
+              step="0.01"
+              required
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="pay-date">Ödəniş tarixi</label>
+            <input
+              id="pay-date"
+              type="date"
+              required
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="pay-method">Ödəniş üsulu</label>
+            <select
+              id="pay-method"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodKey)}
+            >
+              {PAYMENT_METHODS_ORDERED.map((key) => (
+                <option key={key} value={key}>
+                  {PAYMENT_METHOD_LABELS[key]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label htmlFor="pay-ref">Sənəd nömrəsi (opsional)</label>
+            <input
+              id="pay-ref"
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+            />
+          </div>
+        </div>
+        <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
+          Ödəniş qeydə alınan kimi tranzaksiyalar jurnalına xərc kimi düşür.
+        </p>
+        <div className="form-actions">
+          <button type="button" className="panel-btn" onClick={onClose}>
+            Ləğv et
+          </button>
+          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
+            {saving ? "Ödənilir…" : "Ödə"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function ServiceFormModal({
+  contract,
+  service,
+  onClose,
+  onSaved,
+}: {
+  contract: ContractResponse;
+  service: ContractServiceResponse | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const auth = useAuth();
+  const [name, setName] = useState(service?.name ?? "");
+  const [unit, setUnit] = useState(service?.unit ?? "ay");
+  const [unitPrice, setUnitPrice] = useState(service ? String(service.unitPrice) : "");
+  const [quantity, setQuantity] = useState(service ? String(service.quantity) : "1");
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriodKey>(
+    service ? billingPeriodFromOrdinal(service.billingPeriod) : "Monthly",
+  );
+  const [paymentTermDays, setPaymentTermDays] = useState(
+    service?.paymentTermDays != null ? String(service.paymentTermDays) : "",
+  );
+  const [description, setDescription] = useState(service?.description ?? "");
+  const [serviceStartDate, setServiceStartDate] = useState(
+    service?.serviceStartDate ? dateOnly(service.serviceStartDate) : "",
+  );
+  const [serviceEndDate, setServiceEndDate] = useState(
+    service?.serviceEndDate ? dateOnly(service.serviceEndDate) : "",
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  if (auth.status !== "authenticated") return null;
+  const accessToken = auth.accessToken;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const price = Number(unitPrice);
+    const qty = Number(quantity);
+    if (Number.isNaN(price) || price < 0) {
+      setError("Vahid qiymət mənfi ola bilməz.");
+      return;
+    }
+    if (Number.isNaN(qty) || qty <= 0) {
+      setError("Miqdar 0-dan böyük olmalıdır.");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const request = {
+        name,
+        unitPrice: price,
+        billingPeriod,
+        quantity: qty,
+        unit,
+        paymentTermDays: paymentTermDays ? Number(paymentTermDays) : null,
+        description: description || null,
+        serviceStartDate: serviceStartDate || null,
+        serviceEndDate: serviceEndDate || null,
+      };
+
+      if (service) {
+        await updateContractService(accessToken, contract.id, service.id, request);
+      } else {
+        await addContractService(accessToken, contract.id, request);
+      }
+      onSaved();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title={service ? "Xidməti redaktə et" : "Yeni xidmət"} onClose={onClose} wide>
+      <form onSubmit={handleSubmit}>
+        {error && <p className="form-error">{error}</p>}
+        <div className="form-field">
+          <label htmlFor="service-name">Xidmətin adı</label>
+          <input
+            id="service-name"
+            required
+            placeholder="Liftə aylıq texniki xidmət"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="service-price">Vahid qiymət ({contract.currency})</label>
+            <input
+              id="service-price"
+              type="number"
+              min={0}
+              step="0.01"
+              required
+              value={unitPrice}
+              onChange={(e) => setUnitPrice(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="service-quantity">Miqdar</label>
+            <input
+              id="service-quantity"
+              type="number"
+              min={0.01}
+              step="0.01"
+              required
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="service-unit">Ölçü vahidi</label>
+            <input
+              id="service-unit"
+              required
+              placeholder="ay / illik / ədəd"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="service-term">Ödəniş müddəti, gün (opsional)</label>
+            <input
+              id="service-term"
+              type="number"
+              min={0}
+              step="1"
+              value={paymentTermDays}
+              onChange={(e) => setPaymentTermDays(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="form-field">
+          <label htmlFor="service-period">Hesablaşma dövrü</label>
+          <select
+            id="service-period"
+            value={billingPeriod}
+            onChange={(e) => setBillingPeriod(e.target.value as BillingPeriodKey)}
+          >
+            {BILLING_PERIODS_ORDERED.map((key) => (
+              <option key={key} value={key}>
+                {BILLING_PERIOD_LABELS[key]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="service-start">Xidmətin başlanğıcı (opsional)</label>
+            <input
+              id="service-start"
+              type="date"
+              value={serviceStartDate}
+              onChange={(e) => setServiceStartDate(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="service-end">Xidmətin bitməsi (opsional)</label>
+            <input
+              id="service-end"
+              type="date"
+              value={serviceEndDate}
+              onChange={(e) => setServiceEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
+          Tarixlər boş buraxılarsa müqavilənin müddəti tətbiq olunur.
+        </p>
+        <div className="form-field">
+          <label htmlFor="service-description">Təsvir</label>
+          <input
+            id="service-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </div>
+        <div className="form-actions">
+          <button type="button" className="panel-btn" onClick={onClose}>
+            Ləğv et
+          </button>
+          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
+            {saving ? "Saxlanılır…" : service ? "Saxla" : "Əlavə et"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function DatesModal({
+  contract,
+  onClose,
+  onSaved,
+}: {
+  contract: ContractResponse;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const auth = useAuth();
+  const [startDate, setStartDate] = useState(dateOnly(contract.startDate));
+  const [endDate, setEndDate] = useState(dateOnly(contract.endDate));
+  const [note, setNote] = useState(contract.note ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  if (auth.status !== "authenticated") return null;
+  const accessToken = auth.accessToken;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await updateContract(accessToken, contract.id, { startDate, endDate, note: note || null });
+      onSaved();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title="Müqavilənin müddəti və qeydi" onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        {error && <p className="form-error">{error}</p>}
+        <div className="form-row">
+          <div className="form-field">
+            <label htmlFor="contract-start-edit">Başlanğıc tarixi</label>
+            <input
+              id="contract-start-edit"
+              type="date"
+              required
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="contract-end-edit">Bitmə tarixi</label>
+            <input
+              id="contract-end-edit"
+              type="date"
+              required
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="form-field">
+          <label htmlFor="contract-note-edit">Qeyd</label>
+          <textarea id="contract-note-edit" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+        <div className="form-actions">
+          <button type="button" className="panel-btn" onClick={onClose}>
+            Ləğv et
+          </button>
+          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
+            {saving ? "Saxlanılır…" : "Saxla"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function TerminateModal({
+  contract,
+  onClose,
+  onSaved,
+}: {
+  contract: ContractResponse;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const auth = useAuth();
+  const [terminatedOn, setTerminatedOn] = useState(() => new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState(contract.note ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  if (auth.status !== "authenticated") return null;
+  const accessToken = auth.accessToken;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await terminateContract(accessToken, contract.id, terminatedOn, note || null);
+      onSaved();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title="Müqaviləni ləğv et" onClose={onClose}>
+      <p className="panel-page-lead">
+        Ləğv edilən müqavilədən artıq borc yaranmır və bitmə tarixi aşağıdakı tarixlə əvəz olunur.
+      </p>
+      <form onSubmit={handleSubmit}>
+        {error && <p className="form-error">{error}</p>}
+        <div className="form-field">
+          <label htmlFor="terminate-date">Ləğv tarixi</label>
+          <input
+            id="terminate-date"
+            type="date"
+            required
+            value={terminatedOn}
+            onChange={(e) => setTerminatedOn(e.target.value)}
+          />
+        </div>
+        <div className="form-field">
+          <label htmlFor="terminate-note">Səbəb / qeyd</label>
+          <textarea id="terminate-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+        <div className="form-actions">
+          <button type="button" className="panel-btn" onClick={onClose}>
+            İmtina
+          </button>
+          <button type="submit" className="panel-btn panel-btn-danger" disabled={saving}>
+            {saving ? "Göndərilir…" : "Ləğv et"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}

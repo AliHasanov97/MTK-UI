@@ -66,9 +66,8 @@ export function balanceFromCharges(charges: ChargeResponse[]): number {
 }
 
 export function lastPaymentDate(payments: PaymentResponse[]): string | null {
-  const active = payments.filter((p) => paymentStatusFromOrdinal(p.status) !== "Cancelled");
-  if (active.length === 0) return null;
-  return active.reduce((latest, p) => (p.paymentDate > latest ? p.paymentDate : latest), active[0].paymentDate);
+  if (payments.length === 0) return null;
+  return payments.reduce((latest, p) => (p.paymentDate > latest ? p.paymentDate : latest), payments[0].paymentDate);
 }
 
 export function formatSigned(amount: number) {
@@ -164,11 +163,25 @@ export function PaymentForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Əmlaka hədəflənmiş ödəniş yalnız həmin əmlakın qalıq borcunu ödəyə bilər —
+  // artıq (avans) yalnız sahib səviyyəli (əmlaksız) ödənişdə yaranır. Backend
+  // də bu qaydanı təsdiqləyir (Payment.ExceedsPropertyDebt), burada isə UX üçün
+  // eyni məhdudluq formada göstərilir.
+  const targeted = Boolean(propertyId);
+  const maxAmount = targeted ? Math.max(0, suggestedAmount) : null;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const numericAmount = Number(amount);
     if (!numericAmount || numericAmount <= 0) {
       setError("Məbləğ 0-dan böyük olmalıdır.");
+      return;
+    }
+    if (maxAmount !== null && numericAmount > maxAmount + 0.005) {
+      setError(
+        `Əmlak üzrə ödəniş qalıq borcdan böyük ola bilməz (borc: ${maxAmount.toFixed(2)} ₼). ` +
+          "Avans üçün əmlak seçmədən ümumi sahib ödənişi edin.",
+      );
       return;
     }
     setSaving(true);
@@ -200,13 +213,14 @@ export function PaymentForm({
       {error && <p className="form-error">{error}</p>}
       <div className="form-row">
         <div className="form-field">
-          <label htmlFor="pay-amount">Məbləğ (₼)</label>
+          <label htmlFor="pay-amount">Məbləğ (₼){maxAmount !== null && ` — borc: ${maxAmount.toFixed(2)}`}</label>
           <input
             id="pay-amount"
             type="number"
             min={0.01}
             step="0.01"
             required
+            max={maxAmount ?? undefined}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
@@ -476,19 +490,16 @@ export function ChargesTable({
 export function PaymentsTable({
   accessToken,
   payments,
-  onCancelPayment,
   propertyLabels,
 }: {
   accessToken: string;
   payments: PaymentResponse[];
-  onCancelPayment: (paymentId: string) => Promise<void>;
   /** Owner-level view only: property.id -> "Mənzil 12 — Bina A" / "Qaraj G5". Adds a "Hədəf" column. */
   propertyLabels?: Record<string, string>;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detailsByPayment, setDetailsByPayment] = useState<Record<string, PaymentAllocationDetailResponse[]>>({});
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const columnCount = propertyLabels ? 7 : 6;
 
   function toggle(paymentId: string) {
@@ -502,16 +513,6 @@ export function PaymentsTable({
       getPaymentAllocations(accessToken, paymentId)
         .then((res) => setDetailsByPayment((prev) => ({ ...prev, [paymentId]: res })))
         .finally(() => setLoadingId(null));
-    }
-  }
-
-  async function handleCancel(paymentId: string) {
-    if (!window.confirm("Bu ödənişi ləğv etmək istədiyinizə əminsiniz? Əlaqəli borc bərpa olunacaq.")) return;
-    setCancellingId(paymentId);
-    try {
-      await onCancelPayment(paymentId);
-    } finally {
-      setCancellingId(null);
     }
   }
 
@@ -537,7 +538,6 @@ export function PaymentsTable({
                 <th>Üsul</th>
                 <th>İstinad</th>
                 <th>Status</th>
-                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -563,21 +563,9 @@ export function PaymentsTable({
                       <td>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(p.paymentMethod)]}</td>
                       <td>{p.reference ?? "—"}</td>
                       <td>
-                        <span className={`panel-role-tag${status === "Cancelled" ? " panel-role-tag-inactive" : ""}`}>
-                          {status === "Completed" ? "Tamamlanıb" : status === "Cancelled" ? "Ləğv edilib" : "Gözləyir"}
+                        <span className="panel-role-tag">
+                          {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}
                         </span>
-                      </td>
-                      <td>
-                        {status !== "Cancelled" && (
-                          <button
-                            type="button"
-                            className="panel-btn panel-btn-sm panel-btn-danger"
-                            disabled={cancellingId === p.id}
-                            onClick={() => handleCancel(p.id)}
-                          >
-                            {cancellingId === p.id ? "…" : "Ləğv et"}
-                          </button>
-                        )}
                       </td>
                     </tr>
                     {isOpen && (
@@ -586,8 +574,6 @@ export function PaymentsTable({
                         <td colSpan={columnCount - 1}>
                           {loadingId === p.id ? (
                             <p className="panel-page-lead">Yüklənir…</p>
-                          ) : status === "Cancelled" ? (
-                            <p className="panel-page-lead">Bu ödəniş ləğv edilib, heç bir haqqa tətbiq olunmur.</p>
                           ) : (rows?.length ?? 0) === 0 ? (
                             <p className="panel-page-lead">
                               Bu ödəniş hələ heç bir haqqa tətbiq olunmayıb — tam məbləğ avans kimi qalıb.

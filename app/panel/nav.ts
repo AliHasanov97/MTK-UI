@@ -53,6 +53,7 @@ export const NAV_MODULES: NavModule[] = [
     roles: [ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.OWNER],
     tabs: [
       { href: "/panel/muqavileler", label: "Müqavilələr" },
+      { href: "/panel/tedarukculer", label: "Tədarükçülər" },
       { href: "/panel/borclar", label: "Borclar" },
       { href: "/panel/maliyye-emeliyyatlari", label: "Maliyyə əməliyyatları" },
     ],

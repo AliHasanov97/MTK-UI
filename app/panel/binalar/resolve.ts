@@ -1,6 +1,7 @@
 import { getApartmentById } from "../../lib/api/buildings";
 import { getGarageById } from "../../lib/api/garages";
 import { getOwnerById } from "../../lib/api/owners";
+import { getVendor } from "../../lib/api/vendors";
 import type { PropertyTypeKey } from "../../lib/api/payments";
 
 /** Resolves a set of owner ids to display names, one request per unique id. */
@@ -13,6 +14,22 @@ export async function resolveOwnerNames(accessToken: string, ownerIds: string[])
         return [id, owner.fullName] as const;
       } catch {
         return [id, "Naməlum sahib"] as const;
+      }
+    }),
+  );
+  return Object.fromEntries(entries);
+}
+
+/** Resolves a set of vendor ids to display names, one request per unique id. */
+export async function resolveVendorNames(accessToken: string, vendorIds: string[]): Promise<Record<string, string>> {
+  const uniqueIds = [...new Set(vendorIds)];
+  const entries = await Promise.all(
+    uniqueIds.map(async (id) => {
+      try {
+        const vendor = await getVendor(accessToken, id);
+        return [id, vendor.name] as const;
+      } catch {
+        return [id, "Naməlum tədarükçü"] as const;
       }
     }),
   );

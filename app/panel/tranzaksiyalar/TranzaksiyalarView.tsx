@@ -33,8 +33,8 @@ const MONTHS_AZ = [
   "Dekabr",
 ];
 
-// Ledger rows are written by the backend, never by hand: a resident payment posts
-// an income entry, and cancelling a payment posts the matching reversal.
+// Ledger rows are written by the backend, never by hand: resident and vendor
+// payments post income and expense entries respectively.
 type Row = {
   key: string;
   date: string;

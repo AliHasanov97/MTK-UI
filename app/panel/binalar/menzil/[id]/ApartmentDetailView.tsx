@@ -21,7 +21,6 @@ import {
   lastPaymentDate,
   usePropertyFinance,
 } from "../../finance";
-import { cancelPayment } from "../../../../lib/api/payments";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -159,10 +158,6 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
       <PaymentsTable
         accessToken={auth.accessToken}
         payments={payments}
-        onCancelPayment={async (paymentId) => {
-          await cancelPayment(auth.accessToken, paymentId);
-          reloadFinance();
-        }}
       />
 
       {showAssign && (

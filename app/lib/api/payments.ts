@@ -7,7 +7,7 @@ import type { QueryFilter, SortCriteria } from "./buildings";
 // which Npgsql then rejects outright — this failed for real on rate/payment
 // dates. A calendar-date picker has no time-of-day meaning anyway, so pin it to
 // UTC midnight before it ever reaches the API.
-function dateOnlyToUtcIso(value: string): string {
+export function dateOnlyToUtcIso(value: string): string {
   return value.length === 10 ? `${value}T00:00:00.000Z` : value;
 }
 
@@ -17,7 +17,7 @@ function dateOnlyToUtcIso(value: string): string {
 const PROPERTY_TYPES = ["Apartment", "Garage"] as const;
 const CHARGE_STATUSES = ["Unpaid", "PartiallyPaid", "Paid"] as const;
 const PAYMENT_METHODS = ["Cash", "BankTransfer", "Card"] as const;
-const PAYMENT_STATUSES = ["Pending", "Completed", "Cancelled"] as const;
+const PAYMENT_STATUSES = ["Pending", "Completed"] as const;
 const RATE_TYPES = ["PerSquareMeter", "FixedGarage", "Manual"] as const;
 const GARAGE_TYPES = ["OpenParking", "CoveredGarage", "Storage"] as const;
 const TRANSACTION_DIRECTIONS = ["Income", "Expense"] as const;
@@ -77,6 +77,8 @@ export type ChargeResponse = {
   paidAmount: number;
   status: number;
   createdAt: string;
+  // The debt's age — FIFO order and the "settled from advance" marker derive from it.
+  issuedOn: string;
   description: string | null;
   // Snapshot of how Amount was calculated (see Charge.RateAmount/RateType).
   areaSquareMeters: number | null;
@@ -154,7 +156,7 @@ export type SearchParams = {
   pageSize?: number;
 };
 
-function searchBody(params: SearchParams) {
+export function searchBody(params: SearchParams) {
   return JSON.stringify({
     filters: params.filters ?? null,
     sortCriteria: params.sortCriteria ?? null,
@@ -282,12 +284,6 @@ export function createPayment(accessToken: string, request: CreatePaymentRequest
       propertyType: request.propertyType ? propertyTypeToOrdinal(request.propertyType) : null,
     }),
   }).then((e) => e.data);
-}
-
-export function cancelPayment(accessToken: string, paymentId: string) {
-  return apiFetch<MessageOnly>(`api/payments/payments/${paymentId}/cancel`, accessToken, {
-    method: "POST",
-  });
 }
 
 export function getPaymentAllocations(accessToken: string, paymentId: string) {

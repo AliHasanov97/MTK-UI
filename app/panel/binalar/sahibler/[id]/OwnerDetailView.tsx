@@ -11,7 +11,6 @@ import { Modal } from "../../../Modal";
 import { UserPicker } from "../../UserPicker";
 import { BalanceTag, ChargesTable, PaymentsTable, PayButton, formatSigned, lastPaymentDate } from "../../finance";
 import {
-  cancelPayment,
   getChargesByOwner,
   getOwnerBalance,
   getPaymentsByOwner,
@@ -305,10 +304,6 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
         accessToken={auth.accessToken}
         payments={payments}
         propertyLabels={propertyLabels}
-        onCancelPayment={async (paymentId) => {
-          await cancelPayment(auth.accessToken, paymentId);
-          reloadAll();
-        }}
       />
 
       {showLink && (
