@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { RequireRole } from "../../components/auth/RequireRole";
-import { ROLES } from "../../lib/auth/roles";
+import { ROLES } from "../../lib/auth/roleConstants";
 
 const links = [
   { href: "/panel/maliyye-emeliyyatlari/odenisler", label: "Ödənişlərin daxil edilməsi" },
@@ -14,7 +14,7 @@ const links = [
 
 export default function MaliyyeEmeliyyatlariPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT]}>
       <div className="panel-page">
         <h1>Maliyyə əməliyyatları</h1>
         <p className="panel-page-lead">Aşağıdakı əməliyyatlardan birini seçin.</p>

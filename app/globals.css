@@ -152,6 +152,22 @@
 .owner-fluid-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:16px}
 .owner-fluid-row .owner-section-card{margin-bottom:0}
 .owner-table-scroll{overflow-x:auto}
+
+/* Haqqlar (wide table) + Ödənişlər (narrow table) side by side — the
+   9:3 split matches each section's actual content width instead of
+   stretching the sparse payment cards across the full page. */
+.owner-split-row-8-4{display:grid;grid-template-columns:minmax(0,8fr) minmax(0,4fr);gap:16px;margin-bottom:16px}
+.owner-split-row-8-4 .owner-section-card{margin-bottom:0}
+@media(max-width:900px){.owner-split-row-8-4{grid-template-columns:1fr}}
+
+.panel-pagination-bordered{border-top:1px solid #f0f2ec;margin-top:4px;padding:14px 2px 2px}
+
+/* Haqqlar list trimmed to 5 columns so it fits the 8/12 column without a
+   horizontal scrollbar — Əmlak/Təsvir truncate instead of forcing width;
+   the full amount/paid breakdown is still one click away (ChargeDetailModal). */
+.owner-charge-col-property{max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.owner-charge-col-desc{max-width:260px;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:900px){.owner-charge-col-desc{max-width:none;white-space:normal}}
 .payment-document{font-size:13.5px;color:#3c463f}
 .payment-document-head{display:flex;flex-wrap:wrap;gap:16px 28px;margin:0 0 16px;padding-top:4px}
 .payment-document-field{display:flex;flex-direction:column;gap:4px;min-width:84px}

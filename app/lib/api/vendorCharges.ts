@@ -90,7 +90,6 @@ export type CreateVendorPaymentRequest = {
   vendorId: string;
   amount: number;
   paymentMethod: PaymentMethodKey;
-  reference?: string | null;
   notes?: string | null;
 };
 

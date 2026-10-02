@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import { useCanPay } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
 import { formatDateTime } from "../../../lib/format";
 import { getOwnerById, type Owner, type OwnerListItem } from "../../../lib/api/owners";
 import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../../lib/api/garages";
+import { type Apartment } from "../../../lib/api/buildings";
 import { getChargesByOwner, getPaymentsByOwner, PAYMENT_METHOD_LABELS, paymentMethodFromOrdinal, paymentStatusFromOrdinal, type ChargeResponse, type PaymentResponse, type PropertyTypeKey } from "../../../lib/api/payments";
 import { OwnerPicker } from "../../binalar/OwnerPicker";
+import { ApartmentPicker } from "../../binalar/ApartmentPicker";
 import { PaymentForm } from "../../binalar/finance";
 
 function errorMessage(err: unknown) {
@@ -33,12 +36,54 @@ function decodeTarget(value: string): { propertyId: string | null; propertyType:
 
 export function OdenislerView() {
   const auth = useAuth();
+  const canPay = useCanPay();
+  const [searchMode, setSearchMode] = useState<"owner" | "apartment">("owner");
   const [selectedOwner, setSelectedOwner] = useState<OwnerListItem | null>(null);
+  const [selectedApartment, setSelectedApartment] = useState<Apartment | null>(null);
   const [ownerDetail, setOwnerDetail] = useState<Owner | null>(null);
   const [target, setTarget] = useState("");
   const [recent, setRecent] = useState<PaymentResponse[]>([]);
   const [ownerCharges, setOwnerCharges] = useState<ChargeResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  function switchSearchMode(mode: "owner" | "apartment") {
+    setSearchMode(mode);
+    setSelectedOwner(null);
+    setSelectedApartment(null);
+    setTarget("");
+    setError(null);
+  }
+
+  function handleOwnerPicked(owner: OwnerListItem | null) {
+    setSelectedOwner(owner);
+    setTarget("");
+  }
+
+  // Mənzil seçiləndə onun cari sahibini tapıb həmin sahibi seçilmiş kimi
+  // qeyd edir və "Hədəf" seçimini birbaşa bu mənzilə yönəldir — sahibi
+  // axtarıb sonra mənzili siyahıdan seçməyə ehtiyac qalmır.
+  function handleApartmentPicked(apartment: Apartment | null) {
+    setSelectedApartment(apartment);
+    if (!apartment) {
+      setSelectedOwner(null);
+      setTarget("");
+      return;
+    }
+    if (!apartment.currentOwner) {
+      setSelectedOwner(null);
+      setTarget("");
+      setError("Bu mənzilin hazırda sahibi yoxdur.");
+      return;
+    }
+    if (auth.status !== "authenticated") return;
+    getOwnerById(auth.accessToken, apartment.currentOwner.id)
+      .then((owner) => {
+        setSelectedOwner(owner);
+        setTarget(encodeTarget("Apartment", apartment.id));
+        setError(null);
+      })
+      .catch((err) => setError(errorMessage(err)));
+  }
 
   const loadRecent = useCallback(
     (ownerId: string) => {
@@ -58,7 +103,6 @@ export function OdenislerView() {
       });
       return;
     }
-    Promise.resolve().then(() => setTarget(""));
     getOwnerById(auth.accessToken, selectedOwner.id)
       .then((res) => {
         setOwnerDetail(res);
@@ -88,46 +132,69 @@ export function OdenislerView() {
     <div className="panel-page">
       <h1>Ödənişlərin daxil edilməsi</h1>
       <p className="panel-page-lead">
-        Sahib seçin, istəsəniz konkret mənzil/qaraja hədəfləyin, sonra ödənişi qeyd edin. Əmlaka
-        hədəflənmiş ödəniş yalnız həmin əmlakın qalıq borcunu ödəyə bilər — avans üçün «Ümumi» seçin.
+        Sahibi və ya birbaşa mənzili axtararaq seçin, istəsəniz konkret mənzil/qaraja hədəfləyin,
+        sonra ödənişi qeyd edin. Əmlaka hədəflənmiş ödəniş yalnız həmin əmlakın qalıq borcunu ödəyə
+        bilər — avans üçün «Ümumi» seçin.
       </p>
 
       {error && <p className="form-error">{error}</p>}
 
       <section className="panel-card owner-section-card">
-        <h4>Sahib</h4>
-        <OwnerPicker selected={selectedOwner} onSelect={setSelectedOwner} />
+        <h4>Axtarış</h4>
+        <div className="vendor-segments">
+          <button
+            type="button"
+            className={searchMode === "owner" ? "active" : ""}
+            onClick={() => switchSearchMode("owner")}
+          >
+            Sahibə görə
+          </button>
+          <button
+            type="button"
+            className={searchMode === "apartment" ? "active" : ""}
+            onClick={() => switchSearchMode("apartment")}
+          >
+            Mənzilə görə
+          </button>
+        </div>
+        {searchMode === "owner" ? (
+          <OwnerPicker selected={selectedOwner} onSelect={handleOwnerPicked} />
+        ) : (
+          <ApartmentPicker selected={selectedApartment} onSelect={handleApartmentPicked} />
+        )}
       </section>
 
       {selectedOwner && ownerDetail && (
         <>
-          <section className="panel-card owner-section-card">
-            <h4>Ödəniş</h4>
-            <div className="form-field">
-              <label htmlFor="pay-target">Hədəf</label>
-              <select id="pay-target" value={target} onChange={(e) => setTarget(e.target.value)}>
-                <option value="">Ümumi (konkret mənzil/qaraja bağlı deyil)</option>
-                {ownerDetail.apartments.map((a) => (
-                  <option key={a.id} value={encodeTarget("Apartment", a.id)}>
-                    Mənzil {a.apartmentNumber} — {a.building.name}
-                  </option>
-                ))}
-                {ownerDetail.garages.map((g) => (
-                  <option key={g.id} value={encodeTarget("Garage", g.id)}>
-                    Qaraj {g.garageNumber} ({GARAGE_TYPE_LABELS[g.type as GarageTypeKey] ?? g.type})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <PaymentForm
-              accessToken={auth.accessToken}
-              ownerId={selectedOwner.id}
-              propertyId={propertyId}
-              propertyType={propertyType}
-              suggestedAmount={propertyId ? Math.max(0, targetedDebt) : 0}
-              onSaved={() => loadRecent(selectedOwner.id)}
-            />
-          </section>
+          {canPay && (
+            <section className="panel-card owner-section-card">
+              <h4>Ödəniş</h4>
+              <div className="form-field">
+                <label htmlFor="pay-target">Hədəf</label>
+                <select id="pay-target" value={target} onChange={(e) => setTarget(e.target.value)}>
+                  <option value="">Ümumi (konkret mənzil/qaraja bağlı deyil)</option>
+                  {ownerDetail.apartments.map((a) => (
+                    <option key={a.id} value={encodeTarget("Apartment", a.id)}>
+                      Mənzil {a.apartmentNumber} — {a.building.name}
+                    </option>
+                  ))}
+                  {ownerDetail.garages.map((g) => (
+                    <option key={g.id} value={encodeTarget("Garage", g.id)}>
+                      Qaraj {g.garageNumber} ({GARAGE_TYPE_LABELS[g.type as GarageTypeKey] ?? g.type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <PaymentForm
+                accessToken={auth.accessToken}
+                ownerId={selectedOwner.id}
+                propertyId={propertyId}
+                propertyType={propertyType}
+                suggestedAmount={propertyId ? Math.max(0, targetedDebt) : 0}
+                onSaved={() => loadRecent(selectedOwner.id)}
+              />
+            </section>
+          )}
 
           <section className="panel-card owner-section-card">
             <h4>Son ödənişlər — {ownerDetail.fullName}</h4>
@@ -141,7 +208,6 @@ export function OdenislerView() {
                       <th>Tarix</th>
                       <th>Məbləğ (₼)</th>
                       <th>Üsul</th>
-                      <th>İstinad</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -153,7 +219,6 @@ export function OdenislerView() {
                           <td>{formatDateTime(p.paymentDate)}</td>
                           <td>{p.amount.toFixed(2)}</td>
                           <td>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(p.paymentMethod)]}</td>
-                          <td>{p.reference ?? "—"}</td>
                           <td>
                             <span className="panel-role-tag">
                               {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}

@@ -1,5 +1,5 @@
 import { RequireRole } from "../../../../components/auth/RequireRole";
-import { ROLES } from "../../../../lib/auth/roles";
+import { ROLES } from "../../../../lib/auth/roleConstants";
 import { ApartmentDetailView } from "./ApartmentDetailView";
 
 export default async function ApartmentDetailPage({

@@ -346,7 +346,6 @@ export function BorclarView() {
                                     <th>Ödəniş tarixi</th>
                                     <th>Məbləğ</th>
                                     <th>Mənbə</th>
-                                    <th>İstinad</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -363,7 +362,6 @@ export function BorclarView() {
                                           {a.isFromAdvance ? "Avansdan" : "Birbaşa ödənişdən"}
                                         </span>
                                       </td>
-                                      <td>{a.reference || "—"}</td>
                                     </tr>
                                   ))}
                                 </tbody>

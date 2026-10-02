@@ -372,7 +372,7 @@ function LinkToUserModal({
     <Modal title="Hesaba bağla" onClose={onClose}>
       <p className="panel-page-lead">
         Bu passiv sahibi mövcud bir istifadəçi hesabına bağlayın ki, o özü sistemə daxil ola bilsin.
-        Bağladıqdan sonra həmin istifadəçiyə &quot;ApartmentOwner&quot; rolunu ayrıca İdentifikasiya →
+        Bağladıqdan sonra həmin istifadəçiyə &quot;owner&quot; (Mənzil sahibi) rolunu ayrıca İdentifikasiya →
         Rollar bölməsindən verməyi unutmayın.
       </p>
       <form onSubmit={handleSubmit}>

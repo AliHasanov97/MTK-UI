@@ -122,7 +122,6 @@ function ContractServiceExpenseForm() {
   const [serviceId, setServiceId] = useState("");
 
   const [amount, setAmount] = useState("");
-  const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
 
   const [formError, setFormError] = useState<string | null>(null);
@@ -206,12 +205,10 @@ function ContractServiceExpenseForm() {
         contractServiceId: selected.service.id,
         amount: numericAmount,
         paymentMethod: "Cash",
-        reference: reference || null,
         notes: notes || null,
       });
       setSavedMessage(`${selected.service.name} — ${numericAmount.toFixed(2)} ₼ qeydə alındı və ödənildi.`);
       setAmount("");
-      setReference("");
       setNotes("");
       setServiceId("");
     } catch (err) {
@@ -288,10 +285,6 @@ function ContractServiceExpenseForm() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
-            </div>
-            <div className="form-field">
-              <label htmlFor="expense-reference">Qəbz / referans (istəyə bağlı)</label>
-              <input id="expense-reference" value={reference} onChange={(e) => setReference(e.target.value)} />
             </div>
             <div className="form-field">
               <label htmlFor="expense-notes">Qeyd (istəyə bağlı)</label>

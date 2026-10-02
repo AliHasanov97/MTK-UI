@@ -96,7 +96,6 @@ export type PaymentResponse = {
   paymentMethod: number;
   paymentDate: string;
   status: number;
-  reference: string | null;
   notes: string | null;
   createdAt: string;
   propertyId: string | null;
@@ -150,7 +149,6 @@ export type ChargeAllocationResponse = {
   allocatedAmount: number;
   paymentDate: string;
   paymentStatus: string;
-  reference: string | null;
   // Bu haqqın öz qalıq borcu bu konkret paylanma tətbiq olunandan dərhal sonra.
   remainingDebtAfterPayment: number;
   // true — əvvəlki avansdan bağlanıb; false — elə bu ödənişin özündən birbaşa.
@@ -301,7 +299,6 @@ export type CreateOneTimeServiceExpenseRequest = {
   contractServiceId: string;
   amount: number;
   paymentMethod: PaymentMethodKey;
-  reference?: string | null;
   notes?: string | null;
 };
 
@@ -338,7 +335,6 @@ export type CreatePaymentRequest = {
   ownerId: string;
   amount: number;
   paymentMethod: PaymentMethodKey;
-  reference?: string | null;
   notes?: string | null;
   // Scope the payment to one apartment/garage so it can't spill onto the
   // owner's other unpaid debt. Omit for a general, owner-wide payment.

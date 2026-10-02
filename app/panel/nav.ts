@@ -1,4 +1,4 @@
-import { ROLES, type Role } from "../lib/auth/roles";
+import { ROLES, type Role } from "../lib/auth/roleConstants";
 
 export type SubPage = {
   href: string;
@@ -26,7 +26,7 @@ export const NAV_MODULES: NavModule[] = [
     href: "/panel/binalar",
     label: "Binalar",
     icon: "⌂",
-    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER],
     tabs: [
       { href: "/panel/binalar/bina-siyahisi", label: "Binalar" },
       { href: "/panel/binalar", label: "Mənzillər" },
@@ -38,7 +38,7 @@ export const NAV_MODULES: NavModule[] = [
     href: "/panel/inventar/anbar",
     label: "İnventar",
     icon: "▦",
-    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER],
     tabs: [
       { href: "/panel/inventar/anbar", label: "Anbar" },
       { href: "/panel/inventar/materiallar", label: "Materiallar" },
@@ -50,13 +50,19 @@ export const NAV_MODULES: NavModule[] = [
     href: "/panel/muqavileler",
     label: "Əməliyyatlar",
     icon: "₼",
-    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT],
     tabs: [
       { href: "/panel/muqavileler", label: "Müqavilələr" },
       { href: "/panel/tedarukculer", label: "Tədarükçülər" },
       { href: "/panel/borclar", label: "Borclar" },
       { href: "/panel/maliyye-emeliyyatlari", label: "Maliyyə əməliyyatları" },
     ],
+  },
+  {
+    href: "/panel/maliyye-emeliyyatlari/tariflar",
+    label: "Tariflər",
+    icon: "₼",
+    roles: [ROLES.OWNER],
   },
   {
     href: "/panel/tranzaksiyalar",
@@ -80,7 +86,7 @@ export const NAV_MODULES: NavModule[] = [
     href: "/panel/hr/isciler",
     label: "HR",
     icon: "◈",
-    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER, ROLES.EMPLOYEE],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.EMPLOYEE],
     tabs: [
       { href: "/panel/hr/isciler", label: "İşçilər" },
       { href: "/panel/hr/erizeler", label: "Ərizələr" },

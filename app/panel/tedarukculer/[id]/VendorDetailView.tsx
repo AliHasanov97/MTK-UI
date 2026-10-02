@@ -311,7 +311,6 @@ function PayVendorModal({
 }) {
   const auth = useAuth();
   const [amount, setAmount] = useState(String(suggestedAmount.toFixed(2)));
-  const [reference, setReference] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -332,7 +331,6 @@ function PayVendorModal({
         vendorId,
         amount: value,
         paymentMethod: "Cash",
-        reference: reference || null,
       });
       onSaved();
     } catch (err) {
@@ -369,10 +367,6 @@ function PayVendorModal({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
-        </div>
-        <div className="form-field">
-          <label htmlFor="vpay-ref">Sənəd nömrəsi (opsional)</label>
-          <input id="vpay-ref" value={reference} onChange={(e) => setReference(e.target.value)} />
         </div>
         <div className="form-actions">
           <button type="button" className="panel-btn" onClick={onClose}>

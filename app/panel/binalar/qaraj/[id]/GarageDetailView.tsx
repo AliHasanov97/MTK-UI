@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../../lib/auth/AuthContext";
-import { useCanDoEverything } from "../../../../lib/auth/roles";
+import { useCanDoEverything, useMyOwnerId } from "../../../../lib/auth/roles";
 import { ApiError } from "../../../../lib/api/client";
 import { formatDateTime } from "../../../../lib/format";
 import {
@@ -46,6 +46,7 @@ function errorMessage(err: unknown) {
 export function GarageDetailView({ garageId }: { garageId: string }) {
   const auth = useAuth();
   const canManage = useCanDoEverything();
+  const { ownerId: myOwnerId, loading: myOwnerLoading } = useMyOwnerId(canManage);
   const router = useRouter();
   const [garage, setGarage] = useState<Garage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -136,10 +137,26 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
     }
   }
 
+  // Komandant/admin hər qaraja baxa bilər. Sakin isə yalnız ÖZ qarajına —
+  // başqasının id-sini URL-ə yazıb girməyə çalışsa, burada bloklanır.
+  if (!canManage) {
+    if (myOwnerLoading) {
+      return <p className="panel-page-lead">Yüklənir…</p>;
+    }
+    if (!garage.owner || garage.owner.id !== myOwnerId) {
+      return (
+        <div className="panel-denied">
+          <h2>İcazəniz yoxdur</h2>
+          <p>Bu qaraj sizin adınıza qeydə alınmayıb.</p>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="owner-dashboard">
-      <Link className="owner-back-link" href="/panel/binalar">
-        ← Mənzillərə qayıt
+      <Link className="owner-back-link" href={canManage ? "/panel/binalar" : "/panel/profil"}>
+        ← {canManage ? "Mənzillərə qayıt" : "Profilimə qayıt"}
       </Link>
 
       <div className="owner-hero">

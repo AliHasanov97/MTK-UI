@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../../lib/auth/AuthContext";
-import { useCanDoEverything } from "../../../../lib/auth/roles";
+import { useCanDoEverything, useMyOwnerId } from "../../../../lib/auth/roles";
 import { ApiError } from "../../../../lib/api/client";
 import { formatDateTime } from "../../../../lib/format";
 import {
@@ -40,6 +40,7 @@ function errorMessage(err: unknown) {
 export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
   const auth = useAuth();
   const canManage = useCanDoEverything();
+  const { ownerId: myOwnerId, loading: myOwnerLoading } = useMyOwnerId(canManage);
   const [apartment, setApartment] = useState<Apartment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAssign, setShowAssign] = useState(false);
@@ -80,10 +81,26 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
     return <p className="panel-page-lead">Yüklənir…</p>;
   }
 
+  // Komandant/admin hər mənzilə baxa bilər. Sakin isə yalnız ÖZ mənzilinə —
+  // başqasının id-sini URL-ə yazıb girməyə çalışsa, burada bloklanır.
+  if (!canManage) {
+    if (myOwnerLoading) {
+      return <p className="panel-page-lead">Yüklənir…</p>;
+    }
+    if (!apartment.currentOwner || apartment.currentOwner.id !== myOwnerId) {
+      return (
+        <div className="panel-denied">
+          <h2>İcazəniz yoxdur</h2>
+          <p>Bu mənzil sizin adınıza qeydə alınmayıb.</p>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="owner-dashboard">
-      <Link className="owner-back-link" href="/panel/binalar">
-        ← Mənzillərə qayıt
+      <Link className="owner-back-link" href={canManage ? "/panel/binalar" : "/panel/profil"}>
+        ← {canManage ? "Mənzillərə qayıt" : "Profilimə qayıt"}
       </Link>
 
       <div className="owner-hero">

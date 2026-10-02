@@ -6,6 +6,8 @@ import { useAuth } from "../../lib/auth/AuthContext";
 import { useCanPay } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
 import { formatDateTime } from "../../lib/format";
+import { QueryComparisonType, SortDirection } from "../../lib/api/buildings";
+import { resolvePropertyLabels, type PropertyRef } from "./resolve";
 import {
   type ChargeAllocationResponse,
   type ChargeResponse,
@@ -23,7 +25,10 @@ import {
   getPropertyBalance,
   paymentMethodFromOrdinal,
   paymentStatusFromOrdinal,
+  propertyTypeFromOrdinal,
   rateTypeFromOrdinal,
+  searchCharges,
+  searchPayments,
 } from "../../lib/api/payments";
 
 const AZ_MONTHS = [
@@ -46,7 +51,7 @@ function formatPeriod(period: string | null): string {
  * RateType/AreaSquareMeters snapshot taken when it was created — so "46.87 ₼"
  * never has to be taken on faith.
  */
-function chargeDescription(c: ChargeResponse): string {
+export function chargeDescription(c: ChargeResponse): string {
   const rateType = c.rateType != null ? rateTypeFromOrdinal(c.rateType) : null;
   const periodLabel = formatPeriod(c.period);
 
@@ -63,14 +68,14 @@ function chargeDescription(c: ChargeResponse): string {
 /** Status says "what's going on" in words; the colour says "good/bad/in-between"
  *  at a glance without reading it — Paid/Completed green, Unpaid red,
  *  PartiallyPaid/Pending amber. Cancelled stays neutral: it's voided, not owed. */
-function chargeStatusTagClass(status: string): string {
+export function chargeStatusTagClass(status: string): string {
   if (status === "Paid") return "panel-role-tag-good";
   if (status === "PartiallyPaid") return "panel-role-tag-warn";
   if (status === "Unpaid") return "panel-role-tag-bad";
   return "";
 }
 
-function paymentStatusTagClass(status: string): string {
+export function paymentStatusTagClass(status: string): string {
   return status === "Completed" ? "panel-role-tag-good" : "panel-role-tag-warn";
 }
 
@@ -176,7 +181,6 @@ export function PaymentForm({
   onCancel?: () => void;
 }) {
   const [amount, setAmount] = useState(suggestedAmount > 0 ? String(suggestedAmount.toFixed(2)) : "");
-  const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -209,13 +213,11 @@ export function PaymentForm({
         ownerId,
         amount: numericAmount,
         paymentMethod: "Cash",
-        reference: reference || null,
         notes: notes || null,
         propertyId: propertyId ?? null,
         propertyType: propertyType ?? null,
       });
       setAmount("");
-      setReference("");
       setNotes("");
       onSaved();
     } catch (err) {
@@ -240,10 +242,6 @@ export function PaymentForm({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
         />
-      </div>
-      <div className="form-field">
-        <label htmlFor="pay-reference">İstinad (qəbz №, tranzaksiya ID və s.)</label>
-        <input id="pay-reference" value={reference} onChange={(e) => setReference(e.target.value)} />
       </div>
       <div className="form-field">
         <label htmlFor="pay-notes">Qeyd</label>
@@ -471,7 +469,7 @@ export function ChargesTable({
  * lazily, once, when opened — mirrors PaymentDetailModal's click-to-open
  * pattern instead of an inline expand/dropdown row.
  */
-function ChargeDetailModal({
+export function ChargeDetailModal({
   accessToken,
   charge,
   onClose,
@@ -527,7 +525,6 @@ function ChargeDetailModal({
               <tr>
                 <th>Ödəniş tarixi</th>
                 <th>Bu haqqa tətbiq (₼)</th>
-                <th>İstinad</th>
                 <th>Qalıq (₼)</th>
               </tr>
             </thead>
@@ -536,7 +533,6 @@ function ChargeDetailModal({
                 <tr key={i}>
                   <td>{formatDateTime(a.paymentDate)}</td>
                   <td>{a.allocatedAmount.toFixed(2)}</td>
-                  <td>{a.reference ?? "—"}</td>
                   <td className={a.remainingDebtAfterPayment > 0.005 ? "owner-balance-tag-debt" : "owner-balance-tag-credit"}>
                     {a.remainingDebtAfterPayment.toFixed(2)}
                   </td>
@@ -594,7 +590,6 @@ export function PaymentsTable({
                 <th>Ödəniş tarixi</th>
                 <th>Məbləğ (₼)</th>
                 <th>Üsul</th>
-                <th>İstinad</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -606,7 +601,6 @@ export function PaymentsTable({
                     <td>{formatDateTime(p.paymentDate)}</td>
                     <td>{p.amount.toFixed(2)}</td>
                     <td>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(p.paymentMethod)]}</td>
-                    <td>{p.reference ?? "—"}</td>
                     <td>
                       <span className={`panel-role-tag ${paymentStatusTagClass(status)}`}>
                         {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}
@@ -636,7 +630,7 @@ export function PaymentsTable({
  * A formal statement (what was paid, when, how) up top, then an itemised
  * table of exactly which debt(s) it settled — like a real payment receipt.
  */
-function PaymentDetailModal({
+export function PaymentDetailModal({
   accessToken,
   payment,
   propertyLabels,
@@ -692,7 +686,6 @@ function PaymentDetailModal({
           <strong>{formatDateTime(payment.paymentDate)}</strong> tarixində {methodLabel.toLowerCase()} üsulu ilə{" "}
           <strong>{payment.amount.toFixed(2)} ₼</strong> məbləğində ödəniş qeydə alınıb.
         </p>
-        {payment.reference && <p className="payment-document-statement">İstinad nömrəsi: {payment.reference}.</p>}
         {payment.notes && <p className="payment-document-statement">Qeyd: {payment.notes}.</p>}
 
         <h5 className="payment-document-section-title">Bölgü — bu ödəniş haraya getdi</h5>
@@ -744,5 +737,263 @@ function PaymentDetailModal({
         )}
       </div>
     </Modal>
+  );
+}
+
+const OWNER_PANEL_PAGE_SIZE = 8;
+
+/**
+ * Owner-level Haqqlar list, server-side searched + paginated through the
+ * existing /charges/search endpoint (filtered to this owner via PartyId —
+ * the entity's real column name; ChargeResponse.ownerId is just the DTO
+ * field). Used on the owner's own "Mənim profilim" page, where plain
+ * getChargesByOwner + ChargesTable would otherwise dump every charge ever
+ * issued into one unpaginated table.
+ */
+export function OwnerChargesPanel({ accessToken, ownerId }: { accessToken: string; ownerId: string }) {
+  const [items, setItems] = useState<ChargeResponse[] | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [propertyLabels, setPropertyLabels] = useState<Record<string, string>>({});
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [openCharge, setOpenCharge] = useState<ChargeResponse | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchTerm(searchInput.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const [prevSearchTerm, setPrevSearchTerm] = useState(searchTerm);
+  if (searchTerm !== prevSearchTerm) {
+    setPrevSearchTerm(searchTerm);
+    setPage(1);
+  }
+
+  useEffect(() => {
+    searchCharges(accessToken, {
+      filters: [{ columnName: "PartyId", comparison: QueryComparisonType.Equals, value: ownerId }],
+      sortCriteria: { columnName: "CreatedAt", direction: SortDirection.Descending },
+      searchTerm: searchTerm || undefined,
+      page: page - 1,
+      pageSize: OWNER_PANEL_PAGE_SIZE,
+    }).then((res) => {
+      setItems(res.charges);
+      setTotalCount(res.totalCount);
+      const refs: PropertyRef[] = res.charges
+        .filter((c) => c.propertyId != null && c.propertyType != null)
+        .map((c) => ({ propertyType: propertyTypeFromOrdinal(c.propertyType!), propertyId: c.propertyId! }));
+      resolvePropertyLabels(accessToken, refs).then(setPropertyLabels);
+    });
+  }, [accessToken, ownerId, searchTerm, page]);
+
+  const pageCount = Math.max(1, Math.ceil(totalCount / OWNER_PANEL_PAGE_SIZE));
+
+  return (
+    <section className="panel-card owner-section-card">
+      <h4>
+        <span className="panel-card-icon owner-section-icon">₼</span>
+        Haqqlar
+      </h4>
+      <div className="panel-toolbar">
+        <input
+          className="panel-search"
+          placeholder="Axtar (təsvir, dövr…)"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
+      </div>
+      {items === null ? (
+        <p className="panel-page-lead">Yüklənir…</p>
+      ) : items.length === 0 ? (
+        <p className="panel-page-lead">Nəticə tapılmadı.</p>
+      ) : (
+        <>
+          <div className="owner-table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Əmlak</th>
+                  <th>Təsvir</th>
+                  <th>Tarix</th>
+                  <th>Qalıq (₼)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((c) => {
+                  const remaining = c.amount - c.paidAmount;
+                  return (
+                    <tr key={c.id} className="data-table-row-clickable" onClick={() => setOpenCharge(c)}>
+                      <td className="owner-charge-col-property">
+                        {c.propertyId ? propertyLabels[c.propertyId] ?? "…" : "—"}
+                      </td>
+                      <td className="owner-charge-col-desc">{chargeDescription(c)}</td>
+                      <td>{formatDateTime(c.createdAt)}</td>
+                      <td className={remaining > 0.005 ? "owner-balance-tag-debt" : undefined}>
+                        {remaining.toFixed(2)}
+                      </td>
+                      <td>
+                        <span
+                          className={`panel-role-tag ${chargeStatusTagClass(chargeStatusFromOrdinal(c.status))}`}
+                        >
+                          {CHARGE_STATUS_LABELS[chargeStatusFromOrdinal(c.status)]}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="panel-pagination panel-pagination-bordered">
+            <span>
+              Cəmi {totalCount} haqq — səhifə {page}/{pageCount}
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Əvvəlki
+              </button>
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Növbəti
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      {openCharge && (
+        <ChargeDetailModal accessToken={accessToken} charge={openCharge} onClose={() => setOpenCharge(null)} />
+      )}
+    </section>
+  );
+}
+
+/**
+ * Owner-level Ödənişlər list — same server-side search + pagination
+ * approach as OwnerChargesPanel, via /payments/search filtered by PartyId.
+ */
+export function OwnerPaymentsPanel({ accessToken, ownerId }: { accessToken: string; ownerId: string }) {
+  const [items, setItems] = useState<PaymentResponse[] | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [propertyLabels, setPropertyLabels] = useState<Record<string, string>>({});
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [openPayment, setOpenPayment] = useState<PaymentResponse | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchTerm(searchInput.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const [prevSearchTerm, setPrevSearchTerm] = useState(searchTerm);
+  if (searchTerm !== prevSearchTerm) {
+    setPrevSearchTerm(searchTerm);
+    setPage(1);
+  }
+
+  useEffect(() => {
+    searchPayments(accessToken, {
+      filters: [{ columnName: "PartyId", comparison: QueryComparisonType.Equals, value: ownerId }],
+      sortCriteria: { columnName: "PaymentDate", direction: SortDirection.Descending },
+      searchTerm: searchTerm || undefined,
+      page: page - 1,
+      pageSize: OWNER_PANEL_PAGE_SIZE,
+    }).then((res) => {
+      setItems(res.payments);
+      setTotalCount(res.totalCount);
+      const refs: PropertyRef[] = res.payments
+        .filter((p) => p.propertyId != null && p.propertyType != null)
+        .map((p) => ({ propertyType: propertyTypeFromOrdinal(p.propertyType!), propertyId: p.propertyId! }));
+      resolvePropertyLabels(accessToken, refs).then(setPropertyLabels);
+    });
+  }, [accessToken, ownerId, searchTerm, page]);
+
+  const pageCount = Math.max(1, Math.ceil(totalCount / OWNER_PANEL_PAGE_SIZE));
+
+  return (
+    <section className="panel-card owner-section-card">
+      <h4>
+        <span className="panel-card-icon owner-section-icon">₼</span>
+        Ödənişlər
+      </h4>
+      <div className="panel-toolbar">
+        <input
+          className="panel-search"
+          placeholder="Axtar (qeyd…)"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
+      </div>
+      {items === null ? (
+        <p className="panel-page-lead">Yüklənir…</p>
+      ) : items.length === 0 ? (
+        <p className="panel-page-lead">Nəticə tapılmadı.</p>
+      ) : (
+        <>
+          <div className="owner-table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Ödəniş tarixi</th>
+                  <th>Məbləğ (₼)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((p) => {
+                  return (
+                    <tr key={p.id} className="data-table-row-clickable" onClick={() => setOpenPayment(p)}>
+                      <td>{formatDateTime(p.paymentDate)}</td>
+                      <td>{p.amount.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="panel-pagination panel-pagination-bordered">
+            <span>
+              Cəmi {totalCount} ödəniş — səhifə {page}/{pageCount}
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Əvvəlki
+              </button>
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm"
+                disabled={page >= pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Növbəti
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      {openPayment && (
+        <PaymentDetailModal
+          accessToken={accessToken}
+          payment={openPayment}
+          propertyLabels={propertyLabels}
+          onClose={() => setOpenPayment(null)}
+        />
+      )}
+    </section>
   );
 }

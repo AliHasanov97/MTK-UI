@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import { useCanDoEverything } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
 import { createApartment, createBuilding, listBuildings, type Building } from "../../../lib/api/buildings";
 import { Modal } from "../../Modal";
@@ -18,6 +19,7 @@ function errorMessage(err: unknown) {
 
 export function BinaSiyahisiView() {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
   const [buildings, setBuildings] = useState<Building[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -56,9 +58,11 @@ export function BinaSiyahisiView() {
     <div>
       <div className="panel-toolbar">
         <span style={{ flex: 1 }} />
-        <button type="button" className="panel-btn panel-btn-primary" onClick={() => setShowCreate(true)}>
-          + Yeni bina
-        </button>
+        {canManage && (
+          <button type="button" className="panel-btn panel-btn-primary" onClick={() => setShowCreate(true)}>
+            + Yeni bina
+          </button>
+        )}
       </div>
 
       <div className="data-table-wrap">
@@ -91,13 +95,15 @@ export function BinaSiyahisiView() {
                   <span className="panel-role-tag">{b.status}</span>
                 </td>
                 <td>
-                  <button
-                    type="button"
-                    className="panel-btn panel-btn-sm"
-                    onClick={() => setApartmentBuilding(b)}
-                  >
-                    + Mənzil
-                  </button>
+                  {canManage && (
+                    <button
+                      type="button"
+                      className="panel-btn panel-btn-sm"
+                      onClick={() => setApartmentBuilding(b)}
+                    >
+                      + Mənzil
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

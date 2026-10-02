@@ -1,5 +1,5 @@
 import { RequireRole } from "../../components/auth/RequireRole";
-import { ROLES } from "../../lib/auth/roles";
+import { ROLES } from "../../lib/auth/roleConstants";
 import { HesabatlarView } from "./HesabatlarView";
 
 // ADMIN/ACCOUNTANT only: same scoping as Borclar — the search endpoints aren't

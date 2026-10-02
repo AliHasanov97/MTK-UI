@@ -1,5 +1,5 @@
 import { RequireRole } from "../../components/auth/RequireRole";
-import { ROLES } from "../../lib/auth/roles";
+import { ROLES } from "../../lib/auth/roleConstants";
 import { BuildingsView } from "./BuildingsView";
 
 export default function BinalarPage() {

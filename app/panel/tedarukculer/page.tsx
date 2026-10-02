@@ -1,11 +1,11 @@
 import { RequireRole } from "../../components/auth/RequireRole";
-import { ROLES } from "../../lib/auth/roles";
+import { ROLES } from "../../lib/auth/roleConstants";
 import { TedarukculerView } from "./TedarukculerView";
 
 // Tədarükçülər və onların borcları bir səhifədə: iki seqmentli görünüş.
 export default function TedarukculerPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT]}>
       <div className="panel-page">
         <div className="panel-page-head">
           <div>

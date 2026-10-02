@@ -1,10 +1,10 @@
 import { RequireRole } from "../../components/auth/RequireRole";
-import { ROLES } from "../../lib/auth/roles";
+import { ROLES } from "../../lib/auth/roleConstants";
 import { MuqavilelerView } from "./MuqavilelerView";
 
 export default function MuqavilelerPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER]}>
       <div className="panel-page">
         <h1>Müqavilələr</h1>
         <p className="panel-page-lead">

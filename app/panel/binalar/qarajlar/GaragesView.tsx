@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import { useCanDoEverything } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
 import { SortDirection } from "../../../lib/api/buildings";
 import type { OwnerListItem } from "../../../lib/api/owners";
@@ -47,6 +48,7 @@ function SortIcon({ active, direction }: { active: boolean; direction: "asc" | "
 
 export function GaragesView() {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
   const [garages, setGarages] = useState<GarageListItem[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -127,9 +129,11 @@ export function GaragesView() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
-        <button type="button" className="panel-btn panel-btn-primary" onClick={() => setShowCreate(true)}>
-          + Yeni qaraj
-        </button>
+        {canManage && (
+          <button type="button" className="panel-btn panel-btn-primary" onClick={() => setShowCreate(true)}>
+            + Yeni qaraj
+          </button>
+        )}
       </div>
 
       <div className="data-table-wrap">
