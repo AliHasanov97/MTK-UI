@@ -74,11 +74,10 @@ export function assignOwnerToApartment(accessToken: string, apartmentId: string,
   });
 }
 
+// No transferDate/salePrice/notes: a transfer always takes effect now — the
+// backend stamps the date itself (then snaps it to the 1st of that month).
 export type TransferApartmentOwnershipRequest = {
   newOwnerId: string;
-  transferDate: string;
-  salePrice?: number | null;
-  notes?: string | null;
 };
 
 export function transferApartmentOwnership(

@@ -83,6 +83,20 @@ export function listUsers(token: string) {
   return apiFetch<UserSummary[]>("api/identity/users", token);
 }
 
+export type CurrentUser = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string | null;
+  role: string;
+};
+
+/** "Mənim profilim" və bənzər özünə-aid səhifələr üçün — cari istifadəçinin öz Users.Id-si. */
+export function getCurrentUser(token: string) {
+  return apiFetch<CurrentUser>("api/identity/users/me", token);
+}
+
 export function searchUsers(token: string, request: SearchUsersRequest) {
   return apiFetch<SearchUsersResult>("api/identity/users/search", token, {
     method: "POST",

@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../../lib/auth/AuthContext";
+import { useCanDoEverything } from "../../../../lib/auth/roles";
 import { ApiError } from "../../../../lib/api/client";
+import { formatDateTime } from "../../../../lib/format";
 import {
   GARAGE_TYPE_LABELS,
   assignOwnerToGarage,
@@ -21,7 +23,6 @@ import { Modal } from "../../../Modal";
 import { OwnerPicker } from "../../OwnerPicker";
 import {
   ChargesTable,
-  PaymentsTable,
   PayButton,
   formatSigned,
   lastPaymentDate,
@@ -44,6 +45,7 @@ function errorMessage(err: unknown) {
 
 export function GarageDetailView({ garageId }: { garageId: string }) {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
   const router = useRouter();
   const [garage, setGarage] = useState<Garage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -150,18 +152,20 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
               {garage.description && <span>{garage.description}</span>}
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" className="panel-btn panel-btn-sm" onClick={() => setShowEdit(true)}>
-              Redaktə et
-            </button>
-            <button
-              type="button"
-              className="panel-btn panel-btn-sm panel-btn-danger"
-              onClick={() => setShowDeleteConfirm(true)}
-            >
-              Sil
-            </button>
-          </div>
+          {canManage && (
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" className="panel-btn panel-btn-sm" onClick={() => setShowEdit(true)}>
+                Redaktə et
+              </button>
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm panel-btn-danger"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Sil
+              </button>
+            </div>
+          )}
         </div>
         <div className="owner-hero-stats">
           <div className="owner-hero-stat">
@@ -183,7 +187,7 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
           </div>
           <div className="owner-hero-stat">
             <span className="owner-stat-label">Son ödəniş</span>
-            <strong>{lastPaymentDate(payments)?.slice(0, 10) ?? "—"}</strong>
+            <strong>{formatDateTime(lastPaymentDate(payments))}</strong>
           </div>
         </div>
       </div>
@@ -199,36 +203,35 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
             <Link className="owner-link" href={`/panel/binalar/sahibler/${garage.owner.id}`}>
               {garage.owner.name}
             </Link>
-            <button
-              type="button"
-              className="panel-btn panel-btn-sm panel-btn-danger"
-              onClick={() => setShowRemoveConfirm(true)}
-            >
-              Sahibi çıxar
-            </button>
+            {canManage && (
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm panel-btn-danger"
+                onClick={() => setShowRemoveConfirm(true)}
+              >
+                Sahibi çıxar
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <p className="panel-page-lead" style={{ margin: 0 }}>
               Bu qarajın hazırda sahibi yoxdur (boş).
             </p>
-            <button
-              type="button"
-              className="panel-btn panel-btn-sm panel-btn-primary"
-              onClick={() => setShowAssign(true)}
-            >
-              Sahib təyin et
-            </button>
+            {canManage && (
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm panel-btn-primary"
+                onClick={() => setShowAssign(true)}
+              >
+                Sahib təyin et
+              </button>
+            )}
           </div>
         )}
       </section>
 
-      <ChargesTable accessToken={accessToken} charges={charges} />
-
-      <PaymentsTable
-        accessToken={accessToken}
-        payments={payments}
-      />
+      <ChargesTable accessToken={accessToken} charges={charges} title="Borclar və ödənişlər" />
 
       {showEdit && (
         <EditGarageModal

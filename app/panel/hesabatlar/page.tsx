@@ -1,13 +1,13 @@
 import { RequireRole } from "../../components/auth/RequireRole";
 import { ROLES } from "../../lib/auth/roles";
+import { HesabatlarView } from "./HesabatlarView";
 
+// ADMIN/ACCOUNTANT only: same scoping as Borclar — the search endpoints aren't
+// owner-scoped, so an OWNER role here would see every property's payment history.
 export default function HesabatlarPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.ACCOUNTANT]}>
-      <div className="panel-page">
-        <h1>Hesabatlar</h1>
-        <p className="panel-page-lead">Tezliklə burada hesabatlar olacaq.</p>
-      </div>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER]}>
+      <HesabatlarView />
     </RequireRole>
   );
 }

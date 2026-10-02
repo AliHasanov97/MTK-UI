@@ -31,6 +31,7 @@ export type GarageTypeKey = (typeof GARAGE_TYPES)[number];
 export type TransactionDirectionKey = (typeof TRANSACTION_DIRECTIONS)[number];
 
 export const propertyTypeToOrdinal = (k: PropertyTypeKey) => PROPERTY_TYPES.indexOf(k);
+export const propertyTypeFromOrdinal = (n: number): PropertyTypeKey => PROPERTY_TYPES[n];
 export const chargeStatusFromOrdinal = (n: number): ChargeStatusKey => CHARGE_STATUSES[n];
 export const paymentMethodToOrdinal = (k: PaymentMethodKey) => PAYMENT_METHODS.indexOf(k);
 export const paymentMethodFromOrdinal = (n: number): PaymentMethodKey => PAYMENT_METHODS[n];
@@ -110,6 +111,19 @@ export type PaymentAllocationDetailResponse = {
   description: string | null;
   chargeAmount: number;
   allocatedAmount: number;
+  // Bu haqqın (chargeId) qalıq borcu bu paylanma tətbiq olunandan dərhal sonra.
+  // Server-side snapshot, sonradan dəyişmir (PaymentAllocation.RemainingDebtAfterPayment).
+  remainingDebtAfterPayment: number;
+};
+
+// The company's real-time net cash position (all-time income minus all-time
+// expense), recalculated server-side every time a transaction is posted — not
+// a "balance as of a chosen past month" (a printed report for an old month
+// still has to scan that month's ledger; see UmumiHesabatView).
+export type CompanyBalanceResponse = {
+  totalIncome: number;
+  totalExpense: number;
+  currentBalance: number;
 };
 
 export type OwnerBalanceResponse = {
@@ -135,9 +149,13 @@ export type ChargeAllocationResponse = {
   paymentId: string;
   allocatedAmount: number;
   paymentDate: string;
-  paymentMethod: string;
   paymentStatus: string;
   reference: string | null;
+  // Bu haqqın öz qalıq borcu bu konkret paylanma tətbiq olunandan dərhal sonra.
+  remainingDebtAfterPayment: number;
+  // true — əvvəlki avansdan bağlanıb; false — elə bu ödənişin özündən birbaşa.
+  // Server-side fakt (hansı allocation yolu istifadə olunub), tarix təxmini deyil.
+  isFromAdvance: boolean;
 };
 
 export type RateResponse = {
@@ -186,10 +204,11 @@ export function searchPayments(accessToken: string, params: SearchParams = {}) {
   }).then((e) => e.data);
 }
 
-// General ledger entries — written by the backend only: a resident payment posts an
-// income row and a vendor payment an expense row on creation. Payments are not
-// reversible, so there is no reversal entry. There is deliberately no create
-// transaction call (the ledger is append-only).
+// General ledger entries. Most rows are written by the backend only: a resident
+// payment posts an income row and a vendor payment an expense row on creation
+// (payments are not reversible, so there is no reversal entry). createTransaction
+// below is the one deliberate exception — a manual entry for a cost/income with
+// no charge or vendor behind it (a utility bill paid by hand, etc.).
 export type TransactionResponse = {
   id: string;
   direction: number;
@@ -223,6 +242,25 @@ export function getTransactionsSummary(accessToken: string, filters?: QueryFilte
   }).then((e) => e.data);
 }
 
+// No transactionDate here: the ledger stamps it server-side (DateTimeOffset.UtcNow)
+// — a client-supplied creation date would be a backdating/forging risk.
+export type CreateTransactionRequest = {
+  direction: TransactionDirectionKey;
+  category: string;
+  amount: number;
+  description?: string | null;
+};
+
+export function createTransaction(accessToken: string, request: CreateTransactionRequest) {
+  return apiFetch<Envelope<string>>("api/payments/transactions", accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      ...request,
+      direction: transactionDirectionToOrdinal(request.direction),
+    }),
+  }).then((e) => e.data);
+}
+
 export function getChargesByOwner(accessToken: string, ownerId: string) {
   return apiFetch<Envelope<ChargeResponse[]>>(`api/payments/charges/owner/${ownerId}`, accessToken).then(
     (e) => e.data,
@@ -252,6 +290,31 @@ export function createCharge(accessToken: string, request: CreateChargeRequest) 
   }).then((e) => e.data);
 }
 
+// Charges against a contract's own OneTime (birdəfəlik) service: creates the vendor
+// charge and completes a payment against it in one step, so Xərclər keeps a single
+// "I paid this today" action while the balance/ledger are backed by a real
+// Contract/ContractService-linked Charge instead of a free-text category.
+// No expenseDate here: the handler stamps both the charge and the payment with
+// DateTimeOffset.UtcNow server-side.
+export type CreateOneTimeServiceExpenseRequest = {
+  contractId: string;
+  contractServiceId: string;
+  amount: number;
+  paymentMethod: PaymentMethodKey;
+  reference?: string | null;
+  notes?: string | null;
+};
+
+export function createOneTimeServiceExpense(accessToken: string, request: CreateOneTimeServiceExpenseRequest) {
+  return apiFetch<Envelope<string>>("api/payments/charges/one-time-service-expense", accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      ...request,
+      paymentMethod: paymentMethodToOrdinal(request.paymentMethod),
+    }),
+  }).then((e) => e.data);
+}
+
 export function getPaymentsByOwner(accessToken: string, ownerId: string) {
   return apiFetch<Envelope<PaymentResponse[]>>(`api/payments/payments/owner/${ownerId}`, accessToken).then(
     (e) => e.data,
@@ -264,11 +327,17 @@ export function getPaymentsByProperty(accessToken: string, propertyId: string) {
   );
 }
 
+export function getPaymentsByVendor(accessToken: string, vendorId: string) {
+  return apiFetch<Envelope<PaymentResponse[]>>(`api/payments/vendorpayments/vendor/${vendorId}`, accessToken).then(
+    (e) => e.data,
+  );
+}
+
+// No paymentDate here: the handler stamps it server-side (DateTimeOffset.UtcNow).
 export type CreatePaymentRequest = {
   ownerId: string;
   amount: number;
   paymentMethod: PaymentMethodKey;
-  paymentDate: string;
   reference?: string | null;
   notes?: string | null;
   // Scope the payment to one apartment/garage so it can't spill onto the
@@ -282,7 +351,6 @@ export function createPayment(accessToken: string, request: CreatePaymentRequest
     method: "POST",
     body: JSON.stringify({
       ...request,
-      paymentDate: dateOnlyToUtcIso(request.paymentDate),
       paymentMethod: paymentMethodToOrdinal(request.paymentMethod),
       propertyType: request.propertyType ? propertyTypeToOrdinal(request.propertyType) : null,
     }),
@@ -304,6 +372,12 @@ export function getOwnerBalance(accessToken: string, ownerId: string) {
 
 export function getPropertyBalance(accessToken: string, propertyId: string) {
   return apiFetch<Envelope<PropertyBalanceResponse>>(`api/payments/balances/property/${propertyId}`, accessToken).then(
+    (e) => e.data,
+  );
+}
+
+export function getCompanyBalance(accessToken: string) {
+  return apiFetch<Envelope<CompanyBalanceResponse>>("api/payments/balances/company", accessToken).then(
     (e) => e.data,
   );
 }
@@ -337,4 +411,35 @@ export function updateRate(accessToken: string, rateId: string, request: { amoun
     method: "PUT",
     body: JSON.stringify(request),
   });
+}
+
+// Null means no active charge existed for that property that month (never billed,
+// or every charge for it was cancelled) — distinct from Unpaid, a real debt.
+export type MonthlyChargeSummary = {
+  month: number;
+  amount: number;
+  paidAmount: number;
+  status: number | null;
+};
+
+export type PropertyAnnualReportRow = {
+  propertyId: string;
+  propertyType: number;
+  months: MonthlyChargeSummary[];
+  // All-time outstanding debt for this property (not scoped to the report year).
+  currentDebt: number;
+};
+
+export type AnnualPaymentReportResponse = {
+  year: number;
+  properties: PropertyAnnualReportRow[];
+};
+
+export function getAnnualPaymentReport(accessToken: string, year: number, propertyType?: PropertyTypeKey | null) {
+  const params = new URLSearchParams({ year: String(year) });
+  if (propertyType) params.set("propertyType", String(propertyTypeToOrdinal(propertyType)));
+  return apiFetch<Envelope<AnnualPaymentReportResponse>>(
+    `api/payments/charges/reports/annual?${params.toString()}`,
+    accessToken,
+  ).then((e) => e.data);
 }

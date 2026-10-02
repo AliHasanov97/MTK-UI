@@ -1,5 +1,5 @@
 import { apiFetch } from "./client";
-import { dateOnlyToUtcIso, searchBody, type SearchParams } from "./payments";
+import { searchBody, type SearchParams } from "./payments";
 
 // The Payments API has no [JsonStringEnumConverter], so every enum crosses the
 // wire as its numeric ordinal. These arrays are ordered to match the C# enums
@@ -66,6 +66,12 @@ export function searchVendorCharges(accessToken: string, params: SearchParams = 
   }).then((e) => e.data);
 }
 
+export function getChargesByVendor(accessToken: string, vendorId: string) {
+  return apiFetch<Envelope<VendorChargeResponse[]>>(`api/payments/vendorcharges/vendor/${vendorId}`, accessToken).then(
+    (e) => e.data,
+  );
+}
+
 export function cancelVendorCharge(accessToken: string, chargeId: string) {
   return apiFetch<MessageOnly>(`api/payments/vendorcharges/${chargeId}/cancel`, accessToken, {
     method: "POST",
@@ -78,11 +84,12 @@ export function cancelVendorCharge(accessToken: string, chargeId: string) {
 // A vendor payment now targets the vendor: the backend allocates it FIFO across
 // the vendor's open charges (with any leftover kept as an advance), exactly like
 // resident payments.
+//
+// No paymentDate here: the handler stamps it server-side (DateTimeOffset.UtcNow).
 export type CreateVendorPaymentRequest = {
   vendorId: string;
   amount: number;
   paymentMethod: PaymentMethodKey;
-  paymentDate: string;
   reference?: string | null;
   notes?: string | null;
 };
@@ -93,7 +100,6 @@ export function createVendorPayment(accessToken: string, request: CreateVendorPa
     body: JSON.stringify({
       ...request,
       paymentMethod: paymentMethodToOrdinal(request.paymentMethod),
-      paymentDate: dateOnlyToUtcIso(request.paymentDate),
     }),
   }).then((e) => e.data);
 }

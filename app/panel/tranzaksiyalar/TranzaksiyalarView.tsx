@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { ApiError } from "../../lib/api/client";
 import { SortDirection } from "../../lib/api/buildings";
+import { formatDateTime } from "../../lib/format";
 import {
   TRANSACTION_DIRECTION_LABELS,
   searchTransactions,
@@ -105,14 +106,18 @@ function currentYearRange() {
   return { start: toIsoDate(new Date(now.getFullYear(), 0, 1)), end: today() };
 }
 
-// ISO timestamps are what the backend stores; the day they belong to is the UTC
-// day, so both the filter bounds and the display stay on the raw value.
-function rangeStartIso(date: string) {
-  return `${date}T00:00:00.000Z`;
+// Compared as real instants (epoch ms), not strings: .NET's default
+// System.Text.Json DateTimeOffset serializer writes an explicit numeric offset
+// ("...+00:00"), never JavaScript's "...Z" — lexicographic string comparison
+// between the two ('+' sorts before '.') wrongly excludes same-day rows, which
+// is exactly why a transaction dated today could vanish from "Bu ay" while still
+// showing up under "Hamısı". The day a UTC timestamp belongs to is its UTC day.
+function rangeStartMs(date: string) {
+  return new Date(`${date}T00:00:00.000Z`).getTime();
 }
 
-function rangeEndIso(date: string) {
-  return `${date}T23:59:59.999Z`;
+function rangeEndMs(date: string) {
+  return new Date(`${date}T23:59:59.999Z`).getTime();
 }
 
 function formatDate(iso: string) {
@@ -196,12 +201,14 @@ export function TranzaksiyalarView() {
         amount: direction === "Income" ? t.amount : -t.amount,
       };
     })
-    .sort((a, b) => b.date.localeCompare(a.date));
+    // Real instants, not strings — same reasoning as rangeStartMs/rangeEndMs below.
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const term = search.trim().toLowerCase();
   const rows = allRows.filter((row) => {
-    if (startDate && row.date < rangeStartIso(startDate)) return false;
-    if (endDate && row.date > rangeEndIso(endDate)) return false;
+    const rowMs = new Date(row.date).getTime();
+    if (startDate && rowMs < rangeStartMs(startDate)) return false;
+    if (endDate && rowMs > rangeEndMs(endDate)) return false;
     if (kindFilter !== "all" && row.kind !== kindFilter) return false;
     if (term && !row.category.toLowerCase().includes(term) && !row.note.toLowerCase().includes(term)) return false;
     return true;
@@ -370,7 +377,7 @@ export function TranzaksiyalarView() {
                       </tr>
                       {group.rows.map((row) => (
                         <tr key={row.key}>
-                          <td className="ledger-cell-date">{formatDate(row.date)}</td>
+                          <td className="ledger-cell-date">{formatDateTime(row.date)}</td>
                           <td>
                             <span className={`ledger-type ledger-type-${row.kind}`}>
                               {TRANSACTION_DIRECTION_LABELS[row.direction]}
@@ -395,8 +402,9 @@ export function TranzaksiyalarView() {
       </div>
 
       <p className="ledger-note">
-        Jurnal yalnız real əməliyyatlardan yaranır: tranzaksiya nə manual yaradıla, nə də silinə bilər. Ödəniş ləğv
-        edildikdə əvvəlki qeyd silinmir, ona əks (geri qaytarma) qeydi əlavə olunur.
+        Sakin/tədarükçü ödənişindən yaranan qeydlər avtomatikdir və silinə bilməz — ödəniş ləğv edildikdə əvvəlki
+        qeyd silinmir, ona əks (geri qaytarma) qeydi əlavə olunur. Vendor/müqaviləyə bağlı olmayan birbaşa xərc və
+        gəlirlər isə Xərclərin daxil edilməsi / Əlavə gəlirlər bölmələrindən əlavə olunur.
       </p>
     </div>
   );

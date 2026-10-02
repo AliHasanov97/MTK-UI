@@ -10,7 +10,7 @@ export default async function GarageDetailPage({
   const { id } = await params;
 
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.STAFF]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER]}>
       <div className="panel-page">
         <h1>Qaraj</h1>
         <p className="panel-page-lead">Qarajın təfərrüatları və mülkiyyət məlumatı.</p>

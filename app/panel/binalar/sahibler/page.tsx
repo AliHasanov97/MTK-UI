@@ -4,7 +4,7 @@ import { OwnersView } from "./OwnersView";
 
 export default function SahiblerPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.STAFF]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER]}>
       <div className="panel-page">
         <h1>Sahiblər</h1>
         <p className="panel-page-lead">Bütün mənzil sahibləri və əlaqə məlumatları.</p>

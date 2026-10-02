@@ -40,6 +40,11 @@ export function getOwnerById(accessToken: string, id: string) {
   return apiFetch<Owner>(`api/buildings/owners/${id}`, accessToken);
 }
 
+/** "Mənim profilim" — sakinin öz Owner qeydini öz Users.Id-si ilə tapır. */
+export function getOwnerByUserId(accessToken: string, userId: string) {
+  return apiFetch<Owner>(`api/buildings/owners/by-user/${userId}`, accessToken);
+}
+
 export type OwnerListItem = {
   id: string;
   userId?: string | null;

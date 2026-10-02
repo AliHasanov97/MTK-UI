@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../lib/auth/AuthContext";
+import { useCanDoEverything } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
 import {
   CONTRACT_STATUS_LABELS,
@@ -36,6 +37,7 @@ function nextYear() {
 
 export function MuqavilelerView() {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
   const router = useRouter();
   const [contracts, setContracts] = useState<ContractListItem[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -97,9 +99,11 @@ export function MuqavilelerView() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
-        <button type="button" className="panel-btn panel-btn-primary" onClick={() => setCreateOpen(true)}>
-          + Yeni müqavilə
-        </button>
+        {canManage && (
+          <button type="button" className="panel-btn panel-btn-primary" onClick={() => setCreateOpen(true)}>
+            + Yeni müqavilə
+          </button>
+        )}
       </div>
 
       {error && <p className="form-error">{error}</p>}
@@ -115,14 +119,13 @@ export function MuqavilelerView() {
                 <th>Tədarükçü</th>
                 <th>Müddət</th>
                 <th>Status</th>
-                <th>Valyuta</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {contracts.length === 0 && (
                 <tr>
-                  <td colSpan={6}>Nəticə tapılmadı.</td>
+                  <td colSpan={5}>Nəticə tapılmadı.</td>
                 </tr>
               )}
               {contracts.map((c) => {
@@ -149,7 +152,6 @@ export function MuqavilelerView() {
                         </>
                       )}
                     </td>
-                    <td>{c.currency}</td>
                     <td>
                       <div className="data-table-actions">
                         <Link
@@ -221,7 +223,6 @@ function CreateContractModal({
   const [number, setNumber] = useState("");
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState(nextYear);
-  const [currency, setCurrency] = useState("AZN");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -252,7 +253,6 @@ function CreateContractModal({
         startDate,
         endDate,
         note: note || null,
-        currency,
       });
       onSaved(contractId);
     } catch (err) {
@@ -266,27 +266,15 @@ function CreateContractModal({
     <Modal title="Yeni müqavilə" onClose={onClose} wide>
       <form onSubmit={handleSubmit}>
         {error && <p className="form-error">{error}</p>}
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="contract-number">Müqavilə nömrəsi</label>
-            <input
-              id="contract-number"
-              required
-              placeholder="2026/045"
-              value={number}
-              onChange={(e) => setNumber(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="contract-currency">Valyuta</label>
-            <input
-              id="contract-currency"
-              required
-              maxLength={3}
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-            />
-          </div>
+        <div className="form-field">
+          <label htmlFor="contract-number">Müqavilə nömrəsi</label>
+          <input
+            id="contract-number"
+            required
+            placeholder="2026/045"
+            value={number}
+            onChange={(e) => setNumber(e.target.value)}
+          />
         </div>
         <div className="form-field">
           <label htmlFor="contract-vendor">Tədarükçü</label>

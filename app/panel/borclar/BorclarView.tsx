@@ -3,8 +3,10 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth/AuthContext";
+import { useCanDoEverything } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
 import { SortDirection } from "../../lib/api/buildings";
+import { formatDateTime } from "../../lib/format";
 import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../lib/api/garages";
 import { getOwnerById, type Owner, type OwnerListItem } from "../../lib/api/owners";
 import {
@@ -12,11 +14,9 @@ import {
   chargeStatusFromOrdinal,
   createCharge,
   getChargeAllocations,
-  PAYMENT_METHOD_LABELS,
   searchCharges,
   type ChargeAllocationResponse,
   type ChargeResponse,
-  type PaymentMethodKey,
   type PropertyTypeKey,
 } from "../../lib/api/payments";
 import { Modal } from "../Modal";
@@ -45,6 +45,7 @@ type Scope = "open" | "paid" | "all";
 
 export function BorclarView() {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
   const [charges, setCharges] = useState<ChargeResponse[] | null>(null);
   const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
   const [propertyLabels, setPropertyLabels] = useState<Record<string, string>>({});
@@ -147,13 +148,15 @@ export function BorclarView() {
             qaydasında bağlanır və jurnal gəlir qeydi yazılır.
           </p>
         </div>
-        <button
-          type="button"
-          className="panel-btn panel-btn-primary"
-          onClick={() => setShowAddCharge(true)}
-        >
-          + Yeni haqq
-        </button>
+        {canManage && (
+          <button
+            type="button"
+            className="panel-btn panel-btn-primary"
+            onClick={() => setShowAddCharge(true)}
+          >
+            + Yeni haqq
+          </button>
+        )}
       </div>
 
       <div className="ledger-stats">
@@ -292,7 +295,7 @@ export function BorclarView() {
                         <td>{c.propertyId ? propertyLabels[c.propertyId] ?? "…" : "…"}</td>
                         <td>
                           {c.period || "—"}
-                          <span className="vendor-cell-sub">borc tarixi {c.issuedOn.slice(0, 10)}</span>
+                          <span className="vendor-cell-sub">borc tarixi {formatDateTime(c.issuedOn)}</span>
                         </td>
                         <td className="vendor-amount">
                           <strong className={remaining > 0 ? "vendor-value-danger" : "vendor-value-ok"}>
@@ -342,35 +345,27 @@ export function BorclarView() {
                                   <tr>
                                     <th>Ödəniş tarixi</th>
                                     <th>Məbləğ</th>
-                                    <th>Üsul</th>
                                     <th>Mənbə</th>
                                     <th>İstinad</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {(rows ?? []).map((a) => {
-                                    const isAdvance = new Date(a.paymentDate) < new Date(c.issuedOn);
-                                    return (
-                                      <tr key={`${a.paymentId}-${a.allocatedAmount}`}>
-                                        <td>{a.paymentDate.slice(0, 10)}</td>
-                                        <td>{formatMoney(a.allocatedAmount)}</td>
-                                        <td>
-                                          {PAYMENT_METHOD_LABELS[a.paymentMethod as PaymentMethodKey] ??
-                                            a.paymentMethod}
-                                        </td>
-                                        <td>
-                                          <span
-                                            className={`vendor-status ${
-                                              isAdvance ? "vendor-status-partial" : "vendor-status-paid"
-                                            }`}
-                                          >
-                                            {isAdvance ? "Avansdan" : "Birbaşa ödənişdən"}
-                                          </span>
-                                        </td>
-                                        <td>{a.reference || "—"}</td>
-                                      </tr>
-                                    );
-                                  })}
+                                  {(rows ?? []).map((a) => (
+                                    <tr key={`${a.paymentId}-${a.allocatedAmount}`}>
+                                      <td>{formatDateTime(a.paymentDate)}</td>
+                                      <td>{formatMoney(a.allocatedAmount)}</td>
+                                      <td>
+                                        <span
+                                          className={`vendor-status ${
+                                            a.isFromAdvance ? "vendor-status-partial" : "vendor-status-paid"
+                                          }`}
+                                        >
+                                          {a.isFromAdvance ? "Avansdan" : "Birbaşa ödənişdən"}
+                                        </span>
+                                      </td>
+                                      <td>{a.reference || "—"}</td>
+                                    </tr>
+                                  ))}
                                 </tbody>
                               </table>
                             )}

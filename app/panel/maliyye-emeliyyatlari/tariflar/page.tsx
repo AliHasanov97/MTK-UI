@@ -4,7 +4,7 @@ import { TariflarView } from "./TariflarView";
 
 export default function TariflarPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.ACCOUNTANT]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER]}>
       <TariflarView />
     </RequireRole>
   );

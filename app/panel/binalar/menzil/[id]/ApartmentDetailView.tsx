@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../../lib/auth/AuthContext";
+import { useCanDoEverything } from "../../../../lib/auth/roles";
 import { ApiError } from "../../../../lib/api/client";
+import { formatDateTime } from "../../../../lib/format";
 import {
   assignOwnerToApartment,
   getApartmentById,
@@ -15,7 +17,6 @@ import { Modal } from "../../../Modal";
 import { OwnerPicker } from "../../OwnerPicker";
 import {
   ChargesTable,
-  PaymentsTable,
   PayButton,
   formatSigned,
   lastPaymentDate,
@@ -38,6 +39,7 @@ function errorMessage(err: unknown) {
 
 export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
   const [apartment, setApartment] = useState<Apartment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAssign, setShowAssign] = useState(false);
@@ -119,7 +121,7 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
           </div>
           <div className="owner-hero-stat">
             <span className="owner-stat-label">Son ödəniş</span>
-            <strong>{lastPaymentDate(payments)?.slice(0, 10) ?? "—"}</strong>
+            <strong>{formatDateTime(lastPaymentDate(payments))}</strong>
           </div>
         </div>
       </div>
@@ -134,32 +136,31 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
             <Link className="owner-link" href={`/panel/binalar/sahibler/${apartment.currentOwner.id}`}>
               {apartment.currentOwner.name}
             </Link>
-            <button type="button" className="panel-btn panel-btn-sm" onClick={() => setShowTransfer(true)}>
-              Mülkiyyəti köçür
-            </button>
+            {canManage && (
+              <button type="button" className="panel-btn panel-btn-sm" onClick={() => setShowTransfer(true)}>
+                Mülkiyyəti köçür
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
             <p className="panel-page-lead" style={{ margin: 0 }}>
               Bu mənzilin hazırda sahibi yoxdur (boş).
             </p>
-            <button
-              type="button"
-              className="panel-btn panel-btn-sm panel-btn-primary"
-              onClick={() => setShowAssign(true)}
-            >
-              Sahib təyin et
-            </button>
+            {canManage && (
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm panel-btn-primary"
+                onClick={() => setShowAssign(true)}
+              >
+                Sahib təyin et
+              </button>
+            )}
           </div>
         )}
       </section>
 
-      <ChargesTable accessToken={auth.accessToken} charges={charges} />
-
-      <PaymentsTable
-        accessToken={auth.accessToken}
-        payments={payments}
-      />
+      <ChargesTable accessToken={auth.accessToken} charges={charges} title="Borclar və ödənişlər" />
 
       {showAssign && (
         <AssignOwnerModal
@@ -247,9 +248,6 @@ function TransferOwnershipModal({
 }) {
   const auth = useAuth();
   const [owner, setOwner] = useState<OwnerListItem | null>(null);
-  const [transferDate, setTransferDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [salePrice, setSalePrice] = useState("");
-  const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -312,9 +310,6 @@ function TransferOwnershipModal({
       }
       await transferApartmentOwnership(accessToken, apartmentId, {
         newOwnerId: owner.id,
-        transferDate,
-        salePrice: salePrice ? Number(salePrice) : null,
-        notes: notes || null,
       });
       onSaved();
     } catch (err) {
@@ -329,33 +324,6 @@ function TransferOwnershipModal({
       <form onSubmit={handleSubmit}>
         {error && <p className="form-error">{error}</p>}
         <OwnerPicker selected={owner} onSelect={setOwner} label="Yeni sahib" />
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="transfer-date">Transfer tarixi</label>
-            <input
-              id="transfer-date"
-              type="date"
-              required
-              value={transferDate}
-              onChange={(e) => setTransferDate(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="transfer-price">Satış qiyməti (₼)</label>
-            <input
-              id="transfer-price"
-              type="number"
-              min={0}
-              step="0.01"
-              value={salePrice}
-              onChange={(e) => setSalePrice(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="form-field">
-          <label htmlFor="transfer-notes">Qeyd</label>
-          <input id="transfer-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </div>
         <div className="form-actions">
           <button type="button" className="panel-btn" onClick={onClose}>
             Ləğv et

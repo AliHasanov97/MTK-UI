@@ -1,14 +1,15 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Modal } from "../Modal";
 import { useAuth } from "../../lib/auth/AuthContext";
+import { useCanPay } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
+import { formatDateTime } from "../../lib/format";
 import {
   type ChargeAllocationResponse,
   type ChargeResponse,
   type PaymentAllocationDetailResponse,
-  type PaymentMethodKey,
   type PaymentResponse,
   type PropertyTypeKey,
   CHARGE_STATUS_LABELS,
@@ -39,6 +40,7 @@ function formatPeriod(period: string | null): string {
   return monthName ? `${monthName} ${m[1]}` : period;
 }
 
+
 /**
  * Spells out exactly how a charge's Amount was calculated, from the RateAmount/
  * RateType/AreaSquareMeters snapshot taken when it was created — so "46.87 ₼"
@@ -56,6 +58,20 @@ function chargeDescription(c: ChargeResponse): string {
   }
   // Manual (one-off) charges already carry a human-written reason.
   return c.description ?? `Haqq (${periodLabel})`;
+}
+
+/** Status says "what's going on" in words; the colour says "good/bad/in-between"
+ *  at a glance without reading it — Paid/Completed green, Unpaid red,
+ *  PartiallyPaid/Pending amber. Cancelled stays neutral: it's voided, not owed. */
+function chargeStatusTagClass(status: string): string {
+  if (status === "Paid") return "panel-role-tag-good";
+  if (status === "PartiallyPaid") return "panel-role-tag-warn";
+  if (status === "Unpaid") return "panel-role-tag-bad";
+  return "";
+}
+
+function paymentStatusTagClass(status: string): string {
+  return status === "Completed" ? "panel-role-tag-good" : "panel-role-tag-warn";
 }
 
 /** Sum of (paid - amount) across charges: negative = debt, positive = advance/credit.
@@ -105,7 +121,10 @@ export function PayButton({
   onPaid: () => void;
 }) {
   const auth = useAuth();
+  const canPay = useCanPay();
   const [open, setOpen] = useState(false);
+
+  if (!canPay) return null;
 
   return (
     <>
@@ -157,8 +176,6 @@ export function PaymentForm({
   onCancel?: () => void;
 }) {
   const [amount, setAmount] = useState(suggestedAmount > 0 ? String(suggestedAmount.toFixed(2)) : "");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodKey>("Cash");
-  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -191,8 +208,7 @@ export function PaymentForm({
       await createPayment(accessToken, {
         ownerId,
         amount: numericAmount,
-        paymentMethod,
-        paymentDate,
+        paymentMethod: "Cash",
         reference: reference || null,
         notes: notes || null,
         propertyId: propertyId ?? null,
@@ -212,50 +228,22 @@ export function PaymentForm({
   return (
     <form onSubmit={handleSubmit}>
       {error && <p className="form-error">{error}</p>}
-      <div className="form-row">
-        <div className="form-field">
-          <label htmlFor="pay-amount">Məbləğ (₼){maxAmount !== null && ` — borc: ${maxAmount.toFixed(2)}`}</label>
-          <input
-            id="pay-amount"
-            type="number"
-            min={0.01}
-            step="0.01"
-            required
-            max={maxAmount ?? undefined}
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        </div>
-        <div className="form-field">
-          <label htmlFor="pay-method">Ödəniş üsulu</label>
-          <select
-            id="pay-method"
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodKey)}
-          >
-            {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethodKey[]).map((key) => (
-              <option key={key} value={key}>
-                {PAYMENT_METHOD_LABELS[key]}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className="form-field">
+        <label htmlFor="pay-amount">Məbləğ (₼){maxAmount !== null && ` — borc: ${maxAmount.toFixed(2)}`}</label>
+        <input
+          id="pay-amount"
+          type="number"
+          min={0.01}
+          step="0.01"
+          required
+          max={maxAmount ?? undefined}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
       </div>
-      <div className="form-row">
-        <div className="form-field">
-          <label htmlFor="pay-date">Tarix</label>
-          <input
-            id="pay-date"
-            type="date"
-            required
-            value={paymentDate}
-            onChange={(e) => setPaymentDate(e.target.value)}
-          />
-        </div>
-        <div className="form-field">
-          <label htmlFor="pay-reference">İstinad (qəbz №, tranzaksiya ID və s.)</label>
-          <input id="pay-reference" value={reference} onChange={(e) => setReference(e.target.value)} />
-        </div>
+      <div className="form-field">
+        <label htmlFor="pay-reference">İstinad (qəbz №, tranzaksiya ID və s.)</label>
+        <input id="pay-reference" value={reference} onChange={(e) => setReference(e.target.value)} />
       </div>
       <div className="form-field">
         <label htmlFor="pay-notes">Qeyd</label>
@@ -400,37 +388,24 @@ export function usePropertyDebtGate(accessToken: string | undefined, propertyId:
 /**
  * Every charge this owner/property was billed, each row showing its own
  * paid/remaining amount directly — no need to cross-reference a separate list to
- * see whether a given charge is settled. Expand a row to see exactly which
- * payment(s) — and how much of each — paid it down.
+ * see whether a given charge is settled. Click a row to open a modal with
+ * exactly which payment(s) — and how much of each — paid it down.
  */
 export function ChargesTable({
   accessToken,
   charges,
   propertyLabels,
+  title = "Haqqlar",
 }: {
   accessToken: string;
   charges: ChargeResponse[];
   /** Owner-level view only: property.id -> "Mənzil 12 — Bina A" / "Qaraj G5". Adds an "Əmlak" column. */
   propertyLabels?: Record<string, string>;
+  /** Apartment/garage pages show no separate PaymentsTable — a row's own detail modal
+   *  already answers "which payment(s) cleared it", so this card speaks for both. */
+  title?: string;
 }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [allocationsByCharge, setAllocationsByCharge] = useState<Record<string, ChargeAllocationResponse[]>>({});
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const columnCount = propertyLabels ? 7 : 6;
-
-  function toggle(chargeId: string) {
-    if (expandedId === chargeId) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(chargeId);
-    if (!allocationsByCharge[chargeId] && accessToken) {
-      setLoadingId(chargeId);
-      getChargeAllocations(accessToken, chargeId)
-        .then((res) => setAllocationsByCharge((prev) => ({ ...prev, [chargeId]: res })))
-        .finally(() => setLoadingId(null));
-    }
-  }
+  const [openCharge, setOpenCharge] = useState<ChargeResponse | null>(null);
 
   const sorted = [...charges].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
@@ -438,7 +413,7 @@ export function ChargesTable({
     <section className="panel-card owner-section-card">
       <h4>
         <span className="panel-card-icon owner-section-icon">₼</span>
-        Haqqlar
+        {title}
       </h4>
       {sorted.length === 0 ? (
         <p className="panel-page-lead">Hələ heç bir haqq yaranmayıb.</p>
@@ -447,91 +422,145 @@ export function ChargesTable({
           <table className="data-table">
             <thead>
               <tr>
-                <th></th>
                 {propertyLabels && <th>Əmlak</th>}
-                <th>Tarix</th>
+                <th>Hesablanma tarixi</th>
                 <th>Təsvir</th>
                 <th>Məbləğ (₼)</th>
                 <th>Ödənilib (₼)</th>
-                <th>Qalıq (₼)</th>
+                <th>Qalıq borc (₼)</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map((c) => {
                 const remaining = c.amount - c.paidAmount;
-                const isOpen = expandedId === c.id;
-                const rows = allocationsByCharge[c.id];
                 return (
-                  <Fragment key={c.id}>
-                    <tr>
-                      <td>
-                        <button type="button" className="panel-btn panel-btn-sm" onClick={() => toggle(c.id)}>
-                          {isOpen ? "▲" : "▼"}
-                        </button>
-                      </td>
-                      {propertyLabels && <td>{c.propertyId ? propertyLabels[c.propertyId] ?? "—" : "—"}</td>}
-                      <td>{c.createdAt.slice(0, 10)}</td>
-                      <td>{chargeDescription(c)}</td>
-                      <td>{c.amount.toFixed(2)}</td>
-                      <td className={c.paidAmount > 0.005 ? "owner-balance-tag-credit" : undefined}>
-                        {c.paidAmount.toFixed(2)}
-                      </td>
-                      <td className={remaining > 0.005 ? "owner-balance-tag-debt" : undefined}>
-                        {remaining.toFixed(2)}
-                      </td>
-                      <td>
-                        <span className="panel-role-tag">{CHARGE_STATUS_LABELS[chargeStatusFromOrdinal(c.status)]}</span>
-                      </td>
-                    </tr>
-                    {isOpen && (
-                      <tr>
-                        <td></td>
-                        <td colSpan={columnCount - 1}>
-                          {loadingId === c.id ? (
-                            <p className="panel-page-lead">Yüklənir…</p>
-                          ) : (rows?.length ?? 0) === 0 ? (
-                            <p className="panel-page-lead">Bu haqqa hələ heç bir ödəniş tətbiq olunmayıb.</p>
-                          ) : (
-                            <table className="data-table" style={{ margin: 0 }}>
-                              <thead>
-                                <tr>
-                                  <th>Ödəniş tarixi</th>
-                                  <th>Bu haqqa tətbiq (₼)</th>
-                                  <th>Üsul</th>
-                                  <th>İstinad</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {rows!.map((a, i) => (
-                                  <tr key={i}>
-                                    <td>{a.paymentDate.slice(0, 10)}</td>
-                                    <td>{a.allocatedAmount.toFixed(2)}</td>
-                                    <td>{PAYMENT_METHOD_LABELS[a.paymentMethod as PaymentMethodKey] ?? a.paymentMethod}</td>
-                                    <td>{a.reference ?? "—"}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
+                  <tr key={c.id} className="data-table-row-clickable" onClick={() => setOpenCharge(c)}>
+                    {propertyLabels && <td>{c.propertyId ? propertyLabels[c.propertyId] ?? "—" : "—"}</td>}
+                    <td>{formatDateTime(c.createdAt)}</td>
+                    <td>{chargeDescription(c)}</td>
+                    <td>{c.amount.toFixed(2)}</td>
+                    <td className={c.paidAmount > 0.005 ? "owner-balance-tag-credit" : undefined}>
+                      {c.paidAmount.toFixed(2)}
+                    </td>
+                    <td className={remaining > 0.005 ? "owner-balance-tag-debt" : undefined}>
+                      {remaining.toFixed(2)}
+                    </td>
+                    <td>
+                      <span className={`panel-role-tag ${chargeStatusTagClass(chargeStatusFromOrdinal(c.status))}`}>
+                        {CHARGE_STATUS_LABELS[chargeStatusFromOrdinal(c.status)]}
+                      </span>
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
       )}
+      {openCharge && (
+        <ChargeDetailModal accessToken={accessToken} charge={openCharge} onClose={() => setOpenCharge(null)} />
+      )}
     </section>
   );
 }
 
 /**
- * Every payment, newest first. Expand a row to see exactly which charge(s) that
- * payment's amount paid for — directly answers "what did this 60 AZN cover?" —
- * plus any leftover portion that's sitting as an unapplied advance.
+ * A charge's own detail: what it was for, its paid/remaining state, and
+ * exactly which payment(s) — and how much of each — paid it down. Fetched
+ * lazily, once, when opened — mirrors PaymentDetailModal's click-to-open
+ * pattern instead of an inline expand/dropdown row.
+ */
+function ChargeDetailModal({
+  accessToken,
+  charge,
+  onClose,
+}: {
+  accessToken: string;
+  charge: ChargeResponse;
+  onClose: () => void;
+}) {
+  const [rows, setRows] = useState<ChargeAllocationResponse[] | null>(null);
+  const remaining = charge.amount - charge.paidAmount;
+
+  useEffect(() => {
+    getChargeAllocations(accessToken, charge.id).then(setRows);
+  }, [accessToken, charge.id]);
+
+  return (
+    <Modal title="Haqq təfərrüatı" onClose={onClose}>
+      <div className="payment-document">
+        <div className="payment-document-head">
+          <div className="payment-document-field">
+            <span className="payment-document-label">Tarix</span>
+            <strong>{formatDateTime(charge.createdAt)}</strong>
+          </div>
+          <div className="payment-document-field">
+            <span className="payment-document-label">Məbləğ</span>
+            <strong>{charge.amount.toFixed(2)} ₼</strong>
+          </div>
+          <div className="payment-document-field">
+            <span className="payment-document-label">Ödənilib</span>
+            <strong>{charge.paidAmount.toFixed(2)} ₼</strong>
+          </div>
+          <div className="payment-document-field">
+            <span className="payment-document-label">Status</span>
+            <span className={`panel-role-tag ${chargeStatusTagClass(chargeStatusFromOrdinal(charge.status))}`}>
+              {CHARGE_STATUS_LABELS[chargeStatusFromOrdinal(charge.status)]}
+            </span>
+          </div>
+        </div>
+
+        <div className="payment-document-divider" />
+
+        <p className="payment-document-statement">{chargeDescription(charge)}.</p>
+
+        <h5 className="payment-document-section-title">Bölgü — bu haqqı hansı ödənişlər qarşılayıb</h5>
+
+        {rows === null ? (
+          <p className="payment-document-statement">Bölgü məlumatı yüklənir…</p>
+        ) : rows.length === 0 ? (
+          <p className="payment-document-statement">Bu haqqa hələ heç bir ödəniş tətbiq olunmayıb.</p>
+        ) : (
+          <table className="data-table payment-document-table" style={{ margin: 0 }}>
+            <thead>
+              <tr>
+                <th>Ödəniş tarixi</th>
+                <th>Bu haqqa tətbiq (₼)</th>
+                <th>İstinad</th>
+                <th>Qalıq (₼)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((a, i) => (
+                <tr key={i}>
+                  <td>{formatDateTime(a.paymentDate)}</td>
+                  <td>{a.allocatedAmount.toFixed(2)}</td>
+                  <td>{a.reference ?? "—"}</td>
+                  <td className={a.remainingDebtAfterPayment > 0.005 ? "owner-balance-tag-debt" : "owner-balance-tag-credit"}>
+                    {a.remainingDebtAfterPayment.toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {rows !== null && rows.length === 0 && remaining > 0.005 && (
+          <p className="payment-document-statement" style={{ marginTop: 12 }}>
+            Qalıq borc: <strong className="owner-balance-tag-debt">{remaining.toFixed(2)} ₼</strong>
+          </p>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Every payment, newest first — one compact row each. Click a row to open a
+ * modal with the full breakdown: exactly which charge(s) that payment's
+ * amount paid for, and how much of each — directly answers "what did this
+ * 100 AZN cover?" — plus any leftover portion sitting as an unapplied advance.
  */
 export function PaymentsTable({
   accessToken,
@@ -540,28 +569,13 @@ export function PaymentsTable({
 }: {
   accessToken: string;
   payments: PaymentResponse[];
-  /** Owner-level view only: property.id -> "Mənzil 12 — Bina A" / "Qaraj G5". Adds a "Hədəf" column. */
+  /** Owner-level view only: property.id -> "Mənzil 12 — Bina A" / "Qaraj G5". Not
+   *  shown as its own list column anymore — only used inside the detail modal's
+   *  allocation statement, where a payment spanning several units needs to say
+   *  which one each charge belongs to. */
   propertyLabels?: Record<string, string>;
 }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [detailsByPayment, setDetailsByPayment] = useState<Record<string, PaymentAllocationDetailResponse[]>>({});
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const columnCount = propertyLabels ? 7 : 6;
-
-  function toggle(paymentId: string) {
-    if (expandedId === paymentId) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(paymentId);
-    if (!detailsByPayment[paymentId]) {
-      setLoadingId(paymentId);
-      getPaymentAllocations(accessToken, paymentId)
-        .then((res) => setDetailsByPayment((prev) => ({ ...prev, [paymentId]: res })))
-        .finally(() => setLoadingId(null));
-    }
-  }
-
+  const [openPayment, setOpenPayment] = useState<PaymentResponse | null>(null);
   const sorted = [...payments].sort((a, b) => b.paymentDate.localeCompare(a.paymentDate));
 
   return (
@@ -577,9 +591,7 @@ export function PaymentsTable({
           <table className="data-table">
             <thead>
               <tr>
-                <th></th>
-                {propertyLabels && <th>Hədəf</th>}
-                <th>Tarix</th>
+                <th>Ödəniş tarixi</th>
                 <th>Məbləğ (₼)</th>
                 <th>Üsul</th>
                 <th>İstinad</th>
@@ -589,80 +601,148 @@ export function PaymentsTable({
             <tbody>
               {sorted.map((p) => {
                 const status = paymentStatusFromOrdinal(p.status);
-                const isOpen = expandedId === p.id;
-                const rows = detailsByPayment[p.id];
-                const allocatedTotal = rows?.reduce((sum, r) => sum + r.allocatedAmount, 0) ?? 0;
-                const unallocated = p.amount - allocatedTotal;
                 return (
-                  <Fragment key={p.id}>
-                    <tr>
-                      <td>
-                        <button type="button" className="panel-btn panel-btn-sm" onClick={() => toggle(p.id)}>
-                          {isOpen ? "▲" : "▼"}
-                        </button>
-                      </td>
-                      {propertyLabels && (
-                        <td>{p.propertyId ? propertyLabels[p.propertyId] ?? "—" : "Ümumi"}</td>
-                      )}
-                      <td>{p.paymentDate.slice(0, 10)}</td>
-                      <td>{p.amount.toFixed(2)}</td>
-                      <td>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(p.paymentMethod)]}</td>
-                      <td>{p.reference ?? "—"}</td>
-                      <td>
-                        <span className="panel-role-tag">
-                          {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}
-                        </span>
-                      </td>
-                    </tr>
-                    {isOpen && (
-                      <tr>
-                        <td></td>
-                        <td colSpan={columnCount - 1}>
-                          {loadingId === p.id ? (
-                            <p className="panel-page-lead">Yüklənir…</p>
-                          ) : (rows?.length ?? 0) === 0 ? (
-                            <p className="panel-page-lead">
-                              Bu ödəniş hələ heç bir haqqa tətbiq olunmayıb — tam məbləğ avans kimi qalıb.
-                            </p>
-                          ) : (
-                            <>
-                              <table className="data-table" style={{ margin: 0 }}>
-                                <thead>
-                                  <tr>
-                                    {propertyLabels && <th>Əmlak</th>}
-                                    <th>Haqq</th>
-                                    <th>Haqqın məbləği (₼)</th>
-                                    <th>Bu ödənişdən tətbiq olunan (₼)</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {rows!.map((r) => (
-                                    <tr key={r.chargeId}>
-                                      {propertyLabels && <td>{r.propertyId ? propertyLabels[r.propertyId] ?? "—" : "—"}</td>}
-                                      <td>{r.description ?? formatPeriod(r.period)}</td>
-                                      <td>{r.chargeAmount.toFixed(2)}</td>
-                                      <td>{r.allocatedAmount.toFixed(2)}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                              {unallocated > 0.005 && (
-                                <p className="panel-page-lead" style={{ marginTop: 8 }}>
-                                  Bölüşdürülməyən qalıq (avans): <strong>{unallocated.toFixed(2)} ₼</strong>
-                                </p>
-                              )}
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
+                  <tr key={p.id} className="data-table-row-clickable" onClick={() => setOpenPayment(p)}>
+                    <td>{formatDateTime(p.paymentDate)}</td>
+                    <td>{p.amount.toFixed(2)}</td>
+                    <td>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(p.paymentMethod)]}</td>
+                    <td>{p.reference ?? "—"}</td>
+                    <td>
+                      <span className={`panel-role-tag ${paymentStatusTagClass(status)}`}>
+                        {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}
+                      </span>
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
       )}
+      {openPayment && (
+        <PaymentDetailModal
+          accessToken={accessToken}
+          payment={openPayment}
+          propertyLabels={propertyLabels}
+          onClose={() => setOpenPayment(null)}
+        />
+      )}
     </section>
+  );
+}
+
+/**
+ * The "where did my 100 AZN go" receipt — fetched lazily, once, when opened.
+ * A formal statement (what was paid, when, how) up top, then an itemised
+ * table of exactly which debt(s) it settled — like a real payment receipt.
+ */
+function PaymentDetailModal({
+  accessToken,
+  payment,
+  propertyLabels,
+  onClose,
+}: {
+  accessToken: string;
+  payment: PaymentResponse;
+  propertyLabels?: Record<string, string>;
+  onClose: () => void;
+}) {
+  const [rows, setRows] = useState<PaymentAllocationDetailResponse[] | null>(null);
+
+  useEffect(() => {
+    getPaymentAllocations(accessToken, payment.id).then(setRows);
+  }, [accessToken, payment.id]);
+
+  const allocatedTotal = rows?.reduce((sum, r) => sum + r.allocatedAmount, 0) ?? 0;
+  const unallocated = payment.amount - allocatedTotal;
+  const status = paymentStatusFromOrdinal(payment.status);
+  const methodLabel = PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(payment.paymentMethod)];
+
+  return (
+    <Modal title="Ödəniş sənədi" onClose={onClose} wide>
+      <div className="payment-document">
+        <div className="payment-document-head">
+          <div className="payment-document-field">
+            <span className="payment-document-label">Sənəd №</span>
+            <strong>{payment.id.slice(0, 8).toUpperCase()}</strong>
+          </div>
+          <div className="payment-document-field">
+            <span className="payment-document-label">Tarix</span>
+            <strong>{formatDateTime(payment.paymentDate)}</strong>
+          </div>
+          <div className="payment-document-field">
+            <span className="payment-document-label">Məbləğ</span>
+            <strong>{payment.amount.toFixed(2)} ₼</strong>
+          </div>
+          <div className="payment-document-field">
+            <span className="payment-document-label">Ödəniş üsulu</span>
+            <strong>{methodLabel}</strong>
+          </div>
+          <div className="payment-document-field">
+            <span className="payment-document-label">Status</span>
+            <span className={`panel-role-tag ${paymentStatusTagClass(status)}`}>
+              {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}
+            </span>
+          </div>
+        </div>
+
+        <div className="payment-document-divider" />
+
+        <p className="payment-document-statement">
+          <strong>{formatDateTime(payment.paymentDate)}</strong> tarixində {methodLabel.toLowerCase()} üsulu ilə{" "}
+          <strong>{payment.amount.toFixed(2)} ₼</strong> məbləğində ödəniş qeydə alınıb.
+        </p>
+        {payment.reference && <p className="payment-document-statement">İstinad nömrəsi: {payment.reference}.</p>}
+        {payment.notes && <p className="payment-document-statement">Qeyd: {payment.notes}.</p>}
+
+        <h5 className="payment-document-section-title">Bölgü — bu ödəniş haraya getdi</h5>
+
+        {rows === null ? (
+          <p className="payment-document-statement">Bölgü məlumatı yüklənir…</p>
+        ) : rows.length === 0 ? (
+          <p className="payment-document-statement">
+            Bu ödəniş hələ heç bir haqqa tətbiq olunmayıb — tam {payment.amount.toFixed(2)} ₼ sahibin hesabında
+            avans kimi saxlanılır.
+          </p>
+        ) : (
+          <>
+            <table className="data-table payment-document-table" style={{ margin: "0 0 12px" }}>
+              <thead>
+                <tr>
+                  {propertyLabels && <th>Əmlak</th>}
+                  <th>Haqq</th>
+                  <th>Məbləğ (₼)</th>
+                  <th>Tətbiq (₼)</th>
+                  <th>Qalıq (₼)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.chargeId}>
+                    {propertyLabels && <td>{r.propertyId ? propertyLabels[r.propertyId] ?? "—" : "—"}</td>}
+                    <td>{r.description ?? formatPeriod(r.period)}</td>
+                    <td>{r.chargeAmount.toFixed(2)}</td>
+                    <td>{r.allocatedAmount.toFixed(2)}</td>
+                    <td className={r.remainingDebtAfterPayment > 0.005 ? "owner-balance-tag-debt" : "owner-balance-tag-credit"}>
+                      {r.remainingDebtAfterPayment.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {unallocated > 0.005 && (
+              <p className="payment-document-statement">
+                Qalan <strong>{unallocated.toFixed(2)} ₼</strong> sahibin hesabında avans kimi saxlanılır və
+                növbəti haqqa avtomatik tətbiq olunacaq.
+              </p>
+            )}
+          </>
+        )}
+
+        {status !== "Completed" && (
+          <p className="payment-document-statement">Qeyd: bu ödəniş hələ gözləmə statusundadır, tamamlanmayıb.</p>
+        )}
+      </div>
+    </Modal>
   );
 }

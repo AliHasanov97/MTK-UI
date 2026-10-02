@@ -4,7 +4,7 @@ import { GaragesView } from "./GaragesView";
 
 export default function QarajlarPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.STAFF]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER]}>
       <div className="panel-page">
         <h1>Qarajlar</h1>
         <p className="panel-page-lead">Bütün qarajlar və sahiblik məlumatları.</p>

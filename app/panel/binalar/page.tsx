@@ -4,7 +4,7 @@ import { BuildingsView } from "./BuildingsView";
 
 export default function BinalarPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.STAFF]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER]}>
       <div className="panel-page">
         <h1>Mənzillər</h1>
         <p className="panel-page-lead">

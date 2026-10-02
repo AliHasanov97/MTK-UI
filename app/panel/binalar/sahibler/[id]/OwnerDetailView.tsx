@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../../lib/auth/AuthContext";
+import { useCanDoEverything } from "../../../../lib/auth/roles";
 import { ApiError } from "../../../../lib/api/client";
+import { formatDateTime } from "../../../../lib/format";
 import { getOwnerById, linkOwnerToUser, type Owner } from "../../../../lib/api/owners";
 import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../../../lib/api/garages";
 import type { UserSummary } from "../../../../lib/api/identity";
@@ -15,8 +17,10 @@ import {
   getOwnerBalance,
   getPaymentsByOwner,
   getPropertyBalance,
+  propertyTypeFromOrdinal,
   type ChargeResponse,
 } from "../../../../lib/api/payments";
+import { resolvePropertyLabels, type PropertyRef } from "../../resolve";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -41,6 +45,7 @@ function initials(fullName: string) {
 
 export function OwnerDetailView({ ownerId }: { ownerId: string }) {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
   const [owner, setOwner] = useState<Owner | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showLink, setShowLink] = useState(false);
@@ -48,6 +53,7 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
   const [payments, setPayments] = useState<Awaited<ReturnType<typeof getPaymentsByOwner>>>([]);
   const [ownerBalance, setOwnerBalance] = useState(0);
   const [propertyBalances, setPropertyBalances] = useState<Record<string, number>>({});
+  const [propertyLabels, setPropertyLabels] = useState<Record<string, string>>({});
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -108,6 +114,27 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
     loadPropertyBalances();
   }, [loadPropertyBalances]);
 
+  // Resolved directly from the charges/payments themselves (not owner.apartments/
+  // garages) so a unit transferred away AFTER its charge/payment history was
+  // created still shows its name here instead of "—" — owner.apartments only
+  // reflects CURRENT ownership.
+  useEffect(() => {
+    if (auth.status !== "authenticated") return;
+    const refs: PropertyRef[] = [
+      ...charges
+        .filter((c) => c.propertyId != null && c.propertyType != null)
+        .map((c) => ({ propertyType: propertyTypeFromOrdinal(c.propertyType!), propertyId: c.propertyId! })),
+      ...payments
+        .filter((p) => p.propertyId != null && p.propertyType != null)
+        .map((p) => ({ propertyType: propertyTypeFromOrdinal(p.propertyType!), propertyId: p.propertyId! })),
+    ];
+    if (refs.length === 0) {
+      Promise.resolve().then(() => setPropertyLabels({}));
+      return;
+    }
+    resolvePropertyLabels(auth.accessToken, refs).then(setPropertyLabels);
+  }, [auth, charges, payments]);
+
   const reloadAll = useCallback(() => {
     loadFinance();
     loadPropertyBalances();
@@ -128,17 +155,6 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
     return <p className="panel-page-lead">Yüklənir…</p>;
   }
 
-  // Property.id -> display label, for the "Əmlak"/"Hədəf" columns in the
-  // owner-wide Haqqlar/Ödənişlər tables below (they mix charges/payments from
-  // every unit this owner has, so each row needs to say which one it's for).
-  const propertyLabels: Record<string, string> = {};
-  owner.apartments.forEach((a) => {
-    propertyLabels[a.id] = `Mənzil ${a.apartmentNumber} — ${a.building.name}`;
-  });
-  owner.garages.forEach((g) => {
-    propertyLabels[g.id] = `Qaraj ${g.garageNumber}`;
-  });
-
   const lastPayment = lastPaymentDate(payments);
 
   return (
@@ -158,7 +174,7 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
               <span>{owner.userId ? "Qeydiyyatlı istifadəçi" : "Passiv sahib (hesabı yoxdur)"}</span>
             </div>
           </div>
-          {!owner.userId && (
+          {canManage && !owner.userId && (
             <button
               type="button"
               className="panel-btn panel-btn-sm panel-btn-primary"
@@ -184,7 +200,7 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
           </div>
           <div className="owner-hero-stat">
             <span className="owner-stat-label">Son ödəniş</span>
-            <strong>{lastPayment?.slice(0, 10) ?? "—"}</strong>
+            <strong>{formatDateTime(lastPayment)}</strong>
           </div>
         </div>
       </div>

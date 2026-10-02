@@ -5,7 +5,7 @@ import { TedarukculerView } from "./TedarukculerView";
 // Tədarükçülər və onların borcları bir səhifədə: iki seqmentli görünüş.
 export default function TedarukculerPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.ACCOUNTANT]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER]}>
       <div className="panel-page">
         <div className="panel-page-head">
           <div>

@@ -26,7 +26,7 @@ export const NAV_MODULES: NavModule[] = [
     href: "/panel/binalar",
     label: "Binalar",
     icon: "⌂",
-    roles: [ROLES.ADMIN, ROLES.STAFF],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER],
     tabs: [
       { href: "/panel/binalar/bina-siyahisi", label: "Binalar" },
       { href: "/panel/binalar", label: "Mənzillər" },
@@ -38,7 +38,7 @@ export const NAV_MODULES: NavModule[] = [
     href: "/panel/inventar/anbar",
     label: "İnventar",
     icon: "▦",
-    roles: [ROLES.ADMIN, ROLES.STAFF],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER],
     tabs: [
       { href: "/panel/inventar/anbar", label: "Anbar" },
       { href: "/panel/inventar/materiallar", label: "Materiallar" },
@@ -50,7 +50,7 @@ export const NAV_MODULES: NavModule[] = [
     href: "/panel/muqavileler",
     label: "Əməliyyatlar",
     icon: "₼",
-    roles: [ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.OWNER],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER],
     tabs: [
       { href: "/panel/muqavileler", label: "Müqavilələr" },
       { href: "/panel/tedarukculer", label: "Tədarükçülər" },
@@ -62,25 +62,25 @@ export const NAV_MODULES: NavModule[] = [
     href: "/panel/tranzaksiyalar",
     label: "Tranzaksiyalar",
     icon: "⇄",
-    roles: [ROLES.ADMIN, ROLES.ACCOUNTANT],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER],
   },
   {
     href: "/panel/hesabatlar",
     label: "Hesabatlar",
     icon: "▩",
-    roles: [ROLES.ADMIN, ROLES.ACCOUNTANT],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER],
   },
   {
     href: "/panel/muraciyetler",
     label: "Müraciətlər",
     icon: "✳",
-    roles: [ROLES.ADMIN, ROLES.STAFF, ROLES.OWNER],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER],
   },
   {
     href: "/panel/hr/isciler",
     label: "HR",
     icon: "◈",
-    roles: [ROLES.ADMIN],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER, ROLES.EMPLOYEE],
     tabs: [
       { href: "/panel/hr/isciler", label: "İşçilər" },
       { href: "/panel/hr/erizeler", label: "Ərizələr" },
@@ -98,6 +98,12 @@ export const NAV_MODULES: NavModule[] = [
       { href: "/panel/rollar", label: "Rollar" },
       { href: "/panel/qruplar", label: "Qruplar" },
     ],
+  },
+  {
+    href: "/panel/profil",
+    label: "Mənim profilim",
+    icon: "☺",
+    roles: [ROLES.OWNER],
   },
   {
     href: "/panel/idareetme",

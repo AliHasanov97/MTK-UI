@@ -14,7 +14,7 @@ const links = [
 
 export default function MaliyyeEmeliyyatlariPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.ACCOUNTANT]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER]}>
       <div className="panel-page">
         <h1>Maliyyə əməliyyatları</h1>
         <p className="panel-page-lead">Aşağıdakı əməliyyatlardan birini seçin.</p>

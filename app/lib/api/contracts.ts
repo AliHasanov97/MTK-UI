@@ -11,6 +11,7 @@ export type ContractStatusKey = (typeof CONTRACT_STATUSES)[number];
 export type BillingPeriodKey = (typeof BILLING_PERIODS)[number];
 
 export const contractStatusFromOrdinal = (n: number): ContractStatusKey => CONTRACT_STATUSES[n];
+export const contractStatusToOrdinal = (k: ContractStatusKey) => CONTRACT_STATUSES.indexOf(k);
 export const billingPeriodToOrdinal = (k: BillingPeriodKey) => BILLING_PERIODS.indexOf(k);
 export const billingPeriodFromOrdinal = (n: number): BillingPeriodKey => BILLING_PERIODS[n];
 
@@ -41,7 +42,6 @@ export type ContractListItem = {
   startDate: string;
   endDate: string;
   status: number;
-  currency: string;
   isExpired: boolean;
   note: string | null;
   createdAt: string;
@@ -51,9 +51,7 @@ export type ContractServiceResponse = {
   id: string;
   name: string;
   description: string | null;
-  unit: string;
   unitPrice: number;
-  quantity: number;
   billingPeriod: number;
   periodAmount: number;
   serviceStartDate: string | null;
@@ -71,7 +69,6 @@ export type ContractResponse = {
   startDate: string;
   endDate: string;
   status: number;
-  currency: string;
   note: string | null;
   isExpired: boolean;
   isActive: boolean;
@@ -109,7 +106,6 @@ export type CreateContractRequest = {
   endDate: string;
   createdByUserId?: string | null;
   note?: string | null;
-  currency?: string;
 };
 
 export function createContract(accessToken: string, request: CreateContractRequest) {
@@ -144,8 +140,6 @@ export type ContractServiceRequest = {
   name: string;
   unitPrice: number;
   billingPeriod: BillingPeriodKey;
-  quantity: number;
-  unit?: string;
   description?: string | null;
   serviceStartDate?: string | null;
   serviceEndDate?: string | null;

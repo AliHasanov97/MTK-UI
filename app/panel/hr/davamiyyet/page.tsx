@@ -3,7 +3,7 @@ import { ROLES } from "../../../lib/auth/roles";
 
 export default function DavamiyyetPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER, ROLES.EMPLOYEE]}>
       <div className="panel-page">
         <h1>Davamiyyət</h1>
         <p className="panel-page-lead">

@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "../../lib/auth/AuthContext";
+import { useCanDoEverything, useCanPay } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
 import {
   VENDOR_TYPE_LABELS,
@@ -18,14 +20,11 @@ import {
   type VendorTypeKey,
 } from "../../lib/api/vendors";
 import {
-  PAYMENT_METHODS_ORDERED,
-  PAYMENT_METHOD_LABELS,
   VENDOR_CHARGE_STATUS_LABELS,
   cancelVendorCharge,
   createVendorPayment,
   searchVendorCharges,
   vendorChargeStatusFromOrdinal,
-  type PaymentMethodKey,
   type VendorChargeResponse,
 } from "../../lib/api/vendorCharges";
 import { resolveVendorNames } from "../binalar/resolve";
@@ -90,6 +89,7 @@ export function TedarukculerView() {
 
 function VendorsSegment() {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
   const [vendors, setVendors] = useState<VendorListResult[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -196,16 +196,18 @@ function VendorsSegment() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
-        <button
-          type="button"
-          className="panel-btn panel-btn-primary"
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          + Yeni tədarükçü
-        </button>
+        {canManage && (
+          <button
+            type="button"
+            className="panel-btn panel-btn-primary"
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            + Yeni tədarükçü
+          </button>
+        )}
       </div>
 
       {error && (
@@ -249,7 +251,9 @@ function VendorsSegment() {
                 {vendors.map((v) => (
                   <tr key={v.id}>
                     <td className="vendor-cell-vendor">
-                      {v.name}
+                      <Link className="owner-link" href={`/panel/tedarukculer/${v.id}`}>
+                        {v.name}
+                      </Link>
                       <span className="vendor-cell-sub">
                         {VENDOR_TYPE_LABELS[vendorTypeFromOrdinal(v.vendorType)]}
                         {v.director ? ` · ${v.director}` : ""}
@@ -266,32 +270,34 @@ function VendorsSegment() {
                       </span>
                     </td>
                     <td>
-                      <div className="data-table-actions">
-                        <button
-                          type="button"
-                          className="panel-btn panel-btn-sm"
-                          disabled={workingId === v.id}
-                          onClick={() => handleEdit(v)}
-                        >
-                          Redaktə
-                        </button>
-                        <button
-                          type="button"
-                          className="panel-btn panel-btn-sm"
-                          disabled={workingId === v.id}
-                          onClick={() => handleToggleStatus(v)}
-                        >
-                          {v.isActive ? "Dayandır" : "Aktivləşdir"}
-                        </button>
-                        <button
-                          type="button"
-                          className="panel-btn panel-btn-sm panel-btn-danger"
-                          disabled={workingId === v.id}
-                          onClick={() => handleDelete(v)}
-                        >
-                          Sil
-                        </button>
-                      </div>
+                      {canManage && (
+                        <div className="data-table-actions">
+                          <button
+                            type="button"
+                            className="panel-btn panel-btn-sm"
+                            disabled={workingId === v.id}
+                            onClick={() => handleEdit(v)}
+                          >
+                            Redaktə
+                          </button>
+                          <button
+                            type="button"
+                            className="panel-btn panel-btn-sm"
+                            disabled={workingId === v.id}
+                            onClick={() => handleToggleStatus(v)}
+                          >
+                            {v.isActive ? "Dayandır" : "Aktivləşdir"}
+                          </button>
+                          <button
+                            type="button"
+                            className="panel-btn panel-btn-sm panel-btn-danger"
+                            disabled={workingId === v.id}
+                            onClick={() => handleDelete(v)}
+                          >
+                            Sil
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -348,6 +354,8 @@ function VendorsSegment() {
 
 function DebtsSegment() {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
+  const canMakePayments = useCanPay();
   const [charges, setCharges] = useState<VendorChargeResponse[] | null>(null);
   const [vendorNames, setVendorNames] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -513,7 +521,9 @@ function DebtsSegment() {
                   return (
                     <tr key={c.id}>
                       <td className="vendor-cell-vendor">
-                        {vendorNames[c.vendorId] ?? "…"}
+                        <Link className="owner-link" href={`/panel/tedarukculer/${c.vendorId}`}>
+                          {vendorNames[c.vendorId] ?? "…"}
+                        </Link>
                         {c.period && <span className="vendor-cell-sub">Dövr: {c.period}</span>}
                       </td>
                       <td className="ledger-cell-note">
@@ -540,7 +550,7 @@ function DebtsSegment() {
                       </td>
                       <td>
                         <div className="data-table-actions">
-                          {canPay && (
+                          {canMakePayments && canPay && (
                             <button
                               type="button"
                               className="panel-btn panel-btn-sm panel-btn-primary"
@@ -550,7 +560,7 @@ function DebtsSegment() {
                               Ödə
                             </button>
                           )}
-                          {status !== "Paid" && status !== "Cancelled" && (
+                          {canManage && status !== "Paid" && status !== "Cancelled" && (
                             <button
                               type="button"
                               className="panel-btn panel-btn-sm panel-btn-danger"
@@ -605,8 +615,6 @@ function PayVendorChargeModal({
 }) {
   const auth = useAuth();
   const [amount, setAmount] = useState(String(charge.outstandingAmount));
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodKey>("BankTransfer");
-  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -627,8 +635,7 @@ function PayVendorChargeModal({
       await createVendorPayment(accessToken, {
         vendorId: charge.vendorId,
         amount: value,
-        paymentMethod,
-        paymentDate,
+        paymentMethod: "Cash",
         reference: reference || null,
       });
       onSaved();
@@ -647,49 +654,21 @@ function PayVendorChargeModal({
       </p>
       <form onSubmit={handleSubmit}>
         {error && <p className="form-error">{error}</p>}
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="vpay-amount">Məbləğ (₼)</label>
-            <input
-              id="vpay-amount"
-              type="number"
-              min={0.01}
-              step="0.01"
-              required
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="vpay-date">Ödəniş tarixi</label>
-            <input
-              id="vpay-date"
-              type="date"
-              required
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-            />
-          </div>
+        <div className="form-field">
+          <label htmlFor="vpay-amount">Məbləğ (₼)</label>
+          <input
+            id="vpay-amount"
+            type="number"
+            min={0.01}
+            step="0.01"
+            required
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
         </div>
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="vpay-method">Ödəniş üsulu</label>
-            <select
-              id="vpay-method"
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodKey)}
-            >
-              {PAYMENT_METHODS_ORDERED.map((key) => (
-                <option key={key} value={key}>
-                  {PAYMENT_METHOD_LABELS[key]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="vpay-ref">Sənəd nömrəsi (opsional)</label>
-            <input id="vpay-ref" value={reference} onChange={(e) => setReference(e.target.value)} />
-          </div>
+        <div className="form-field">
+          <label htmlFor="vpay-ref">Sənəd nömrəsi (opsional)</label>
+          <input id="vpay-ref" value={reference} onChange={(e) => setReference(e.target.value)} />
         </div>
         <div className="form-actions">
           <button type="button" className="panel-btn" onClick={onClose}>

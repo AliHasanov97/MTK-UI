@@ -4,7 +4,7 @@ import { ErizelerView } from "./ErizelerView";
 
 export default function ErizelerPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER, ROLES.EMPLOYEE]}>
       <div className="panel-page">
         <h1>Ərizələr</h1>
         <p className="panel-page-lead">

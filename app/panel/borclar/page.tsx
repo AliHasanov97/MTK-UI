@@ -7,7 +7,7 @@ import { BorclarView } from "./BorclarView";
 // own. Residents already get their own scoped ledger via their owner profile page.
 export default function BorclarPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.ACCOUNTANT]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER]}>
       <BorclarView />
     </RequireRole>
   );

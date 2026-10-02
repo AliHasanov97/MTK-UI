@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import { useCanDoEverything } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
 import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../../lib/api/garages";
 import {
@@ -34,6 +35,7 @@ function garageTypeLabel(rate: RateResponse): string {
 
 export function TariflarView() {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
   const [rates, setRates] = useState<RateResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -64,10 +66,12 @@ export function TariflarView() {
 
       {error && <p className="form-error">{error}</p>}
 
-      <section className="panel-card owner-section-card">
-        <h4>Yeni tarif</h4>
-        <CreateRateForm accessToken={auth.accessToken} onSaved={load} />
-      </section>
+      {canManage && (
+        <section className="panel-card owner-section-card">
+          <h4>Yeni tarif</h4>
+          <CreateRateForm accessToken={auth.accessToken} onSaved={load} />
+        </section>
+      )}
 
       <section className="panel-card owner-section-card">
         <h4>Aktiv tariflər</h4>
@@ -88,7 +92,7 @@ export function TariflarView() {
               </thead>
               <tbody>
                 {rates.map((r) =>
-                  editingId === r.id ? (
+                  canManage && editingId === r.id ? (
                     <EditRateRow
                       key={r.id}
                       accessToken={auth.accessToken}
@@ -107,9 +111,11 @@ export function TariflarView() {
                       <td>{r.effectiveFrom.slice(0, 10)}</td>
                       <td>{r.description ?? "—"}</td>
                       <td>
-                        <button type="button" className="panel-btn panel-btn-sm" onClick={() => setEditingId(r.id)}>
-                          Redaktə et
-                        </button>
+                        {canManage && (
+                          <button type="button" className="panel-btn panel-btn-sm" onClick={() => setEditingId(r.id)}>
+                            Redaktə et
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ),

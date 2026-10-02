@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
+import { useCanDoEverything, useCanPay } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
 import {
   BILLING_PERIODS_ORDERED,
@@ -26,14 +27,11 @@ import {
   type ContractServiceResponse,
 } from "../../../lib/api/contracts";
 import {
-  PAYMENT_METHODS_ORDERED,
-  PAYMENT_METHOD_LABELS,
   VENDOR_CHARGE_STATUS_LABELS,
   cancelVendorCharge,
   createVendorPayment,
   searchVendorCharges,
   vendorChargeStatusFromOrdinal,
-  type PaymentMethodKey,
   type VendorChargeResponse,
 } from "../../../lib/api/vendorCharges";
 import { QueryComparisonType, type QueryFilter } from "../../../lib/api/buildings";
@@ -51,6 +49,8 @@ const dateOnly = (iso: string) => iso.slice(0, 10);
 
 export function MuqavileDetailView({ contractId }: { contractId: string }) {
   const auth = useAuth();
+  const canManage = useCanDoEverything();
+  const canMakePayments = useCanPay();
   const router = useRouter();
   const [contract, setContract] = useState<ContractResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +130,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
 
   const status = contractStatusFromOrdinal(contract.status);
   const isDraft = status === "Draft";
-  const money = (n: number) => `${n.toFixed(2)} ${contract.currency}`;
+  const money = (n: number) => `${n.toFixed(2)} ₼`;
 
   return (
     <div>
@@ -155,7 +155,6 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
             </strong>
           </span>
           {contract.isExpired && status === "Active" && <span>Müddəti bitib</span>}
-          <span>Valyuta: {contract.currency}</span>
         </div>
         {contract.note && <p className="panel-page-lead" style={{ marginTop: 12 }}>{contract.note}</p>}
 
@@ -174,70 +173,72 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
           </div>
         </div>
 
-        <div className="form-actions" style={{ justifyContent: "flex-start", flexWrap: "wrap" }}>
-          {status !== "Terminated" && (
-            <button type="button" className="panel-btn" disabled={busy} onClick={() => setDatesOpen(true)}>
-              Müddəti/qeydi dəyiş
-            </button>
-          )}
-          {(status === "Draft" || status === "Suspended") && (
-            <button
-              type="button"
-              className="panel-btn panel-btn-primary"
-              disabled={busy}
-              onClick={() => run(() => activateContract(accessToken, contract.id))}
-            >
-              Aktivləşdir
-            </button>
-          )}
-          {status === "Active" && (
-            <button
-              type="button"
-              className="panel-btn"
-              disabled={busy}
-              onClick={() => run(() => suspendContract(accessToken, contract.id, null))}
-            >
-              Dayandır
-            </button>
-          )}
-          {status !== "Terminated" && (
-            <button
-              type="button"
-              className="panel-btn panel-btn-danger"
-              disabled={busy}
-              onClick={() => setTerminateOpen(true)}
-            >
-              Ləğv et
-            </button>
-          )}
-          {status !== "Active" && (
-            <button
-              type="button"
-              className="panel-btn panel-btn-danger"
-              disabled={busy}
-              onClick={async () => {
-                if (!window.confirm(`${contract.number} müqaviləsi silinsin?`)) return;
-                setBusy(true);
-                setError(null);
-                try {
-                  await deleteContract(accessToken, contract.id);
-                  router.push("/panel/muqavileler");
-                } catch (err) {
-                  setError(errorMessage(err));
-                  setBusy(false);
-                }
-              }}
-            >
-              Sil
-            </button>
-          )}
-        </div>
+        {canManage && (
+          <div className="form-actions" style={{ justifyContent: "flex-start", flexWrap: "wrap" }}>
+            {status !== "Terminated" && (
+              <button type="button" className="panel-btn" disabled={busy} onClick={() => setDatesOpen(true)}>
+                Müddəti/qeydi dəyiş
+              </button>
+            )}
+            {(status === "Draft" || status === "Suspended") && (
+              <button
+                type="button"
+                className="panel-btn panel-btn-primary"
+                disabled={busy}
+                onClick={() => run(() => activateContract(accessToken, contract.id))}
+              >
+                Aktivləşdir
+              </button>
+            )}
+            {status === "Active" && (
+              <button
+                type="button"
+                className="panel-btn"
+                disabled={busy}
+                onClick={() => run(() => suspendContract(accessToken, contract.id, null))}
+              >
+                Dayandır
+              </button>
+            )}
+            {status !== "Terminated" && (
+              <button
+                type="button"
+                className="panel-btn panel-btn-danger"
+                disabled={busy}
+                onClick={() => setTerminateOpen(true)}
+              >
+                Ləğv et
+              </button>
+            )}
+            {status !== "Active" && (
+              <button
+                type="button"
+                className="panel-btn panel-btn-danger"
+                disabled={busy}
+                onClick={async () => {
+                  if (!window.confirm(`${contract.number} müqaviləsi silinsin?`)) return;
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    await deleteContract(accessToken, contract.id);
+                    router.push("/panel/muqavileler");
+                  } catch (err) {
+                    setError(errorMessage(err));
+                    setBusy(false);
+                  }
+                }}
+              >
+                Sil
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="panel-card owner-section-card">
         <h4 style={{ justifyContent: "space-between" }}>
           <span>Müqavilə üzrə xidmətlər</span>
-          {isDraft && (
+          {canManage && isDraft && (
             <button
               type="button"
               className="panel-btn panel-btn-sm panel-btn-primary"
@@ -258,16 +259,16 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
               <thead>
                 <tr>
                   <th>Xidmət</th>
-                  <th>Vahid qiymət</th>
-                  <th>Miqdar</th>
-                  <th>Dövr</th>
-                  <th>Dövr üzrə məbləğ</th>
+                  <th>Növ</th>
+                  <th>Qiymət</th>
                   <th>Status</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {contract.services.map((s) => (
+                {contract.services.map((s) => {
+                  const isOneTime = billingPeriodFromOrdinal(s.billingPeriod) === "OneTime";
+                  return (
                   <tr key={s.id}>
                     <td>
                       {s.name}
@@ -278,13 +279,13 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                         <span style={{ color: "#8a938c" }}> · ödəniş {s.paymentTermDays} gün</span>
                       )}
                     </td>
-                    <td>{money(s.unitPrice)}</td>
-                    <td>
-                      {s.quantity} {s.unit}
-                    </td>
                     <td>{BILLING_PERIOD_LABELS[billingPeriodFromOrdinal(s.billingPeriod)]}</td>
                     <td>
-                      <strong>{money(s.periodAmount)}</strong>
+                      {isOneTime && s.periodAmount <= 0 ? (
+                        <span style={{ color: "#8a938c" }}>Təyin olunmayıb</span>
+                      ) : (
+                        <strong>{money(s.periodAmount)}</strong>
+                      )}
                     </td>
                     <td>
                       <span className={`panel-role-tag${s.isActive ? "" : " panel-role-tag-inactive"}`}>
@@ -292,44 +293,47 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                       </span>
                     </td>
                     <td>
-                      <div className="data-table-actions">
-                        {isDraft && (
-                          <>
-                            <button
-                              type="button"
-                              className="panel-btn panel-btn-sm"
-                              disabled={busy}
-                              onClick={() => setServiceForm({ service: s })}
-                            >
-                              Redaktə
-                            </button>
-                            <button
-                              type="button"
-                              className="panel-btn panel-btn-sm panel-btn-danger"
-                              disabled={busy}
-                              onClick={() => {
-                                if (!window.confirm(`"${s.name}" xidməti silinsin?`)) return;
-                                void run(() => removeContractService(accessToken, contract.id, s.id));
-                              }}
-                            >
-                              Sil
-                            </button>
-                          </>
-                        )}
-                        <button
-                          type="button"
-                          className="panel-btn panel-btn-sm"
-                          disabled={busy}
-                          onClick={() =>
-                            run(() => setContractServiceStatus(accessToken, contract.id, s.id, !s.isActive))
-                          }
-                        >
-                          {s.isActive ? "Dayandır" : "Bərpa et"}
-                        </button>
-                      </div>
+                      {canManage && (
+                        <div className="data-table-actions">
+                          {isDraft && (
+                            <>
+                              <button
+                                type="button"
+                                className="panel-btn panel-btn-sm"
+                                disabled={busy}
+                                onClick={() => setServiceForm({ service: s })}
+                              >
+                                Redaktə
+                              </button>
+                              <button
+                                type="button"
+                                className="panel-btn panel-btn-sm panel-btn-danger"
+                                disabled={busy}
+                                onClick={() => {
+                                  if (!window.confirm(`"${s.name}" xidməti silinsin?`)) return;
+                                  void run(() => removeContractService(accessToken, contract.id, s.id));
+                                }}
+                              >
+                                Sil
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            className="panel-btn panel-btn-sm"
+                            disabled={busy}
+                            onClick={() =>
+                              run(() => setContractServiceStatus(accessToken, contract.id, s.id, !s.isActive))
+                            }
+                          >
+                            {s.isActive ? "Dayandır" : "Bərpa et"}
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -400,7 +404,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                       </td>
                       <td>
                         <div className="data-table-actions">
-                          {(chargeStatus === "Unpaid" || chargeStatus === "PartiallyPaid") && (
+                          {canMakePayments && (chargeStatus === "Unpaid" || chargeStatus === "PartiallyPaid") && (
                             <button
                               type="button"
                               className="panel-btn panel-btn-sm panel-btn-primary"
@@ -410,7 +414,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                               Ödə
                             </button>
                           )}
-                          {chargeStatus !== "Paid" && chargeStatus !== "Cancelled" && (
+                          {canManage && chargeStatus !== "Paid" && chargeStatus !== "Cancelled" && (
                             <button
                               type="button"
                               className="panel-btn panel-btn-sm panel-btn-danger"
@@ -468,7 +472,6 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
       {payForm && (
         <PayChargeModal
           charge={payForm}
-          currency={contract.currency}
           onClose={() => setPayForm(null)}
           onSaved={() => {
             setPayForm(null);
@@ -493,19 +496,15 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
 
 function PayChargeModal({
   charge,
-  currency,
   onClose,
   onSaved,
 }: {
   charge: VendorChargeResponse;
-  currency: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const auth = useAuth();
   const [amount, setAmount] = useState(String(charge.outstandingAmount));
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodKey>("BankTransfer");
-  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [reference, setReference] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -526,8 +525,7 @@ function PayChargeModal({
       await createVendorPayment(accessToken, {
         vendorId: charge.vendorId,
         amount: value,
-        paymentMethod,
-        paymentDate,
+        paymentMethod: "Cash",
         reference: reference || null,
       });
       onSaved();
@@ -541,57 +539,29 @@ function PayChargeModal({
   return (
     <Modal title="Tədarükçüyə ödəniş" onClose={onClose}>
       <p className="panel-page-lead">
-        {charge.description} · qalıq borc <strong>{charge.outstandingAmount.toFixed(2)} {currency}</strong>
+        {charge.description} · qalıq borc <strong>{charge.outstandingAmount.toFixed(2)} ₼</strong>
       </p>
       <form onSubmit={handleSubmit}>
         {error && <p className="form-error">{error}</p>}
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="pay-amount">Məbləğ ({currency})</label>
-            <input
-              id="pay-amount"
-              type="number"
-              min={0.01}
-              step="0.01"
-              required
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="pay-date">Ödəniş tarixi</label>
-            <input
-              id="pay-date"
-              type="date"
-              required
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-            />
-          </div>
+        <div className="form-field">
+          <label htmlFor="pay-amount">Məbləğ (₼)</label>
+          <input
+            id="pay-amount"
+            type="number"
+            min={0.01}
+            step="0.01"
+            required
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
         </div>
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="pay-method">Ödəniş üsulu</label>
-            <select
-              id="pay-method"
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodKey)}
-            >
-              {PAYMENT_METHODS_ORDERED.map((key) => (
-                <option key={key} value={key}>
-                  {PAYMENT_METHOD_LABELS[key]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="pay-ref">Sənəd nömrəsi (opsional)</label>
-            <input
-              id="pay-ref"
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-            />
-          </div>
+        <div className="form-field">
+          <label htmlFor="pay-ref">Sənəd nömrəsi (opsional)</label>
+          <input
+            id="pay-ref"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+          />
         </div>
         <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
           Ödəniş qeydə alınan kimi tranzaksiyalar jurnalına xərc kimi düşür.
@@ -622,12 +592,15 @@ function ServiceFormModal({
 }) {
   const auth = useAuth();
   const [name, setName] = useState(service?.name ?? "");
-  const [unit, setUnit] = useState(service?.unit ?? "ay");
-  const [unitPrice, setUnitPrice] = useState(service ? String(service.unitPrice) : "");
-  const [quantity, setQuantity] = useState(service ? String(service.quantity) : "1");
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriodKey>(
-    service ? billingPeriodFromOrdinal(service.billingPeriod) : "Monthly",
+  const initialPeriod = service ? billingPeriodFromOrdinal(service.billingPeriod) : "Monthly";
+  // Two shapes: a recurring service bills itself on a schedule (needs a period + optional
+  // date range), a one-time service (repairs etc.) doesn't — its price often isn't even
+  // known yet, so it's left blank here and filled in when the actual charge is raised.
+  const [isOneTime, setIsOneTime] = useState(initialPeriod === "OneTime");
+  const [recurringPeriod, setRecurringPeriod] = useState<Exclude<BillingPeriodKey, "OneTime">>(
+    initialPeriod === "OneTime" ? "Monthly" : initialPeriod,
   );
+  const [unitPrice, setUnitPrice] = useState(service && service.unitPrice > 0 ? String(service.unitPrice) : "");
   const [paymentTermDays, setPaymentTermDays] = useState(
     service?.paymentTermDays != null ? String(service.paymentTermDays) : "",
   );
@@ -646,14 +619,13 @@ function ServiceFormModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const price = Number(unitPrice);
-    const qty = Number(quantity);
+    const price = unitPrice ? Number(unitPrice) : 0;
     if (Number.isNaN(price) || price < 0) {
-      setError("Vahid qiymət mənfi ola bilməz.");
+      setError("Qiymət mənfi ola bilməz.");
       return;
     }
-    if (Number.isNaN(qty) || qty <= 0) {
-      setError("Miqdar 0-dan böyük olmalıdır.");
+    if (!isOneTime && !unitPrice) {
+      setError("Davamlı xidmət üçün qiymət tələb olunur.");
       return;
     }
 
@@ -663,13 +635,11 @@ function ServiceFormModal({
       const request = {
         name,
         unitPrice: price,
-        billingPeriod,
-        quantity: qty,
-        unit,
+        billingPeriod: isOneTime ? ("OneTime" as const) : recurringPeriod,
         paymentTermDays: paymentTermDays ? Number(paymentTermDays) : null,
         description: description || null,
-        serviceStartDate: serviceStartDate || null,
-        serviceEndDate: serviceEndDate || null,
+        serviceStartDate: isOneTime ? null : serviceStartDate || null,
+        serviceEndDate: isOneTime ? null : serviceEndDate || null,
       };
 
       if (service) {
@@ -699,92 +669,103 @@ function ServiceFormModal({
             onChange={(e) => setName(e.target.value)}
           />
         </div>
-        <div className="form-row">
+
+        <div className="form-field">
+          <label htmlFor="service-kind">Xidmət növü</label>
+          <select
+            id="service-kind"
+            value={isOneTime ? "onetime" : "recurring"}
+            onChange={(e) => setIsOneTime(e.target.value === "onetime")}
+          >
+            <option value="recurring">Davamlı (dövri) — aylıq/rüblük/illik haqq</option>
+            <option value="onetime">Birdəfəlik — məs. təmir, qiyməti əvvəlcədən bəlli olmaya bilər</option>
+          </select>
+        </div>
+
+        {isOneTime ? (
           <div className="form-field">
-            <label htmlFor="service-price">Vahid qiymət ({contract.currency})</label>
+            <label htmlFor="service-price">Qiymət (opsional)</label>
             <input
               id="service-price"
               type="number"
               min={0}
               step="0.01"
-              required
+              placeholder="Bilinmirsə boş buraxın — xərc daxil edilərkən göstəriləcək"
               value={unitPrice}
               onChange={(e) => setUnitPrice(e.target.value)}
             />
           </div>
-          <div className="form-field">
-            <label htmlFor="service-quantity">Miqdar</label>
-            <input
-              id="service-quantity"
-              type="number"
-              min={0.01}
-              step="0.01"
-              required
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
+        ) : (
+          <div className="form-row">
+            <div className="form-field">
+              <label htmlFor="service-price">Qiymət (₼)</label>
+              <input
+                id="service-price"
+                type="number"
+                min={0}
+                step="0.01"
+                required
+                value={unitPrice}
+                onChange={(e) => setUnitPrice(e.target.value)}
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="service-period">Hesablaşma dövrü</label>
+              <select
+                id="service-period"
+                value={recurringPeriod}
+                onChange={(e) => setRecurringPeriod(e.target.value as Exclude<BillingPeriodKey, "OneTime">)}
+              >
+                {BILLING_PERIODS_ORDERED.filter((key) => key !== "OneTime").map((key) => (
+                  <option key={key} value={key}>
+                    {BILLING_PERIOD_LABELS[key]}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-        </div>
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="service-unit">Ölçü vahidi</label>
-            <input
-              id="service-unit"
-              required
-              placeholder="ay / illik / ədəd"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="service-term">Ödəniş müddəti, gün (opsional)</label>
-            <input
-              id="service-term"
-              type="number"
-              min={0}
-              step="1"
-              value={paymentTermDays}
-              onChange={(e) => setPaymentTermDays(e.target.value)}
-            />
-          </div>
-        </div>
+        )}
+
         <div className="form-field">
-          <label htmlFor="service-period">Hesablaşma dövrü</label>
-          <select
-            id="service-period"
-            value={billingPeriod}
-            onChange={(e) => setBillingPeriod(e.target.value as BillingPeriodKey)}
-          >
-            {BILLING_PERIODS_ORDERED.map((key) => (
-              <option key={key} value={key}>
-                {BILLING_PERIOD_LABELS[key]}
-              </option>
-            ))}
-          </select>
+          <label htmlFor="service-term">Ödəniş müddəti, gün (opsional)</label>
+          <input
+            id="service-term"
+            type="number"
+            min={0}
+            step="1"
+            value={paymentTermDays}
+            onChange={(e) => setPaymentTermDays(e.target.value)}
+          />
         </div>
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="service-start">Xidmətin başlanğıcı (opsional)</label>
-            <input
-              id="service-start"
-              type="date"
-              value={serviceStartDate}
-              onChange={(e) => setServiceStartDate(e.target.value)}
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="service-end">Xidmətin bitməsi (opsional)</label>
-            <input
-              id="service-end"
-              type="date"
-              value={serviceEndDate}
-              onChange={(e) => setServiceEndDate(e.target.value)}
-            />
-          </div>
-        </div>
-        <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
-          Tarixlər boş buraxılarsa müqavilənin müddəti tətbiq olunur.
-        </p>
+
+        {!isOneTime && (
+          <>
+            <div className="form-row">
+              <div className="form-field">
+                <label htmlFor="service-start">Xidmətin başlanğıcı (opsional)</label>
+                <input
+                  id="service-start"
+                  type="date"
+                  value={serviceStartDate}
+                  onChange={(e) => setServiceStartDate(e.target.value)}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="service-end">Xidmətin bitməsi (opsional)</label>
+                <input
+                  id="service-end"
+                  type="date"
+                  value={serviceEndDate}
+                  onChange={(e) => setServiceEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
+              Tarixlər boş buraxılarsa müqavilənin müddəti tətbiq olunur.
+            </p>
+          </>
+        )}
+
         <div className="form-field">
           <label htmlFor="service-description">Təsvir</label>
           <input

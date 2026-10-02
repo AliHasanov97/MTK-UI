@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { ApiError } from "../../../lib/api/client";
+import { formatDateTime } from "../../../lib/format";
 import { getOwnerById, type Owner, type OwnerListItem } from "../../../lib/api/owners";
 import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../../lib/api/garages";
 import { getChargesByOwner, getPaymentsByOwner, PAYMENT_METHOD_LABELS, paymentMethodFromOrdinal, paymentStatusFromOrdinal, type ChargeResponse, type PaymentResponse, type PropertyTypeKey } from "../../../lib/api/payments";
@@ -149,7 +150,7 @@ export function OdenislerView() {
                       const status = paymentStatusFromOrdinal(p.status);
                       return (
                         <tr key={p.id}>
-                          <td>{p.paymentDate.slice(0, 10)}</td>
+                          <td>{formatDateTime(p.paymentDate)}</td>
                           <td>{p.amount.toFixed(2)}</td>
                           <td>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(p.paymentMethod)]}</td>
                           <td>{p.reference ?? "—"}</td>
