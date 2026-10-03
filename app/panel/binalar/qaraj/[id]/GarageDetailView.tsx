@@ -21,6 +21,7 @@ import { getPropertyBalance } from "../../../../lib/api/payments";
 import type { OwnerListItem } from "../../../../lib/api/owners";
 import { Modal } from "../../../Modal";
 import { OwnerPicker } from "../../OwnerPicker";
+import { useCreatedBy } from "../../auditHooks";
 import {
   ChargesTable,
   PayButton,
@@ -56,6 +57,7 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const createdBy = useCreatedBy(auth.status === "authenticated" ? auth.accessToken : "", "Garage", garageId);
 
   // "Sahibi çıxar" təsdiq pəncərəsi açılanda əmlakın borcu API-dan çəkilir —
   // borc varsa təsdiq düyməsi bloklanır və səbəb göstərilir.
@@ -167,6 +169,7 @@ export function GarageDetailView({ garageId }: { garageId: string }) {
             <div className="owner-hero-meta">
               <span>{GARAGE_TYPE_LABELS[garage.type as GarageTypeKey] ?? garage.type}</span>
               {garage.description && <span>{garage.description}</span>}
+              {createdBy && <span>Əməliyyatı icra etdi: {createdBy}</span>}
             </div>
           </div>
           {canManage && (

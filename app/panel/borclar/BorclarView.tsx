@@ -21,7 +21,7 @@ import {
 } from "../../lib/api/payments";
 import { Modal } from "../Modal";
 import { OwnerPicker } from "../binalar/OwnerPicker";
-import { PayButton } from "../binalar/finance";
+import { PayButton, useCreatedBy, useCreatedByMap } from "../binalar/finance";
 import { resolveOwnerNames, resolvePropertyLabels } from "../binalar/resolve";
 
 const PAGE_SIZE = 20;
@@ -43,6 +43,19 @@ function errorMessage(err: unknown) {
 
 type Scope = "open" | "paid" | "all";
 
+// Haqqın özünü kim yaradıb — accordion sətri hər açılanda ayrıca component kimi
+// render olunur (useCreatedBy-ni birbaşa .map() içində çağırmaq Rules of Hooks-u
+// pozardı).
+function ChargeCreatedByLine({ accessToken, chargeId }: { accessToken: string; chargeId: string }) {
+  const createdBy = useCreatedBy(accessToken, "Charge", chargeId);
+  if (!createdBy) return null;
+  return (
+    <p className="vendor-note" style={{ margin: "0 0 10px" }}>
+      Haqqı yaradan: <strong>{createdBy}</strong>
+    </p>
+  );
+}
+
 export function BorclarView() {
   const auth = useAuth();
   const canManage = useCanDoEverything();
@@ -55,6 +68,7 @@ export function BorclarView() {
   const [page, setPage] = useState(1);
   const [showAddCharge, setShowAddCharge] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const allocationCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "PaymentAllocation");
 
   // Hansı borcun hansı ödənişlərlə (avansdan və ya birbaşa) bağlandığı — tələb
   // üzrə yüklənir, çünki sətir sayı çox ola bilər.
@@ -335,6 +349,7 @@ export function BorclarView() {
                         <tr>
                           <td></td>
                           <td colSpan={7}>
+                            <ChargeCreatedByLine accessToken={auth.accessToken} chargeId={c.id} />
                             {loadingId === c.id ? (
                               <p className="panel-page-lead">Yüklənir…</p>
                             ) : (rows?.length ?? 0) === 0 ? (
@@ -346,11 +361,12 @@ export function BorclarView() {
                                     <th>Ödəniş tarixi</th>
                                     <th>Məbləğ</th>
                                     <th>Mənbə</th>
+                                    <th>İcra edən</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {(rows ?? []).map((a) => (
-                                    <tr key={`${a.paymentId}-${a.allocatedAmount}`}>
+                                    <tr key={a.id}>
                                       <td>{formatDateTime(a.paymentDate)}</td>
                                       <td>{formatMoney(a.allocatedAmount)}</td>
                                       <td>
@@ -362,6 +378,7 @@ export function BorclarView() {
                                           {a.isFromAdvance ? "Avansdan" : "Birbaşa ödənişdən"}
                                         </span>
                                       </td>
+                                      <td>{allocationCreators[a.id] ?? "—"}</td>
                                     </tr>
                                   ))}
                                 </tbody>

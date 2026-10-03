@@ -6,6 +6,7 @@ import { useCanDoEverything } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
 import { createApartment, createBuilding, listBuildings, type Building } from "../../../lib/api/buildings";
 import { Modal } from "../../Modal";
+import { useCreatedByMap } from "../auditHooks";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -24,6 +25,7 @@ export function BinaSiyahisiView() {
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [apartmentBuilding, setApartmentBuilding] = useState<Building | null>(null);
+  const createdBy = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Building");
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -75,13 +77,14 @@ export function BinaSiyahisiView() {
               <th>Mənzil/mərtəbə</th>
               <th>Tutum</th>
               <th>Status</th>
+              <th>Yaradan</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {buildings.length === 0 && (
               <tr>
-                <td colSpan={7}>Hələ heç bir bina qeydə alınmayıb.</td>
+                <td colSpan={8}>Hələ heç bir bina qeydə alınmayıb.</td>
               </tr>
             )}
             {buildings.map((b) => (
@@ -94,6 +97,7 @@ export function BinaSiyahisiView() {
                 <td>
                   <span className="panel-role-tag">{b.status}</span>
                 </td>
+                <td>{createdBy[b.id] ?? "—"}</td>
                 <td>
                   {canManage && (
                     <button

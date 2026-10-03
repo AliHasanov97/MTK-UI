@@ -27,6 +27,7 @@ import {
   paymentStatusFromOrdinal,
   propertyTypeFromOrdinal,
   rateTypeFromOrdinal,
+  searchAuditLogs,
   searchCharges,
   searchPayments,
 } from "../../lib/api/payments";
@@ -464,6 +465,73 @@ export function ChargesTable({
 }
 
 /**
+ * "Kim yaradıb?" — hər entity dəyişikliyi avtomatik AuditLogs-a yazılır (EF
+ * SaveChanges interceptor), bu sadəcə həmin entity üçün "Created" qeydini
+ * tapıb yaradan istifadəçinin adını qaytarır. Entity heç vaxt silinmədiyi
+ * üçün "Created" = yeganə/ilk qeyd, əlavə sort-a ehtiyac yoxdur.
+ */
+export type AuditableEntityType =
+  | "Charge"
+  | "Payment"
+  | "Vendor"
+  | "Contract"
+  | "Rate"
+  | "Transaction"
+  | "OwnerBalance"
+  | "PaymentAllocation"
+  | "ContractService";
+
+export function useCreatedBy(accessToken: string, entityType: AuditableEntityType, entityId: string) {
+  const [createdBy, setCreatedBy] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!entityId) return;
+    searchAuditLogs(accessToken, {
+      filters: [
+        { columnName: "EntityType", comparison: QueryComparisonType.Equals, value: entityType },
+        { columnName: "EntityId", comparison: QueryComparisonType.Equals, value: entityId },
+        { columnName: "Action", comparison: QueryComparisonType.Equals, value: "Created" },
+      ],
+      pageSize: 1,
+    })
+      .then((res) => setCreatedBy(res.auditLogs[0]?.user?.name ?? null))
+      .catch(() => setCreatedBy(null));
+  }, [accessToken, entityType, entityId]);
+
+  return createdBy;
+}
+
+/**
+ * `useCreatedBy`-ın toplu versiyası — bir siyahıdaki ONLARLA sətir üçün hərəsinə
+ * ayrıca sorğu göndərmək əvəzinə, bu entity tipinin BÜTÜN "Created" qeydlərini
+ * bir dəfəyə çəkib entityId -> ad lüğəti qaytarır (TariflarView, Tranzaksiyalar,
+ * Müqavilə xidmətləri, ödəniş bölgüsü sətirləri kimi siyahı görünüşləri üçün).
+ */
+export function useCreatedByMap(accessToken: string, entityType: AuditableEntityType, pageSize = 200) {
+  const [map, setMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    searchAuditLogs(accessToken, {
+      filters: [
+        { columnName: "EntityType", comparison: QueryComparisonType.Equals, value: entityType },
+        { columnName: "Action", comparison: QueryComparisonType.Equals, value: "Created" },
+      ],
+      pageSize,
+    })
+      .then((res) => {
+        const next: Record<string, string> = {};
+        res.auditLogs.forEach((l) => {
+          if (l.user) next[l.entityId] = l.user.name;
+        });
+        setMap(next);
+      })
+      .catch(() => setMap({}));
+  }, [accessToken, entityType, pageSize]);
+
+  return map;
+}
+
+/**
  * A charge's own detail: what it was for, its paid/remaining state, and
  * exactly which payment(s) — and how much of each — paid it down. Fetched
  * lazily, once, when opened — mirrors PaymentDetailModal's click-to-open
@@ -480,6 +548,8 @@ export function ChargeDetailModal({
 }) {
   const [rows, setRows] = useState<ChargeAllocationResponse[] | null>(null);
   const remaining = charge.amount - charge.paidAmount;
+  const createdBy = useCreatedBy(accessToken, "Charge", charge.id);
+  const allocationCreators = useCreatedByMap(accessToken, "PaymentAllocation");
 
   useEffect(() => {
     getChargeAllocations(accessToken, charge.id).then(setRows);
@@ -509,6 +579,12 @@ export function ChargeDetailModal({
           </div>
         </div>
 
+        {createdBy && (
+          <p className="payment-document-byline">
+            Əməliyyatı icra etdi: <strong>{createdBy}</strong>
+          </p>
+        )}
+
         <div className="payment-document-divider" />
 
         <p className="payment-document-statement">{chargeDescription(charge)}.</p>
@@ -526,6 +602,7 @@ export function ChargeDetailModal({
                 <th>Ödəniş tarixi</th>
                 <th>Bu haqqa tətbiq (₼)</th>
                 <th>Qalıq (₼)</th>
+                <th>İcra edən</th>
               </tr>
             </thead>
             <tbody>
@@ -536,6 +613,7 @@ export function ChargeDetailModal({
                   <td className={a.remainingDebtAfterPayment > 0.005 ? "owner-balance-tag-debt" : "owner-balance-tag-credit"}>
                     {a.remainingDebtAfterPayment.toFixed(2)}
                   </td>
+                  <td>{allocationCreators[a.id] ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -562,6 +640,7 @@ export function PaymentsTable({
   accessToken,
   payments,
   propertyLabels,
+  title = "Ödənişlər",
 }: {
   accessToken: string;
   payments: PaymentResponse[];
@@ -570,6 +649,7 @@ export function PaymentsTable({
    *  allocation statement, where a payment spanning several units needs to say
    *  which one each charge belongs to. */
   propertyLabels?: Record<string, string>;
+  title?: string;
 }) {
   const [openPayment, setOpenPayment] = useState<PaymentResponse | null>(null);
   const sorted = [...payments].sort((a, b) => b.paymentDate.localeCompare(a.paymentDate));
@@ -578,7 +658,7 @@ export function PaymentsTable({
     <section className="panel-card owner-section-card">
       <h4>
         <span className="panel-card-icon owner-section-icon">₼</span>
-        Ödənişlər
+        {title}
       </h4>
       {sorted.length === 0 ? (
         <p className="panel-page-lead">Hələ heç bir ödəniş edilməyib.</p>
@@ -642,6 +722,8 @@ export function PaymentDetailModal({
   onClose: () => void;
 }) {
   const [rows, setRows] = useState<PaymentAllocationDetailResponse[] | null>(null);
+  const createdBy = useCreatedBy(accessToken, "Payment", payment.id);
+  const allocationCreators = useCreatedByMap(accessToken, "PaymentAllocation");
 
   useEffect(() => {
     getPaymentAllocations(accessToken, payment.id).then(setRows);
@@ -680,6 +762,12 @@ export function PaymentDetailModal({
           </div>
         </div>
 
+        {createdBy && (
+          <p className="payment-document-byline">
+            Əməliyyatı icra etdi: <strong>{createdBy}</strong>
+          </p>
+        )}
+
         <div className="payment-document-divider" />
 
         <p className="payment-document-statement">
@@ -707,6 +795,7 @@ export function PaymentDetailModal({
                   <th>Məbləğ (₼)</th>
                   <th>Tətbiq (₼)</th>
                   <th>Qalıq (₼)</th>
+                  <th>İcra edən</th>
                 </tr>
               </thead>
               <tbody>
@@ -719,6 +808,7 @@ export function PaymentDetailModal({
                     <td className={r.remainingDebtAfterPayment > 0.005 ? "owner-balance-tag-debt" : "owner-balance-tag-credit"}>
                       {r.remainingDebtAfterPayment.toFixed(2)}
                     </td>
+                    <td>{allocationCreators[r.id] ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

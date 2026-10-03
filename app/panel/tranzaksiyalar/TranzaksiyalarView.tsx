@@ -12,6 +12,7 @@ import {
   type TransactionDirectionKey,
   type TransactionResponse,
 } from "../../lib/api/payments";
+import { useCreatedByMap } from "../binalar/finance";
 
 // Fetched unfiltered/unpaged from the API (large flat pull, sorted newest first) —
 // the date range below is applied client-side. The generic QueryFilter mechanism
@@ -38,6 +39,7 @@ const MONTHS_AZ = [
 // payments post income and expense entries respectively.
 type Row = {
   key: string;
+  id: string;
   date: string;
   kind: "income" | "expense";
   direction: TransactionDirectionKey;
@@ -167,6 +169,7 @@ export function TranzaksiyalarView() {
   const [startDate, setStartDate] = useState(() => currentMonthRange().start);
   const [endDate, setEndDate] = useState(() => currentMonthRange().end);
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
+  const transactionCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Transaction");
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -193,6 +196,7 @@ export function TranzaksiyalarView() {
       const direction: TransactionDirectionKey = transactionDirectionFromOrdinal(t.direction);
       return {
         key: `transaction-${t.id}`,
+        id: t.id,
         date: t.transactionDate,
         kind: direction === "Income" ? "income" : "expense",
         direction,
@@ -348,6 +352,7 @@ export function TranzaksiyalarView() {
                 <col className="ledger-col-category" />
                 <col className="ledger-col-note" />
                 <col className="ledger-col-amount" />
+                <col />
               </colgroup>
               <thead>
                 <tr>
@@ -356,6 +361,7 @@ export function TranzaksiyalarView() {
                   <th>Kateqoriya</th>
                   <th>Qeyd</th>
                   <th className="ledger-th-amount">Məbləğ (₼)</th>
+                  <th>Yaradan</th>
                 </tr>
               </thead>
               <tbody>
@@ -364,7 +370,7 @@ export function TranzaksiyalarView() {
                   return (
                     <Fragment key={group.key}>
                       <tr className="ledger-month-row">
-                        <td colSpan={5}>
+                        <td colSpan={6}>
                           <span className="ledger-month-name">{group.label}</span>
                           <span className="ledger-month-meta">
                             {group.rows.length} əməliyyat · Daxilolma {formatMoney(group.income)} · Xərc{" "}
@@ -390,6 +396,7 @@ export function TranzaksiyalarView() {
                           <td className={`ledger-cell-amount ${row.amount < 0 ? "ledger-value-out" : "ledger-value-in"}`}>
                             {formatSigned(row.amount)}
                           </td>
+                          <td>{transactionCreators[row.id] ?? "—"}</td>
                         </tr>
                       ))}
                     </Fragment>

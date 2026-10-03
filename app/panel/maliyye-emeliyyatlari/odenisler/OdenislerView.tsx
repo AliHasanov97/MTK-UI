@@ -5,14 +5,13 @@ import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useCanPay } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
-import { formatDateTime } from "../../../lib/format";
 import { getOwnerById, type Owner, type OwnerListItem } from "../../../lib/api/owners";
 import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../../lib/api/garages";
 import { type Apartment } from "../../../lib/api/buildings";
-import { getChargesByOwner, getPaymentsByOwner, PAYMENT_METHOD_LABELS, paymentMethodFromOrdinal, paymentStatusFromOrdinal, type ChargeResponse, type PaymentResponse, type PropertyTypeKey } from "../../../lib/api/payments";
+import { getChargesByOwner, getPaymentsByOwner, type ChargeResponse, type PaymentResponse, type PropertyTypeKey } from "../../../lib/api/payments";
 import { OwnerPicker } from "../../binalar/OwnerPicker";
 import { ApartmentPicker } from "../../binalar/ApartmentPicker";
-import { PaymentForm } from "../../binalar/finance";
+import { PaymentForm, PaymentsTable } from "../../binalar/finance";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -196,45 +195,14 @@ export function OdenislerView() {
             </section>
           )}
 
-          <section className="panel-card owner-section-card">
-            <h4>Son ödənişlər — {ownerDetail.fullName}</h4>
-            {recent.length === 0 ? (
-              <p className="panel-page-lead">Bu sahibin hələ heç bir ödənişi yoxdur.</p>
-            ) : (
-              <div className="owner-table-scroll">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Tarix</th>
-                      <th>Məbləğ (₼)</th>
-                      <th>Üsul</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recent.map((p) => {
-                      const status = paymentStatusFromOrdinal(p.status);
-                      return (
-                        <tr key={p.id}>
-                          <td>{formatDateTime(p.paymentDate)}</td>
-                          <td>{p.amount.toFixed(2)}</td>
-                          <td>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(p.paymentMethod)]}</td>
-                          <td>
-                            <span className="panel-role-tag">
-                              {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            <p className="panel-page-lead" style={{ marginTop: 12 }}>
-              Bütün tarixçə üçün <Link className="owner-link" href={`/panel/binalar/sahibler/${selectedOwner.id}`}>sahibin profilinə</Link> baxın.
-            </p>
-          </section>
+          <PaymentsTable
+            accessToken={auth.accessToken}
+            payments={recent}
+            title={`Son ödənişlər — ${ownerDetail.fullName}`}
+          />
+          <p className="panel-page-lead" style={{ marginTop: -8 }}>
+            Bütün tarixçə üçün <Link className="owner-link" href={`/panel/binalar/sahibler/${selectedOwner.id}`}>sahibin profilinə</Link> baxın.
+          </p>
         </>
       )}
     </div>

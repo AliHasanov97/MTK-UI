@@ -103,6 +103,7 @@ export type PaymentResponse = {
 };
 
 export type PaymentAllocationDetailResponse = {
+  id: string;
   chargeId: string;
   propertyType: number | null;
   propertyId: string | null;
@@ -145,6 +146,7 @@ export type PropertyBalanceResponse = {
 };
 
 export type ChargeAllocationResponse = {
+  id: string;
   paymentId: string;
   allocatedAmount: number;
   paymentDate: string;
@@ -226,6 +228,34 @@ export type SearchTransactionsResult = {
 
 export function searchTransactions(accessToken: string, params: SearchParams = {}) {
   return apiFetch<Envelope<SearchTransactionsResult>>("api/payments/transactions/search", accessToken, {
+    method: "POST",
+    body: searchBody(params),
+  }).then((e) => e.data);
+}
+
+// Kim yaradıb/dəyişdirib — hər entity dəyişikliyi avtomatik (EF SaveChanges
+// interceptor-u ilə) bu moduldakı AuditLogs cədvəlinə yazılır; user backend-də
+// artıq adı ResponseObjectWithName kimi oxunur, burda ayrıca sorğuya ehtiyac yoxdur.
+export type AuditLogDto = {
+  id: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  oldValues: string | null;
+  newValues: string | null;
+  user: { id: string; name: string } | null;
+  timestamp: string;
+};
+
+export type SearchAuditLogsResult = {
+  auditLogs: AuditLogDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+};
+
+export function searchAuditLogs(accessToken: string, params: SearchParams = {}) {
+  return apiFetch<Envelope<SearchAuditLogsResult>>("api/payments/auditlogs/search", accessToken, {
     method: "POST",
     body: searchBody(params),
   }).then((e) => e.data);

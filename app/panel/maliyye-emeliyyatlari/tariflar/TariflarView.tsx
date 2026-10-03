@@ -14,6 +14,7 @@ import {
   type RateResponse,
   type RateTypeKey,
 } from "../../../lib/api/payments";
+import { useCreatedByMap } from "../../binalar/finance";
 
 // Manual is a snapshot-only marker used for one-off charges (see Charge.RateType) —
 // it isn't a subscribable rate an admin configures, so it's left out of the form.
@@ -39,6 +40,7 @@ export function TariflarView() {
   const [rates, setRates] = useState<RateResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const createdBy = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Rate");
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -87,6 +89,7 @@ export function TariflarView() {
                   <th>Məbləğ (₼)</th>
                   <th>Qüvvəyə minib</th>
                   <th>Təsvir</th>
+                  <th>Yaradan</th>
                   <th></th>
                 </tr>
               </thead>
@@ -97,6 +100,7 @@ export function TariflarView() {
                       key={r.id}
                       accessToken={auth.accessToken}
                       rate={r}
+                      createdBy={createdBy[r.id] ?? null}
                       onCancel={() => setEditingId(null)}
                       onSaved={() => {
                         setEditingId(null);
@@ -110,6 +114,7 @@ export function TariflarView() {
                       <td>{r.amount.toFixed(2)}</td>
                       <td>{r.effectiveFrom.slice(0, 10)}</td>
                       <td>{r.description ?? "—"}</td>
+                      <td>{createdBy[r.id] ?? "—"}</td>
                       <td>
                         {canManage && (
                           <button type="button" className="panel-btn panel-btn-sm" onClick={() => setEditingId(r.id)}>
@@ -240,11 +245,13 @@ function CreateRateForm({ accessToken, onSaved }: { accessToken: string; onSaved
 function EditRateRow({
   accessToken,
   rate,
+  createdBy,
   onCancel,
   onSaved,
 }: {
   accessToken: string;
   rate: RateResponse;
+  createdBy: string | null;
   onCancel: () => void;
   onSaved: () => void;
 }) {
@@ -290,6 +297,7 @@ function EditRateRow({
         <input value={description} onChange={(e) => setDescription(e.target.value)} />
         {error && <p className="form-error">{error}</p>}
       </td>
+      <td>{createdBy ?? "—"}</td>
       <td style={{ display: "flex", gap: 6 }}>
         <button type="button" className="panel-btn panel-btn-sm" onClick={onCancel}>
           Ləğv et

@@ -102,6 +102,21 @@ export function getApartmentById(accessToken: string, id: string) {
   return apiFetch<Apartment>(`api/buildings/apartments/${id}`, accessToken);
 }
 
+// Mülkiyyət transfer tarixçəsi — "Mülkiyyəti icra edən" sualına cavab üçün hər
+// qeydin öz Id-si (useCreatedBy ilə AuditLogs-dan adı tapmaq üçün) daşıyır.
+export type OwnershipHistoryDto = {
+  id: string;
+  previousOwnerId: string | null;
+  previousOwnerName: string | null;
+  newOwnerId: string;
+  newOwnerName: string;
+  transferDate: string;
+};
+
+export function getOwnershipHistory(accessToken: string, apartmentId: string) {
+  return apiFetch<OwnershipHistoryDto[]>(`api/buildings/apartments/${apartmentId}/ownership-history`, accessToken);
+}
+
 // The list endpoint above fetches one building's apartments at a time (raw,
 // unwrapped JSON). searchApartments below is the newer, dedicated endpoint —
 // server-side search/sort/filter/pagination in a single POST call, wrapped
@@ -168,6 +183,40 @@ export type SearchApartmentsResult = {
 
 export function searchApartments(accessToken: string, params: SearchApartmentsParams = {}) {
   return apiFetch<ApiEnvelope<SearchApartmentsResult>>("api/buildings/apartments/search", accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      filters: params.filters ?? null,
+      sortCriteria: params.sortCriteria ?? null,
+      searchTerm: params.searchTerm ?? null,
+      page: params.page ?? null,
+      pageSize: params.pageSize ?? null,
+    }),
+  }).then((envelope) => envelope.data);
+}
+
+// Kim yaradıb/dəyişdirib — hər entity dəyişikliyi avtomatik (EF SaveChanges
+// interceptor-u ilə) bu moduldakı AuditLogs cədvəlinə yazılır; user backend-də
+// artıq adı ResponseObjectWithName kimi oxunur, burda ayrıca sorğuya ehtiyac yoxdur.
+export type AuditLogDto = {
+  id: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  oldValues: string | null;
+  newValues: string | null;
+  user: ResponseObjectWithName | null;
+  timestamp: string;
+};
+
+export type SearchAuditLogsResult = {
+  auditLogs: AuditLogDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+};
+
+export function searchAuditLogs(accessToken: string, params: SearchApartmentsParams = {}) {
+  return apiFetch<ApiEnvelope<SearchAuditLogsResult>>("api/buildings/auditlogs/search", accessToken, {
     method: "POST",
     body: JSON.stringify({
       filters: params.filters ?? null,

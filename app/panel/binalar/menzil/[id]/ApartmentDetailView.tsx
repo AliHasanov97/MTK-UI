@@ -9,12 +9,15 @@ import { formatDateTime } from "../../../../lib/format";
 import {
   assignOwnerToApartment,
   getApartmentById,
+  getOwnershipHistory,
   transferApartmentOwnership,
   type Apartment,
+  type OwnershipHistoryDto,
 } from "../../../../lib/api/buildings";
 import type { OwnerListItem } from "../../../../lib/api/owners";
 import { Modal } from "../../../Modal";
 import { OwnerPicker } from "../../OwnerPicker";
+import { useCreatedBy, useCreatedByMap } from "../../auditHooks";
 import {
   ChargesTable,
   PayButton,
@@ -45,6 +48,9 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [showAssign, setShowAssign] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [ownershipHistory, setOwnershipHistory] = useState<OwnershipHistoryDto[]>([]);
+  const createdBy = useCreatedBy(auth.status === "authenticated" ? auth.accessToken : "", "Apartment", apartmentId);
+  const transferCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "OwnershipHistory");
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -59,6 +65,19 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  const loadOwnershipHistory = useCallback(() => {
+    if (auth.status !== "authenticated") return;
+    getOwnershipHistory(auth.accessToken, apartmentId)
+      .then((res) => setOwnershipHistory(res))
+      .catch(() => {
+        // Surfaced via the empty-state message; not worth a page-level error.
+      });
+  }, [auth, apartmentId]);
+
+  useEffect(() => {
+    loadOwnershipHistory();
+  }, [loadOwnershipHistory]);
 
   const { charges, payments, balance, reload: reloadFinance } = usePropertyFinance(
     auth.status === "authenticated" ? auth.accessToken : undefined,
@@ -114,6 +133,7 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
               <span>{apartment.floor}-cü mərtəbə</span>
               <span>{apartment.roomCount} otaqlı</span>
               <span>{apartment.areaSquareMeters} m²</span>
+              {createdBy && <span>Əməliyyatı icra etdi: {createdBy}</span>}
             </div>
           </div>
           <span className="panel-role-tag">{apartment.status}</span>
@@ -177,6 +197,39 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
         )}
       </section>
 
+      <section className="panel-card owner-section-card">
+        <h4>
+          <span className="panel-card-icon owner-section-icon">⇄</span>
+          Mülkiyyət tarixçəsi
+        </h4>
+        {ownershipHistory.length === 0 ? (
+          <p className="panel-page-lead">Hələ mülkiyyət köçürülməsi qeydə alınmayıb.</p>
+        ) : (
+          <div className="owner-table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Tarix</th>
+                  <th>Əvvəlki sahib</th>
+                  <th>Yeni sahib</th>
+                  <th>Əməliyyatı icra etdi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ownershipHistory.map((h) => (
+                  <tr key={h.id}>
+                    <td>{formatDateTime(h.transferDate)}</td>
+                    <td>{h.previousOwnerName ?? "—"}</td>
+                    <td>{h.newOwnerName}</td>
+                    <td>{transferCreators[h.id] ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       <ChargesTable accessToken={auth.accessToken} charges={charges} title="Borclar və ödənişlər" />
 
       {showAssign && (
@@ -197,6 +250,7 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
           onSaved={() => {
             setShowTransfer(false);
             load();
+            loadOwnershipHistory();
           }}
         />
       )}

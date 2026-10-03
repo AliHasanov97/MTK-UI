@@ -21,7 +21,7 @@ import {
   type VendorChargeResponse,
 } from "../../../lib/api/vendorCharges";
 import { getPaymentsByVendor, type PaymentResponse } from "../../../lib/api/payments";
-import { PaymentsTable, lastPaymentDate } from "../../binalar/finance";
+import { PaymentsTable, lastPaymentDate, useCreatedBy } from "../../binalar/finance";
 import { Modal } from "../../Modal";
 
 const money = new Intl.NumberFormat("az-AZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -61,6 +61,7 @@ export function VendorDetailView({ vendorId }: { vendorId: string }) {
   const [payCharge, setPayCharge] = useState<VendorChargeResponse | null>(null);
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const createdBy = useCreatedBy(auth.status === "authenticated" ? auth.accessToken : "", "Vendor", vendorId);
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -151,6 +152,7 @@ export function VendorDetailView({ vendorId }: { vendorId: string }) {
               {vendor.director && <span>{vendor.director}</span>}
               {vendor.phone && <span>{vendor.phone}</span>}
               {vendor.email && <span>{vendor.email}</span>}
+              {createdBy && <span>Əməliyyatı icra etdi: {createdBy}</span>}
             </div>
           </div>
           {canMakePayments && (

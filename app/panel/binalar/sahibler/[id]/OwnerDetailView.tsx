@@ -11,7 +11,15 @@ import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../../../lib/api/gara
 import type { UserSummary } from "../../../../lib/api/identity";
 import { Modal } from "../../../Modal";
 import { UserPicker } from "../../UserPicker";
-import { BalanceTag, ChargesTable, PaymentsTable, PayButton, formatSigned, lastPaymentDate } from "../../finance";
+import {
+  BalanceTag,
+  ChargesTable,
+  PaymentsTable,
+  PayButton,
+  formatSigned,
+  lastPaymentDate,
+  useCreatedBy as usePaymentsCreatedBy,
+} from "../../finance";
 import {
   getChargesByOwner,
   getOwnerBalance,
@@ -21,6 +29,7 @@ import {
   type ChargeResponse,
 } from "../../../../lib/api/payments";
 import { resolvePropertyLabels, type PropertyRef } from "../../resolve";
+import { useCreatedBy } from "../../auditHooks";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -52,8 +61,15 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
   const [charges, setCharges] = useState<ChargeResponse[]>([]);
   const [payments, setPayments] = useState<Awaited<ReturnType<typeof getPaymentsByOwner>>>([]);
   const [ownerBalance, setOwnerBalance] = useState(0);
+  const [ownerBalanceId, setOwnerBalanceId] = useState("");
   const [propertyBalances, setPropertyBalances] = useState<Record<string, number>>({});
   const [propertyLabels, setPropertyLabels] = useState<Record<string, string>>({});
+  const createdBy = useCreatedBy(auth.status === "authenticated" ? auth.accessToken : "", "Owner", owner?.id ?? "");
+  const balanceCreatedBy = usePaymentsCreatedBy(
+    auth.status === "authenticated" ? auth.accessToken : "",
+    "OwnerBalance",
+    ownerBalanceId,
+  );
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -80,6 +96,7 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
         setCharges(chargeList);
         setPayments(paymentList);
         setOwnerBalance(balance.currentBalance);
+        setOwnerBalanceId(balance.id);
       })
       .catch(() => {
         // Surfaced via the empty tables; the page's primary error state is the owner fetch above.
@@ -171,6 +188,7 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
             <div className="owner-hero-meta">
               <span>{owner.email}</span>
               <span>{owner.phoneNumber}</span>
+              {createdBy && <span>Əməliyyatı icra etdi: {createdBy}</span>}
               <span>{owner.userId ? "Qeydiyyatlı istifadəçi" : "Passiv sahib (hesabı yoxdur)"}</span>
             </div>
           </div>
@@ -197,6 +215,7 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
             >
               {formatSigned(ownerBalance)}
             </strong>
+            {balanceCreatedBy && <span className="payment-document-byline">Əməliyyatı icra etdi: {balanceCreatedBy}</span>}
           </div>
           <div className="owner-hero-stat">
             <span className="owner-stat-label">Son ödəniş</span>

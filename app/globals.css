@@ -173,6 +173,11 @@
 .payment-document-field{display:flex;flex-direction:column;gap:4px;min-width:84px}
 .payment-document-label{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#8a938c;font-weight:700}
 .payment-document-field strong{font-size:15px;letter-spacing:-.2px;color:#1f2a22}
+/* Provenance line (kim icra edib) — ayrıca bir statistik sahə kimi deyil,
+   sənədin əsas rəqəmlərindən (Məbləğ/Status) vizual olaraq fərqlənən, sönük
+   bir qeyd kimi göstərilir. */
+.payment-document-byline{font-size:11.5px;color:#8a938c;margin:-6px 0 16px}
+.payment-document-byline strong{color:#526354;font-weight:700}
 .payment-document-divider{height:1px;background:var(--line);margin:0 0 18px}
 .payment-document-statement{line-height:1.8;margin:0 0 10px}
 .payment-document-statement:last-of-type{margin-bottom:0}

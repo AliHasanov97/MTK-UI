@@ -35,6 +35,7 @@ import {
   type VendorChargeResponse,
 } from "../../../lib/api/vendorCharges";
 import { QueryComparisonType, type QueryFilter } from "../../../lib/api/buildings";
+import { useCreatedBy, useCreatedByMap } from "../../binalar/finance";
 import { Modal } from "../../Modal";
 
 function errorMessage(err: unknown) {
@@ -61,6 +62,8 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
   const [terminateOpen, setTerminateOpen] = useState(false);
   const [charges, setCharges] = useState<VendorChargeResponse[] | null>(null);
   const [chargesError, setChargesError] = useState<string | null>(null);
+  const createdBy = useCreatedBy(auth.status === "authenticated" ? auth.accessToken : "", "Contract", contractId);
+  const serviceCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "ContractService");
 
   const loadCharges = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -155,6 +158,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
             </strong>
           </span>
           {contract.isExpired && status === "Active" && <span>Müddəti bitib</span>}
+          {createdBy && <span>Əməliyyatı icra etdi: {createdBy}</span>}
         </div>
         {contract.note && <p className="panel-page-lead" style={{ marginTop: 12 }}>{contract.note}</p>}
 
@@ -262,6 +266,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                   <th>Növ</th>
                   <th>Qiymət</th>
                   <th>Status</th>
+                  <th>Yaradan</th>
                   <th></th>
                 </tr>
               </thead>
@@ -292,6 +297,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                         {s.isActive ? "Aktiv" : "Dayandırılıb"}
                       </span>
                     </td>
+                    <td>{serviceCreators[s.id] ?? "—"}</td>
                     <td>
                       {canManage && (
                         <div className="data-table-actions">

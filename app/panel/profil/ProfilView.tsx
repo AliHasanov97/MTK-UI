@@ -8,7 +8,7 @@ import { formatDateTime } from "../../lib/format";
 import { getCurrentUser } from "../../lib/api/identity";
 import { getOwnerByUserId, type Owner } from "../../lib/api/owners";
 import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../lib/api/garages";
-import { BalanceTag, OwnerChargesPanel, OwnerPaymentsPanel, formatSigned } from "../binalar/finance";
+import { BalanceTag, OwnerChargesPanel, OwnerPaymentsPanel, formatSigned, useCreatedBy } from "../binalar/finance";
 import { getOwnerBalance, getPropertyBalance, searchPayments } from "../../lib/api/payments";
 import { QueryComparisonType, SortDirection } from "../../lib/api/buildings";
 
@@ -43,8 +43,14 @@ export function ProfilView() {
   const [owner, setOwner] = useState<Owner | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ownerBalance, setOwnerBalance] = useState(0);
+  const [ownerBalanceId, setOwnerBalanceId] = useState("");
   const [lastPaymentDate, setLastPaymentDate] = useState<string | null>(null);
   const [propertyBalances, setPropertyBalances] = useState<Record<string, number>>({});
+  const balanceCreatedBy = useCreatedBy(
+    auth.status === "authenticated" ? auth.accessToken : "",
+    "OwnerBalance",
+    ownerBalanceId,
+  );
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -64,7 +70,10 @@ export function ProfilView() {
   const loadSummary = useCallback(() => {
     if (auth.status !== "authenticated" || !owner) return;
     getOwnerBalance(auth.accessToken, owner.id)
-      .then((balance) => setOwnerBalance(balance.currentBalance))
+      .then((balance) => {
+        setOwnerBalance(balance.currentBalance);
+        setOwnerBalanceId(balance.id);
+      })
       .catch(() => {
         // Surfaced via the hero stat defaulting to 0; not worth a page-level error.
       });
@@ -147,6 +156,7 @@ export function ProfilView() {
             >
               {formatSigned(ownerBalance)}
             </strong>
+            {balanceCreatedBy && <span className="payment-document-byline">Əməliyyatı icra etdi: {balanceCreatedBy}</span>}
           </div>
           <div className="owner-hero-stat">
             <span className="owner-stat-label">Son ödəniş</span>
