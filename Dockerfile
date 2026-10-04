@@ -11,11 +11,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # NEXT_PUBLIC_* variables are inlined into the client-side bundle at build
-# time — Next.js never reads them again at container runtime. Dokploy's
-# "Build Args" field (separate from runtime Environment Variables) can still
-# override this, but the default below means the image is correct even if
-# that field is never touched.
-ARG NEXT_PUBLIC_API_URL=https://mtk-api.vahid.az/
+# time — Next.js never reads them again at container runtime. Must be
+# supplied as a Docker build argument (Dokploy: "Build Args", separate from
+# the runtime "Environment Variables" tab) — no default here on purpose, so
+# a missing value fails loudly (empty API base URL) instead of silently
+# deploying against a stale/wrong domain.
+ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
