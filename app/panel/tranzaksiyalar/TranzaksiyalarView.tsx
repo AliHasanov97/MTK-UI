@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth/AuthContext";
+import { useCanPay } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
 import { SortDirection } from "../../lib/api/buildings";
 import { formatDateTime } from "../../lib/format";
@@ -12,7 +13,10 @@ import {
   type TransactionDirectionKey,
   type TransactionResponse,
 } from "../../lib/api/payments";
+import type { FileAttachmentTarget } from "../../lib/api/fileAttachments";
 import { useCreatedByMap } from "../binalar/finance";
+import { Modal } from "../Modal";
+import { SignedDocumentsPanel } from "../SignedDocuments";
 
 // Fetched unfiltered/unpaged from the API (large flat pull, sorted newest first) —
 // the date range below is applied client-side. The generic QueryFilter mechanism
@@ -46,6 +50,9 @@ type Row = {
   category: string;
   note: string;
   amount: number; // signed: income positive, expense negative
+  // Set only for a row auto-posted from a resident/vendor payment — see
+  // TransactionResponse.sourcePaymentId.
+  sourcePaymentId: string | null;
 };
 
 type MonthGroup = {
@@ -162,6 +169,7 @@ const QUICK_RANGES: { key: string; label: string; range: () => { start: string; 
 
 export function TranzaksiyalarView() {
   const auth = useAuth();
+  const canUploadDocuments = useCanPay();
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -169,6 +177,7 @@ export function TranzaksiyalarView() {
   const [startDate, setStartDate] = useState(() => currentMonthRange().start);
   const [endDate, setEndDate] = useState(() => currentMonthRange().end);
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
+  const [docTarget, setDocTarget] = useState<FileAttachmentTarget | null>(null);
   const transactionCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Transaction");
 
   const load = useCallback(() => {
@@ -203,6 +212,7 @@ export function TranzaksiyalarView() {
         category: t.category,
         note: t.description ?? "—",
         amount: direction === "Income" ? t.amount : -t.amount,
+        sourcePaymentId: t.sourcePaymentId,
       };
     })
     // Real instants, not strings — same reasoning as rangeStartMs/rangeEndMs below.
@@ -382,7 +392,18 @@ export function TranzaksiyalarView() {
                         </td>
                       </tr>
                       {group.rows.map((row) => (
-                        <tr key={row.key}>
+                        <tr
+                          key={row.key}
+                          className="ledger-row-clickable"
+                          title="Əlaqəli sənədə bax"
+                          onClick={() =>
+                            setDocTarget(
+                              row.sourcePaymentId
+                                ? { paymentId: row.sourcePaymentId }
+                                : { transactionId: row.id },
+                            )
+                          }
+                        >
                           <td className="ledger-cell-date">{formatDateTime(row.date)}</td>
                           <td>
                             <span className={`ledger-type ledger-type-${row.kind}`}>
@@ -413,6 +434,16 @@ export function TranzaksiyalarView() {
         qeyd silinmir, ona əks (geri qaytarma) qeydi əlavə olunur. Vendor/müqaviləyə bağlı olmayan birbaşa xərc və
         gəlirlər isə Xərclərin daxil edilməsi / Əlavə gəlirlər bölmələrindən əlavə olunur.
       </p>
+
+      {docTarget && (
+        <Modal title="Əlaqəli sənəd" onClose={() => setDocTarget(null)}>
+          <SignedDocumentsPanel
+            accessToken={auth.accessToken}
+            target={docTarget}
+            canUpload={canUploadDocuments}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

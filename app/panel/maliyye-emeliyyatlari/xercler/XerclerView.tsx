@@ -6,6 +6,7 @@ import { useCanDoEverything } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
 import { QueryComparisonType, type QueryFilter } from "../../../lib/api/buildings";
 import { createTransaction, createOneTimeServiceExpense } from "../../../lib/api/payments";
+import { uploadFileAttachment } from "../../../lib/api/fileAttachments";
 import {
   searchContracts,
   getContract,
@@ -123,6 +124,7 @@ function ContractServiceExpenseForm() {
 
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
+  const [file, setFile] = useState<File | null>(null);
 
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -207,10 +209,17 @@ function ContractServiceExpenseForm() {
         paymentMethod: "Cash",
         notes: notes || null,
       });
+      if (file) {
+        // Best-effort: the expense is already recorded and settled, so a failed
+        // upload here shouldn't read as if the whole entry failed. Attached to
+        // the contract (the charge itself has no attachment target of its own).
+        await uploadFileAttachment(accessToken, file, { contractId: selected.contractId }).catch(() => {});
+      }
       setSavedMessage(`${selected.service.name} — ${numericAmount.toFixed(2)} ₼ qeydə alındı və ödənildi.`);
       setAmount("");
       setNotes("");
       setServiceId("");
+      setFile(null);
     } catch (err) {
       setFormError(errorMessage(err));
     } finally {
@@ -290,6 +299,15 @@ function ContractServiceExpenseForm() {
               <label htmlFor="expense-notes">Qeyd (istəyə bağlı)</label>
               <input id="expense-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
+            <div className="form-field">
+              <label htmlFor="expense-file">Qaimə/sənəd (istəyə bağlı)</label>
+              <input
+                id="expense-file"
+                type="file"
+                accept="application/pdf,image/*"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
             <div className="form-actions">
               <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
                 {saving ? "Saxlanılır…" : "Xərci qeyd et"}
@@ -309,6 +327,7 @@ function FreeformExpenseForm() {
   const [customCategory, setCustomCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -334,15 +353,19 @@ function FreeformExpenseForm() {
     setFormError(null);
     setSavedMessage(null);
     try {
-      await createTransaction(auth.accessToken, {
+      const transactionId = await createTransaction(auth.accessToken, {
         direction: "Expense",
         category: finalCategory,
         amount: numericAmount,
         description: description || null,
       });
+      if (file) {
+        await uploadFileAttachment(auth.accessToken, file, { transactionId }).catch(() => {});
+      }
       setSavedMessage(`${finalCategory} — ${numericAmount.toFixed(2)} ₼ qeydə alındı.`);
       setAmount("");
       setDescription("");
+      setFile(null);
       if (category === OTHER_CATEGORY) setCustomCategory("");
     } catch (err) {
       setFormError(errorMessage(err));
@@ -396,6 +419,15 @@ function FreeformExpenseForm() {
         <div className="form-field">
           <label htmlFor="expense-notes-freeform">Qeyd (istəyə bağlı)</label>
           <input id="expense-notes-freeform" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
+        <div className="form-field">
+          <label htmlFor="expense-file-freeform">Qaimə/sənəd (istəyə bağlı)</label>
+          <input
+            id="expense-file-freeform"
+            type="file"
+            accept="application/pdf,image/*"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          />
         </div>
         <div className="form-actions">
           <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>

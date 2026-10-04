@@ -10,7 +10,7 @@ export default async function VendorDetailPage({
   const { id } = await params;
 
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER]}>
       <div className="panel-page">
         <h1>Tədarükçü</h1>
         <p className="panel-page-lead">Tədarükçünün əlaqə məlumatları, borcları və ödəniş tarixçəsi.</p>

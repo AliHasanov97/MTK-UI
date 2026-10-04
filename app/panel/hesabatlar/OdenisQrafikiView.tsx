@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth/AuthContext";
-import { ApiError } from "../../lib/api/client";
+import { useCanPay } from "../../lib/auth/roles";
+import { ApiError, saveBlobAsFile } from "../../lib/api/client";
 import { SortDirection, searchApartments, type Apartment } from "../../lib/api/buildings";
 import { searchGarages, type GarageListItem } from "../../lib/api/garages";
 import {
+  exportAnnualPaymentReport,
   getAnnualPaymentReport,
   type AnnualPaymentReportResponse,
   type PropertyAnnualReportRow,
@@ -100,6 +102,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 export function OdenisQrafikiView() {
   const auth = useAuth();
+  const canExport = useCanPay();
   const [apartments, setApartments] = useState<Apartment[] | null>(null);
   const [garages, setGarages] = useState<GarageListItem[] | null>(null);
   const [report, setReport] = useState<AnnualPaymentReportResponse | null>(null);
@@ -109,6 +112,7 @@ export function OdenisQrafikiView() {
   const [buildingFilter, setBuildingFilter] = useState("all");
   const [year, setYear] = useState(CURRENT_YEAR);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -133,6 +137,21 @@ export function OdenisQrafikiView() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function handleExport() {
+    if (auth.status !== "authenticated") return;
+    setExporting(true);
+    setError(null);
+    try {
+      const propertyType = typeFilter === "all" ? null : typeFilter === "apartment" ? "Apartment" : "Garage";
+      const { blob, fileName } = await exportAnnualPaymentReport(auth.accessToken, year, propertyType);
+      saveBlobAsFile(blob, fileName);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const rows: Row[] = useMemo(() => {
     const aptRows: Row[] = (apartments ?? []).map((a) => ({
@@ -196,6 +215,16 @@ export function OdenisQrafikiView() {
         <div className="vendor-head">
           <h3>İllik ödəniş qrafiki</h3>
           <span className="vendor-count">{visibleRows.length} əmlak</span>
+          {canExport && (
+            <button
+              type="button"
+              className="panel-btn panel-btn-sm"
+              disabled={exporting || loading}
+              onClick={handleExport}
+            >
+              {exporting ? "Yüklənir…" : "Excel-ə ixrac"}
+            </button>
+          )}
         </div>
 
         <div className="ledger-filter-footer" style={{ padding: "12px 18px 0" }}>

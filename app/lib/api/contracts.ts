@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiFetchFile } from "./client";
 import { dateOnlyToUtcIso, searchBody, type SearchParams } from "./payments";
 
 // The Payments API has no [JsonStringEnumConverter], so every enum crosses the
@@ -97,6 +97,10 @@ export function getContract(accessToken: string, contractId: string) {
   return apiFetch<Envelope<ContractResponse>>(`api/payments/contracts/${contractId}`, accessToken).then(
     (e) => e.data,
   );
+}
+
+export function exportContract(accessToken: string, contractId: string) {
+  return apiFetchFile(`api/payments/contracts/${contractId}/export`, accessToken);
 }
 
 export type CreateContractRequest = {

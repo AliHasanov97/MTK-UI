@@ -78,7 +78,7 @@ export function ProfilView() {
         // Surfaced via the hero stat defaulting to 0; not worth a page-level error.
       });
     searchPayments(auth.accessToken, {
-      filters: [{ columnName: "PartyId", comparison: QueryComparisonType.Equals, value: owner.id }],
+      filters: [{ columnName: "OwnerId", comparison: QueryComparisonType.Equals, value: owner.id }],
       sortCriteria: { columnName: "PaymentDate", direction: SortDirection.Descending },
       page: 0,
       pageSize: 1,

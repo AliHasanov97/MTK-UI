@@ -185,6 +185,11 @@
 .payment-document-section-title{font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#8a938c;font-weight:700;margin:18px 0 10px}
 .payment-document-table{table-layout:fixed;width:100%}
 .payment-document-table th,.payment-document-table td{white-space:normal;word-break:break-word;padding:10px 12px}
+.signed-documents-list{list-style:none;margin:0 0 4px;padding:0;display:flex;flex-direction:column;gap:6px}
+.signed-documents-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fafbf9}
+.signed-documents-name{flex:1 1 auto;font-size:13px;font-weight:600;color:#1f2a22;word-break:break-word}
+.signed-documents-meta{font-size:11px;color:#8a938c;white-space:nowrap}
+.signed-documents-actions{display:flex;gap:6px;flex-shrink:0}
 .owner-section-card h4{font-size:14px;margin:0 0 16px;letter-spacing:-.2px;display:flex;align-items:center}
 .owner-section-icon{margin:0 10px 0 0;width:30px;height:30px;font-size:15px}
 .owner-balance-tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
@@ -289,6 +294,7 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
 .ledger-col-note{width:auto}
 .ledger-col-amount{width:152px}
 .ledger-table tbody tr:not(.ledger-month-row):hover td{background:#fafbf8}
+.ledger-row-clickable{cursor:pointer}
 .ledger-cell-date{color:#6d7973;white-space:nowrap}
 .ledger-cell-note{white-space:normal;overflow-wrap:anywhere;word-break:break-word;color:#78837c;line-height:1.55}
 .ledger-th-amount{text-align:right}

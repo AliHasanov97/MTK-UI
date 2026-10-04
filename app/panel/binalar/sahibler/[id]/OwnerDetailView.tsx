@@ -25,10 +25,8 @@ import {
   getOwnerBalance,
   getPaymentsByOwner,
   getPropertyBalance,
-  propertyTypeFromOrdinal,
   type ChargeResponse,
 } from "../../../../lib/api/payments";
-import { resolvePropertyLabels, type PropertyRef } from "../../resolve";
 import { useCreatedBy } from "../../auditHooks";
 
 function errorMessage(err: unknown) {
@@ -63,7 +61,6 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
   const [ownerBalance, setOwnerBalance] = useState(0);
   const [ownerBalanceId, setOwnerBalanceId] = useState("");
   const [propertyBalances, setPropertyBalances] = useState<Record<string, number>>({});
-  const [propertyLabels, setPropertyLabels] = useState<Record<string, string>>({});
   const createdBy = useCreatedBy(auth.status === "authenticated" ? auth.accessToken : "", "Owner", owner?.id ?? "");
   const balanceCreatedBy = usePaymentsCreatedBy(
     auth.status === "authenticated" ? auth.accessToken : "",
@@ -130,27 +127,6 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
   useEffect(() => {
     loadPropertyBalances();
   }, [loadPropertyBalances]);
-
-  // Resolved directly from the charges/payments themselves (not owner.apartments/
-  // garages) so a unit transferred away AFTER its charge/payment history was
-  // created still shows its name here instead of "—" — owner.apartments only
-  // reflects CURRENT ownership.
-  useEffect(() => {
-    if (auth.status !== "authenticated") return;
-    const refs: PropertyRef[] = [
-      ...charges
-        .filter((c) => c.propertyId != null && c.propertyType != null)
-        .map((c) => ({ propertyType: propertyTypeFromOrdinal(c.propertyType!), propertyId: c.propertyId! })),
-      ...payments
-        .filter((p) => p.propertyId != null && p.propertyType != null)
-        .map((p) => ({ propertyType: propertyTypeFromOrdinal(p.propertyType!), propertyId: p.propertyId! })),
-    ];
-    if (refs.length === 0) {
-      Promise.resolve().then(() => setPropertyLabels({}));
-      return;
-    }
-    resolvePropertyLabels(auth.accessToken, refs).then(setPropertyLabels);
-  }, [auth, charges, payments]);
 
   const reloadAll = useCallback(() => {
     loadFinance();
@@ -333,13 +309,9 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
 
       </div>
 
-      <ChargesTable accessToken={auth.accessToken} charges={charges} propertyLabels={propertyLabels} />
+      <ChargesTable accessToken={auth.accessToken} charges={charges} />
 
-      <PaymentsTable
-        accessToken={auth.accessToken}
-        payments={payments}
-        propertyLabels={propertyLabels}
-      />
+      <PaymentsTable accessToken={auth.accessToken} payments={payments} />
 
       {showLink && (
         <LinkToUserModal

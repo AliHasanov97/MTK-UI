@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useCanDoEverything, useCanPay } from "../../../lib/auth/roles";
-import { ApiError } from "../../../lib/api/client";
+import { ApiError, saveBlobAsFile } from "../../../lib/api/client";
 import {
   BILLING_PERIODS_ORDERED,
   BILLING_PERIOD_LABELS,
@@ -15,6 +15,7 @@ import {
   billingPeriodFromOrdinal,
   contractStatusFromOrdinal,
   deleteContract,
+  exportContract,
   getContract,
   removeContractService,
   setContractServiceStatus,
@@ -37,6 +38,7 @@ import {
 import { QueryComparisonType, type QueryFilter } from "../../../lib/api/buildings";
 import { useCreatedBy, useCreatedByMap } from "../../binalar/finance";
 import { Modal } from "../../Modal";
+import { SignedDocumentsPanel } from "../../SignedDocuments";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -62,6 +64,8 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
   const [terminateOpen, setTerminateOpen] = useState(false);
   const [charges, setCharges] = useState<VendorChargeResponse[] | null>(null);
   const [chargesError, setChargesError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [hasDocument, setHasDocument] = useState(false);
   const createdBy = useCreatedBy(auth.status === "authenticated" ? auth.accessToken : "", "Contract", contractId);
   const serviceCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "ContractService");
 
@@ -115,6 +119,19 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
       setError(errorMessage(err));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    setError(null);
+    try {
+      const { blob, fileName } = await exportContract(accessToken, contractId);
+      saveBlobAsFile(blob, fileName);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -176,6 +193,21 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
             <strong>{contract.services.length}</strong>
           </div>
         </div>
+
+        {!hasDocument && canMakePayments && (
+          <div className="form-actions" style={{ justifyContent: "flex-start", margin: "12px 0 0" }}>
+            <button type="button" className="panel-btn panel-btn-sm" disabled={exporting} onClick={handleExport}>
+              {exporting ? "Yüklənir…" : "Sənədi yüklə (PDF)"}
+            </button>
+          </div>
+        )}
+
+        <SignedDocumentsPanel
+          accessToken={accessToken}
+          target={{ contractId: contract.id }}
+          canUpload={canMakePayments}
+          onAttachmentsChange={(list) => setHasDocument(list.length > 0)}
+        />
 
         {canManage && (
           <div className="form-actions" style={{ justifyContent: "flex-start", flexWrap: "wrap" }}>

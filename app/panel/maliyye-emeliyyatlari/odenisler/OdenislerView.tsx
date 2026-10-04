@@ -123,7 +123,7 @@ export function OdenislerView() {
   // yalnız ümumi sahib ödənişində mümkündür — backend də bunu təsdiqləyir).
   const targetedDebt = propertyId
     ? ownerCharges
-        .filter((c) => c.propertyId === propertyId)
+        .filter((c) => c.apartmentId === propertyId || c.garageId === propertyId)
         .reduce((sum, c) => sum + (c.amount - c.paidAmount), 0)
     : 0;
 

@@ -22,7 +22,6 @@ import {
 import { Modal } from "../Modal";
 import { OwnerPicker } from "../binalar/OwnerPicker";
 import { PayButton, useCreatedBy, useCreatedByMap } from "../binalar/finance";
-import { resolveOwnerNames, resolvePropertyLabels } from "../binalar/resolve";
 
 const PAGE_SIZE = 20;
 // One bigger pull, status segmented client-side (the ledger pattern): the
@@ -60,8 +59,6 @@ export function BorclarView() {
   const auth = useAuth();
   const canManage = useCanDoEverything();
   const [charges, setCharges] = useState<ChargeResponse[] | null>(null);
-  const [ownerNames, setOwnerNames] = useState<Record<string, string>>({});
-  const [propertyLabels, setPropertyLabels] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<Scope>("open");
   const [search, setSearch] = useState("");
@@ -85,24 +82,6 @@ export function BorclarView() {
       .then((res) => {
         setCharges(res.charges);
         setError(null);
-        return Promise.all([
-          resolveOwnerNames(auth.accessToken, res.charges.map((c) => c.ownerId)),
-          resolvePropertyLabels(
-            auth.accessToken,
-            res.charges
-              .filter((c) => c.propertyId != null)
-              .map((c) => ({
-                propertyType: c.propertyType === 0 ? "Apartment" : "Garage",
-                propertyId: c.propertyId as string,
-              })),
-          ),
-        ]);
-      })
-      .then((result) => {
-        if (!result) return;
-        const [owners, properties] = result;
-        setOwnerNames((prev) => ({ ...prev, ...owners }));
-        setPropertyLabels((prev) => ({ ...prev, ...properties }));
       })
       .catch((err) => setError(errorMessage(err)));
   }, [auth]);
@@ -136,8 +115,8 @@ export function BorclarView() {
     if (scope === "open" && status === "Paid") return false;
     if (scope === "paid" && status !== "Paid") return false;
     if (term) {
-      const owner = ownerNames[c.ownerId] ?? "";
-      const property = c.propertyId ? propertyLabels[c.propertyId] ?? "" : "";
+      const owner = c.partyName ?? "";
+      const property = c.propertyLabel ?? "";
       const haystack = `${owner} ${property} ${c.period ?? ""} ${c.description ?? ""}`.toLowerCase();
       if (!haystack.includes(term)) return false;
     }
@@ -277,7 +256,12 @@ export function BorclarView() {
                 {pageRows.map((c) => {
                   const status = chargeStatusFromOrdinal(c.status);
                   const remaining = c.amount - c.paidAmount;
-                  const propertyType: PropertyTypeKey = c.propertyType === 0 ? "Apartment" : "Garage";
+                  const propertyType: PropertyTypeKey | undefined = c.apartmentId
+                    ? "Apartment"
+                    : c.garageId
+                      ? "Garage"
+                      : undefined;
+                  const propertyId = c.apartmentId ?? c.garageId ?? undefined;
                   const rows = allocationsByCharge[c.id];
                   const isOpen = expandedId === c.id;
                   // Avans izi: bu borca tətbiq olunmuş ödəniş borc yaranmazdan əvvəl
@@ -301,12 +285,12 @@ export function BorclarView() {
                         </td>
                         <td className="vendor-cell-vendor">
                           <Link className="owner-link" href={`/panel/binalar/sahibler/${c.ownerId}`}>
-                            {ownerNames[c.ownerId] ?? "…"}
+                            {c.partyName ?? "…"}
                           </Link>
                           {c.description && <span className="vendor-cell-sub">{c.description}</span>}
                           {fromAdvance && <span className="vendor-cell-sub">avansdan ödənilib</span>}
                         </td>
-                        <td>{c.propertyId ? propertyLabels[c.propertyId] ?? "…" : "…"}</td>
+                        <td>{c.propertyLabel ?? "—"}</td>
                         <td>
                           {c.period || "—"}
                           <span className="vendor-cell-sub">borc tarixi {formatDateTime(c.issuedOn)}</span>
@@ -336,7 +320,7 @@ export function BorclarView() {
                             {remaining > 0 && (
                               <PayButton
                                 ownerId={c.ownerId}
-                                propertyId={c.propertyId ?? undefined}
+                                propertyId={propertyId}
                                 propertyType={propertyType}
                                 balance={-remaining}
                                 onPaid={load}
@@ -481,8 +465,8 @@ function AddChargeModal({
     try {
       await createCharge(accessToken, {
         ownerId: owner.id,
-        propertyType: kind === "apartment" ? "Apartment" : "Garage",
-        propertyId: id,
+        apartmentId: kind === "apartment" ? id : null,
+        garageId: kind === "garage" ? id : null,
         amount: numericAmount,
         description,
       });

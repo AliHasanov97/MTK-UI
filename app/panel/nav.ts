@@ -59,6 +59,20 @@ export const NAV_MODULES: NavModule[] = [
     ],
   },
   {
+    // Owner gets its own narrow entry into the same pages the staff group above
+    // links to — Borclar (every owner's debt) and Maliyyə əməliyyatları (xərc/gəlir
+    // entry forms) are deliberately left out, so this can't just widen that
+    // group's `roles` instead (tabs have no per-tab role of their own).
+    href: "/panel/muqavileler",
+    label: "Müqavilələr",
+    icon: "₼",
+    roles: [ROLES.OWNER],
+    tabs: [
+      { href: "/panel/muqavileler", label: "Müqavilələr" },
+      { href: "/panel/tedarukculer", label: "Tədarükçülər" },
+    ],
+  },
+  {
     href: "/panel/maliyye-emeliyyatlari/tariflar",
     label: "Tariflər",
     icon: "₼",

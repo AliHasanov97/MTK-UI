@@ -5,6 +5,7 @@ import { useAuth } from "../../../lib/auth/AuthContext";
 import { useCanDoEverything } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
 import { createTransaction } from "../../../lib/api/payments";
+import { uploadFileAttachment } from "../../../lib/api/fileAttachments";
 
 // Resident apartment/garage charges already post income automatically through
 // the payment flow (Ödənişlərin daxil edilməsi) — this list is for income that
@@ -38,6 +39,7 @@ export function ElaveGelirlerView() {
   const [customCategory, setCustomCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
@@ -63,15 +65,21 @@ export function ElaveGelirlerView() {
     setFormError(null);
     setSavedMessage(null);
     try {
-      await createTransaction(auth.accessToken, {
+      const transactionId = await createTransaction(auth.accessToken, {
         direction: "Income",
         category: finalCategory,
         amount: numericAmount,
         description: description || null,
       });
+      if (file) {
+        // Best-effort: the income is already recorded, so a failed upload here
+        // shouldn't read as if the whole entry failed.
+        await uploadFileAttachment(auth.accessToken, file, { transactionId }).catch(() => {});
+      }
       setSavedMessage(`${finalCategory} — ${numericAmount.toFixed(2)} ₼ qeydə alındı.`);
       setAmount("");
       setDescription("");
+      setFile(null);
       if (category === OTHER_CATEGORY) setCustomCategory("");
     } catch (err) {
       setFormError(errorMessage(err));
@@ -143,6 +151,15 @@ export function ElaveGelirlerView() {
           <div className="form-field">
             <label htmlFor="income-notes">Qeyd (istəyə bağlı)</label>
             <input id="income-notes" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+          <div className="form-field">
+            <label htmlFor="income-file">Sənəd (istəyə bağlı)</label>
+            <input
+              id="income-file"
+              type="file"
+              accept="application/pdf,image/*"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
           </div>
           <div className="form-actions">
             <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>

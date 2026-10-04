@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Modal } from "../Modal";
+import { SignedDocumentsPanel } from "../SignedDocuments";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { useCanPay } from "../../lib/auth/roles";
-import { ApiError } from "../../lib/api/client";
+import { ApiError, saveBlobAsFile } from "../../lib/api/client";
+import { uploadFileAttachment } from "../../lib/api/fileAttachments";
 import { formatDateTime } from "../../lib/format";
 import { QueryComparisonType, SortDirection } from "../../lib/api/buildings";
-import { resolvePropertyLabels, type PropertyRef } from "./resolve";
 import {
   type ChargeAllocationResponse,
   type ChargeResponse,
@@ -18,6 +19,7 @@ import {
   PAYMENT_METHOD_LABELS,
   chargeStatusFromOrdinal,
   createPayment,
+  exportPaymentReceipt,
   getChargeAllocations,
   getChargesByOwner,
   getPaymentAllocations,
@@ -25,7 +27,6 @@ import {
   getPropertyBalance,
   paymentMethodFromOrdinal,
   paymentStatusFromOrdinal,
-  propertyTypeFromOrdinal,
   rateTypeFromOrdinal,
   searchAuditLogs,
   searchCharges,
@@ -183,6 +184,7 @@ export function PaymentForm({
 }) {
   const [amount, setAmount] = useState(suggestedAmount > 0 ? String(suggestedAmount.toFixed(2)) : "");
   const [notes, setNotes] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -210,16 +212,24 @@ export function PaymentForm({
     setSaving(true);
     setError(null);
     try {
-      await createPayment(accessToken, {
+      const paymentId = await createPayment(accessToken, {
         ownerId,
         amount: numericAmount,
         paymentMethod: "Cash",
         notes: notes || null,
-        propertyId: propertyId ?? null,
-        propertyType: propertyType ?? null,
+        apartmentId: propertyType === "Apartment" ? (propertyId ?? null) : null,
+        garageId: propertyType === "Garage" ? (propertyId ?? null) : null,
       });
+      if (file) {
+        // Attaching the receipt/invoice is best-effort — the payment itself is
+        // already recorded, so a failed upload here shouldn't look like the
+        // whole operation failed. The user can still attach it later from the
+        // payment's own detail view.
+        await uploadFileAttachment(accessToken, file, { paymentId }).catch(() => {});
+      }
       setAmount("");
       setNotes("");
+      setFile(null);
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -247,6 +257,15 @@ export function PaymentForm({
       <div className="form-field">
         <label htmlFor="pay-notes">Qeyd</label>
         <input id="pay-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+      </div>
+      <div className="form-field">
+        <label htmlFor="pay-file">Qəbz/sənəd (istəyə bağlı)</label>
+        <input
+          id="pay-file"
+          type="file"
+          accept="application/pdf,image/*"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+        />
       </div>
       <div className="form-actions">
         {onCancel && (
@@ -324,7 +343,7 @@ export function usePropertyFinance(accessToken: string | undefined, ownerId: str
       getPropertyBalance(accessToken, propertyId),
     ])
       .then(([allCharges, targetedPayments, propertyBalance]) => {
-        setCharges(allCharges.filter((c) => c.propertyId === propertyId));
+        setCharges(allCharges.filter((c) => c.apartmentId === propertyId || c.garageId === propertyId));
         setPayments(targetedPayments);
         setBalance(propertyBalance.currentBalance);
         setError(null);
@@ -393,13 +412,10 @@ export function usePropertyDebtGate(accessToken: string | undefined, propertyId:
 export function ChargesTable({
   accessToken,
   charges,
-  propertyLabels,
   title = "Haqqlar",
 }: {
   accessToken: string;
   charges: ChargeResponse[];
-  /** Owner-level view only: property.id -> "Mənzil 12 — Bina A" / "Qaraj G5". Adds an "Əmlak" column. */
-  propertyLabels?: Record<string, string>;
   /** Apartment/garage pages show no separate PaymentsTable — a row's own detail modal
    *  already answers "which payment(s) cleared it", so this card speaks for both. */
   title?: string;
@@ -407,6 +423,9 @@ export function ChargesTable({
   const [openCharge, setOpenCharge] = useState<ChargeResponse | null>(null);
 
   const sorted = [...charges].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  // Only an owner-level view spanning several units needs the "Əmlak" column —
+  // skip it entirely for a single-property page.
+  const showPropertyColumn = charges.some((c) => c.apartmentId || c.garageId);
 
   return (
     <section className="panel-card owner-section-card">
@@ -421,7 +440,7 @@ export function ChargesTable({
           <table className="data-table">
             <thead>
               <tr>
-                {propertyLabels && <th>Əmlak</th>}
+                {showPropertyColumn && <th>Əmlak</th>}
                 <th>Hesablanma tarixi</th>
                 <th>Təsvir</th>
                 <th>Məbləğ (₼)</th>
@@ -435,7 +454,7 @@ export function ChargesTable({
                 const remaining = c.amount - c.paidAmount;
                 return (
                   <tr key={c.id} className="data-table-row-clickable" onClick={() => setOpenCharge(c)}>
-                    {propertyLabels && <td>{c.propertyId ? propertyLabels[c.propertyId] ?? "—" : "—"}</td>}
+                    {showPropertyColumn && <td>{c.propertyLabel ?? "—"}</td>}
                     <td>{formatDateTime(c.createdAt)}</td>
                     <td>{chargeDescription(c)}</td>
                     <td>{c.amount.toFixed(2)}</td>
@@ -639,16 +658,10 @@ export function ChargeDetailModal({
 export function PaymentsTable({
   accessToken,
   payments,
-  propertyLabels,
   title = "Ödənişlər",
 }: {
   accessToken: string;
   payments: PaymentResponse[];
-  /** Owner-level view only: property.id -> "Mənzil 12 — Bina A" / "Qaraj G5". Not
-   *  shown as its own list column anymore — only used inside the detail modal's
-   *  allocation statement, where a payment spanning several units needs to say
-   *  which one each charge belongs to. */
-  propertyLabels?: Record<string, string>;
   title?: string;
 }) {
   const [openPayment, setOpenPayment] = useState<PaymentResponse | null>(null);
@@ -694,12 +707,7 @@ export function PaymentsTable({
         </div>
       )}
       {openPayment && (
-        <PaymentDetailModal
-          accessToken={accessToken}
-          payment={openPayment}
-          propertyLabels={propertyLabels}
-          onClose={() => setOpenPayment(null)}
-        />
+        <PaymentDetailModal accessToken={accessToken} payment={openPayment} onClose={() => setOpenPayment(null)} />
       )}
     </section>
   );
@@ -713,15 +721,17 @@ export function PaymentsTable({
 export function PaymentDetailModal({
   accessToken,
   payment,
-  propertyLabels,
   onClose,
 }: {
   accessToken: string;
   payment: PaymentResponse;
-  propertyLabels?: Record<string, string>;
   onClose: () => void;
 }) {
   const [rows, setRows] = useState<PaymentAllocationDetailResponse[] | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [hasDocument, setHasDocument] = useState(false);
+  const canUploadDocuments = useCanPay();
   const createdBy = useCreatedBy(accessToken, "Payment", payment.id);
   const allocationCreators = useCreatedByMap(accessToken, "PaymentAllocation");
 
@@ -729,10 +739,26 @@ export function PaymentDetailModal({
     getPaymentAllocations(accessToken, payment.id).then(setRows);
   }, [accessToken, payment.id]);
 
+  async function handleDownload() {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const { blob, fileName } = await exportPaymentReceipt(accessToken, payment.id);
+      saveBlobAsFile(blob, fileName);
+    } catch (err) {
+      setDownloadError(err instanceof ApiError ? `Xəta (${err.status})` : "Qəbz yüklənə bilmədi.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   const allocatedTotal = rows?.reduce((sum, r) => sum + r.allocatedAmount, 0) ?? 0;
   const unallocated = payment.amount - allocatedTotal;
   const status = paymentStatusFromOrdinal(payment.status);
   const methodLabel = PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(payment.paymentMethod)];
+  // Only a payment spanning several units needs to say which one each charge
+  // belongs to — skip the column entirely for a single-property/vendor payment.
+  const showPropertyColumn = rows?.some((r) => r.apartmentId || r.garageId) ?? false;
 
   return (
     <Modal title="Ödəniş sənədi" onClose={onClose} wide>
@@ -768,6 +794,15 @@ export function PaymentDetailModal({
           </p>
         )}
 
+        {!hasDocument && canUploadDocuments && (
+          <div className="form-actions" style={{ justifyContent: "flex-start", margin: "0 0 4px" }}>
+            <button type="button" className="panel-btn panel-btn-sm" disabled={downloading} onClick={handleDownload}>
+              {downloading ? "Yüklənir…" : "Qəbzi yüklə (PDF)"}
+            </button>
+          </div>
+        )}
+        {downloadError && <p className="form-error">{downloadError}</p>}
+
         <div className="payment-document-divider" />
 
         <p className="payment-document-statement">
@@ -790,7 +825,7 @@ export function PaymentDetailModal({
             <table className="data-table payment-document-table" style={{ margin: "0 0 12px" }}>
               <thead>
                 <tr>
-                  {propertyLabels && <th>Əmlak</th>}
+                  {showPropertyColumn && <th>Əmlak</th>}
                   <th>Haqq</th>
                   <th>Məbləğ (₼)</th>
                   <th>Tətbiq (₼)</th>
@@ -801,7 +836,7 @@ export function PaymentDetailModal({
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.chargeId}>
-                    {propertyLabels && <td>{r.propertyId ? propertyLabels[r.propertyId] ?? "—" : "—"}</td>}
+                    {showPropertyColumn && <td>{r.propertyLabel ?? "—"}</td>}
                     <td>{r.description ?? formatPeriod(r.period)}</td>
                     <td>{r.chargeAmount.toFixed(2)}</td>
                     <td>{r.allocatedAmount.toFixed(2)}</td>
@@ -825,6 +860,14 @@ export function PaymentDetailModal({
         {status !== "Completed" && (
           <p className="payment-document-statement">Qeyd: bu ödəniş hələ gözləmə statusundadır, tamamlanmayıb.</p>
         )}
+
+        <div className="payment-document-divider" />
+        <SignedDocumentsPanel
+          accessToken={accessToken}
+          target={{ paymentId: payment.id }}
+          canUpload={canUploadDocuments}
+          onAttachmentsChange={(list) => setHasDocument(list.length > 0)}
+        />
       </div>
     </Modal>
   );
@@ -843,7 +886,6 @@ const OWNER_PANEL_PAGE_SIZE = 8;
 export function OwnerChargesPanel({ accessToken, ownerId }: { accessToken: string; ownerId: string }) {
   const [items, setItems] = useState<ChargeResponse[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const [propertyLabels, setPropertyLabels] = useState<Record<string, string>>({});
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -862,7 +904,7 @@ export function OwnerChargesPanel({ accessToken, ownerId }: { accessToken: strin
 
   useEffect(() => {
     searchCharges(accessToken, {
-      filters: [{ columnName: "PartyId", comparison: QueryComparisonType.Equals, value: ownerId }],
+      filters: [{ columnName: "OwnerId", comparison: QueryComparisonType.Equals, value: ownerId }],
       sortCriteria: { columnName: "CreatedAt", direction: SortDirection.Descending },
       searchTerm: searchTerm || undefined,
       page: page - 1,
@@ -870,10 +912,6 @@ export function OwnerChargesPanel({ accessToken, ownerId }: { accessToken: strin
     }).then((res) => {
       setItems(res.charges);
       setTotalCount(res.totalCount);
-      const refs: PropertyRef[] = res.charges
-        .filter((c) => c.propertyId != null && c.propertyType != null)
-        .map((c) => ({ propertyType: propertyTypeFromOrdinal(c.propertyType!), propertyId: c.propertyId! }));
-      resolvePropertyLabels(accessToken, refs).then(setPropertyLabels);
     });
   }, [accessToken, ownerId, searchTerm, page]);
 
@@ -915,9 +953,7 @@ export function OwnerChargesPanel({ accessToken, ownerId }: { accessToken: strin
                   const remaining = c.amount - c.paidAmount;
                   return (
                     <tr key={c.id} className="data-table-row-clickable" onClick={() => setOpenCharge(c)}>
-                      <td className="owner-charge-col-property">
-                        {c.propertyId ? propertyLabels[c.propertyId] ?? "…" : "—"}
-                      </td>
+                      <td className="owner-charge-col-property">{c.propertyLabel ?? "—"}</td>
                       <td className="owner-charge-col-desc">{chargeDescription(c)}</td>
                       <td>{formatDateTime(c.createdAt)}</td>
                       <td className={remaining > 0.005 ? "owner-balance-tag-debt" : undefined}>
@@ -972,10 +1008,15 @@ export function OwnerChargesPanel({ accessToken, ownerId }: { accessToken: strin
  * Owner-level Ödənişlər list — same server-side search + pagination
  * approach as OwnerChargesPanel, via /payments/search filtered by PartyId.
  */
-export function OwnerPaymentsPanel({ accessToken, ownerId }: { accessToken: string; ownerId: string }) {
+export function OwnerPaymentsPanel({
+  accessToken,
+  ownerId,
+}: {
+  accessToken: string;
+  ownerId: string;
+}) {
   const [items, setItems] = useState<PaymentResponse[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const [propertyLabels, setPropertyLabels] = useState<Record<string, string>>({});
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -994,7 +1035,7 @@ export function OwnerPaymentsPanel({ accessToken, ownerId }: { accessToken: stri
 
   useEffect(() => {
     searchPayments(accessToken, {
-      filters: [{ columnName: "PartyId", comparison: QueryComparisonType.Equals, value: ownerId }],
+      filters: [{ columnName: "OwnerId", comparison: QueryComparisonType.Equals, value: ownerId }],
       sortCriteria: { columnName: "PaymentDate", direction: SortDirection.Descending },
       searchTerm: searchTerm || undefined,
       page: page - 1,
@@ -1002,10 +1043,6 @@ export function OwnerPaymentsPanel({ accessToken, ownerId }: { accessToken: stri
     }).then((res) => {
       setItems(res.payments);
       setTotalCount(res.totalCount);
-      const refs: PropertyRef[] = res.payments
-        .filter((p) => p.propertyId != null && p.propertyType != null)
-        .map((p) => ({ propertyType: propertyTypeFromOrdinal(p.propertyType!), propertyId: p.propertyId! }));
-      resolvePropertyLabels(accessToken, refs).then(setPropertyLabels);
     });
   }, [accessToken, ownerId, searchTerm, page]);
 
@@ -1036,6 +1073,7 @@ export function OwnerPaymentsPanel({ accessToken, ownerId }: { accessToken: stri
               <thead>
                 <tr>
                   <th>Ödəniş tarixi</th>
+                  <th>Əmlak</th>
                   <th>Məbləğ (₼)</th>
                 </tr>
               </thead>
@@ -1044,6 +1082,7 @@ export function OwnerPaymentsPanel({ accessToken, ownerId }: { accessToken: stri
                   return (
                     <tr key={p.id} className="data-table-row-clickable" onClick={() => setOpenPayment(p)}>
                       <td>{formatDateTime(p.paymentDate)}</td>
+                      <td>{p.propertyLabel ?? "—"}</td>
                       <td>{p.amount.toFixed(2)}</td>
                     </tr>
                   );
@@ -1077,12 +1116,7 @@ export function OwnerPaymentsPanel({ accessToken, ownerId }: { accessToken: stri
         </>
       )}
       {openPayment && (
-        <PaymentDetailModal
-          accessToken={accessToken}
-          payment={openPayment}
-          propertyLabels={propertyLabels}
-          onClose={() => setOpenPayment(null)}
-        />
+        <PaymentDetailModal accessToken={accessToken} payment={openPayment} onClose={() => setOpenPayment(null)} />
       )}
     </section>
   );

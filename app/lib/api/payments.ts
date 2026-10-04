@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiFetchFile } from "./client";
 import type { QueryFilter, SortCriteria } from "./buildings";
 
 // Postgres "timestamp with time zone" columns (via Npgsql) only accept
@@ -72,8 +72,8 @@ type MessageOnly = { message: string };
 export type ChargeResponse = {
   id: string;
   ownerId: string;
-  propertyType: number | null;
-  propertyId: string | null;
+  apartmentId: string | null;
+  garageId: string | null;
   period: string | null;
   amount: number;
   paidAmount: number;
@@ -87,26 +87,37 @@ export type ChargeResponse = {
   areaSquareMeters: number | null;
   rateAmount: number | null;
   rateType: number | null;
+  // Resolved server-side from Payments' own Owner/Vendor/Apartment/Garage shadows —
+  // no need to separately fetch from Buildings/Identity just to label a charge.
+  partyName: string | null;
+  propertyLabel: string | null;
 };
 
 export type PaymentResponse = {
   id: string;
-  ownerId: string;
+  // Shared response for both owner and vendor payments — exactly one of
+  // ownerId/vendorId is set.
+  ownerId: string | null;
+  vendorId: string | null;
   amount: number;
   paymentMethod: number;
   paymentDate: string;
   status: number;
   notes: string | null;
   createdAt: string;
-  propertyId: string | null;
-  propertyType: number | null;
+  apartmentId: string | null;
+  garageId: string | null;
+  // Resolved server-side from Payments' own Owner/Vendor/Apartment/Garage shadows —
+  // no need to separately fetch from Buildings/Identity just to label a payment.
+  partyName: string | null;
+  propertyLabel: string | null;
 };
 
 export type PaymentAllocationDetailResponse = {
   id: string;
   chargeId: string;
-  propertyType: number | null;
-  propertyId: string | null;
+  apartmentId: string | null;
+  garageId: string | null;
   period: string | null;
   description: string | null;
   chargeAmount: number;
@@ -114,6 +125,8 @@ export type PaymentAllocationDetailResponse = {
   // Bu haqqın (chargeId) qalıq borcu bu paylanma tətbiq olunandan dərhal sonra.
   // Server-side snapshot, sonradan dəyişmir (PaymentAllocation.RemainingDebtAfterPayment).
   remainingDebtAfterPayment: number;
+  // Resolved server-side from the Apartment/Garage shadow (see payments.ts above).
+  propertyLabel: string | null;
 };
 
 // The company's real-time net cash position (all-time income minus all-time
@@ -217,6 +230,11 @@ export type TransactionResponse = {
   description: string | null;
   transactionDate: string;
   createdAt: string;
+  // Set only for a row auto-posted from a resident/vendor payment — the related
+  // document (receipt) is that Payment's own FileAttachment(s), found by this id.
+  // Null for a manual entry (Xərc/Əlavə gəlir), which instead carries its own
+  // FileAttachment keyed directly by this row's own id (via FileAttachmentTarget.transactionId).
+  sourcePaymentId: string | null;
 };
 
 export type SearchTransactionsResult = {
@@ -304,8 +322,9 @@ export function getChargeAllocations(accessToken: string, chargeId: string) {
 
 export type CreateChargeRequest = {
   ownerId: string;
-  propertyType: PropertyTypeKey;
-  propertyId: string;
+  // Exactly one of the two must be set.
+  apartmentId?: string | null;
+  garageId?: string | null;
   amount: number;
   description: string;
   period?: string | null;
@@ -314,7 +333,7 @@ export type CreateChargeRequest = {
 export function createCharge(accessToken: string, request: CreateChargeRequest) {
   return apiFetch<Envelope<string>>("api/payments/charges", accessToken, {
     method: "POST",
-    body: JSON.stringify({ ...request, propertyType: propertyTypeToOrdinal(request.propertyType) }),
+    body: JSON.stringify(request),
   }).then((e) => e.data);
 }
 
@@ -367,9 +386,9 @@ export type CreatePaymentRequest = {
   paymentMethod: PaymentMethodKey;
   notes?: string | null;
   // Scope the payment to one apartment/garage so it can't spill onto the
-  // owner's other unpaid debt. Omit for a general, owner-wide payment.
-  propertyId?: string | null;
-  propertyType?: PropertyTypeKey | null;
+  // owner's other unpaid debt. Omit both for a general, owner-wide payment.
+  apartmentId?: string | null;
+  garageId?: string | null;
 };
 
 export function createPayment(accessToken: string, request: CreatePaymentRequest) {
@@ -378,7 +397,6 @@ export function createPayment(accessToken: string, request: CreatePaymentRequest
     body: JSON.stringify({
       ...request,
       paymentMethod: paymentMethodToOrdinal(request.paymentMethod),
-      propertyType: request.propertyType ? propertyTypeToOrdinal(request.propertyType) : null,
     }),
   }).then((e) => e.data);
 }
@@ -388,6 +406,13 @@ export function getPaymentAllocations(accessToken: string, paymentId: string) {
     `api/payments/payments/${paymentId}/allocations`,
     accessToken,
   ).then((e) => e.data);
+}
+
+// Everything on the receipt (payer name, apartment/garage number, billing period,
+// building address, issuer name/role) is resolved server-side from Payments' own data —
+// the frontend only ever sends the payment id.
+export function exportPaymentReceipt(accessToken: string, paymentId: string) {
+  return apiFetchFile(`api/payments/payments/${paymentId}/receipt`, accessToken);
 }
 
 export function getOwnerBalance(accessToken: string, ownerId: string) {
@@ -468,4 +493,10 @@ export function getAnnualPaymentReport(accessToken: string, year: number, proper
     `api/payments/charges/reports/annual?${params.toString()}`,
     accessToken,
   ).then((e) => e.data);
+}
+
+export function exportAnnualPaymentReport(accessToken: string, year: number, propertyType?: PropertyTypeKey | null) {
+  const params = new URLSearchParams({ year: String(year) });
+  if (propertyType) params.set("propertyType", String(propertyTypeToOrdinal(propertyType)));
+  return apiFetchFile(`api/payments/charges/reports/annual/export?${params.toString()}`, accessToken);
 }

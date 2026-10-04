@@ -4,7 +4,7 @@ import { MuqavilelerView } from "./MuqavilelerView";
 
 export default function MuqavilelerPage() {
   return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER]}>
+    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER]}>
       <div className="panel-page">
         <h1>Müqavilələr</h1>
         <p className="panel-page-lead">
