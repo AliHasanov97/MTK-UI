@@ -4,12 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { exchangeCodeForTokens, toTokenSet } from "../../lib/auth/client";
-import { keycloakConfig } from "../../lib/auth/config";
 import { PKCE_VERIFIER_KEY, useAuth } from "../../lib/auth/AuthContext";
 
 export default function CallbackPage() {
   const router = useRouter();
-  const { completeLogin } = useAuth();
+  // Use the server-provided config from AuthProvider: KEYCLOAK_URL/APP_URL
+  // aren't NEXT_PUBLIC_, so importing config.ts here would fall back to the
+  // localhost defaults in the browser bundle.
+  const { completeLogin, config } = useAuth();
   const [error, setError] = useState<string | null>(null);
   // An authorization code can only be exchanged once — Keycloak rejects a
   // replay, and can even revoke the whole grant as a security precaution.
@@ -48,7 +50,7 @@ export default function CallbackPage() {
     }
     sessionStorage.removeItem(PKCE_VERIFIER_KEY);
 
-    exchangeCodeForTokens(keycloakConfig, code, codeVerifier)
+    exchangeCodeForTokens(config, code, codeVerifier)
       .then((res) => {
         completeLogin(toTokenSet(res));
         router.replace("/panel");
