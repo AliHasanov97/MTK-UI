@@ -296,6 +296,8 @@ export type TransactionDto = {
   quantity: number;
   unitPrice: number | null;
   transactionDate: string;
+  referenceId?: string | null;
+  referenceType?: string | null;
   notes: string | null;
 };
 
@@ -349,25 +351,10 @@ export function getTransaction(accessToken: string, id: string) {
   ).then((e) => e.data);
 }
 
-export type RecordReceiptRequest = {
-  nomenclatureId: string;
-  quantity: number;
-  unitPrice?: number | null;
-  notes?: string | null;
-};
-
-export function recordReceipt(accessToken: string, request: RecordReceiptRequest) {
-  return apiFetch<Envelope<string>>("api/warehouse/transactions/receipt", accessToken, {
-    method: "POST",
-    body: JSON.stringify({
-      ...request,
-      transactionDate: null,
-      referenceType: null,
-      referenceId: null,
-      createdByUserId: null,
-    }),
-  }).then((e) => e.data);
-}
+// Mal qəbulu (receipt) bu moduldan yaradılmır: məhsullar Payments modulundaki
+// alışlarda alınır və yalnız orada qəbul edilir — Warehouse-a
+// GoodsReceivedIntegrationEvent ilə düşür. Bu səbəbdən burada recordReceipt yoxdur;
+// daxilolmalar yalnız oxunur.
 
 export type RecordIssueRequest = {
   nomenclatureId: string;

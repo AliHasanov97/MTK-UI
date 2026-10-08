@@ -11,6 +11,7 @@ export type FileAttachmentTarget = {
   contractId?: string;
   vendorId?: string;
   paymentId?: string;
+  purchaseId?: string;
   ownerId?: string;
   transactionId?: string;
 };
@@ -31,6 +32,7 @@ function targetParams(target: FileAttachmentTarget): URLSearchParams {
   if (target.contractId) params.set("contractId", target.contractId);
   if (target.vendorId) params.set("vendorId", target.vendorId);
   if (target.paymentId) params.set("paymentId", target.paymentId);
+  if (target.purchaseId) params.set("purchaseId", target.purchaseId);
   if (target.ownerId) params.set("ownerId", target.ownerId);
   if (target.transactionId) params.set("transactionId", target.transactionId);
   return params;
@@ -55,6 +57,7 @@ export function uploadFileAttachment(accessToken: string, file: File, target: Fi
   if (target.contractId) formData.append("ContractId", target.contractId);
   if (target.vendorId) formData.append("VendorId", target.vendorId);
   if (target.paymentId) formData.append("PaymentId", target.paymentId);
+  if (target.purchaseId) formData.append("PurchaseId", target.purchaseId);
   if (target.ownerId) formData.append("OwnerId", target.ownerId);
   if (target.transactionId) formData.append("TransactionId", target.transactionId);
 
@@ -62,11 +65,15 @@ export function uploadFileAttachment(accessToken: string, file: File, target: Fi
 }
 
 export async function downloadFileAttachment(accessToken: string, fileAttachmentId: string) {
-  const { blob, fileName } = await apiFetchFile(
+  const { blob, fileName } = await getFileAttachmentBlob(accessToken, fileAttachmentId);
+  saveBlobAsFile(blob, fileName);
+}
+
+export function getFileAttachmentBlob(accessToken: string, fileAttachmentId: string) {
+  return apiFetchFile(
     `api/payments/fileattachments/${fileAttachmentId}/download`,
     accessToken,
   );
-  saveBlobAsFile(blob, fileName);
 }
 
 export function deleteFileAttachment(accessToken: string, fileAttachmentId: string) {

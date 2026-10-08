@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { getPurchase } from "../../lib/api/purchases-client";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { useCanDoEverything } from "../../lib/auth/roles";
 import { formatDateTime } from "../../lib/format";
 import {
   recordIssue,
-  recordReceipt,
   searchNomenclatures,
   searchTransactions,
   type NomenclatureListItem,
@@ -17,13 +19,19 @@ import { Modal } from "../Modal";
 import { errorMessage, formatMoney, formatQuantity } from "./shared";
 
 /**
- * Daxilolma və çıxarış eyni axındır — yalnız əməliyyat tipi, başlıq və
- * (qəbulda) vahid qiymət/ümumi sütunları fərqlənir.
+ * Daxilolma və çıxarış eyni cədvəli paylaşır — yalnız başlıq və (qəbulda) vahid
+ * qiymət/ümumi sütunları fərqlənir.
+ *
+ * Daxilolma **yalnız oxunur**: məhsullar Payments modulundaki alışlarda alınır və
+ * orada qəbul edilir, anbara isə GoodsReceivedIntegrationEvent ilə düşür. Çıxarış
+ * isə yenə buradan yaradılır.
  */
 export function MovementView({ transactionType }: { transactionType: TransactionTypeKey }) {
   const auth = useAuth();
+  const router = useRouter();
   const canManage = useCanDoEverything();
   const isReceipt = transactionType === "Receipt";
+  const canCreate = canManage && !isReceipt;
 
   const [rows, setRows] = useState<TransactionDto[] | null>(null);
   const [nomenclatures, setNomenclatures] = useState<NomenclatureListItem[]>([]);
@@ -32,6 +40,7 @@ export function MovementView({ transactionType }: { transactionType: Transaction
   const [search, setSearch] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
+  const [invoiceNumbers, setInvoiceNumbers] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -44,7 +53,23 @@ export function MovementView({ transactionType }: { transactionType: Transaction
   }, [auth, transactionType, reloadKey]);
 
   useEffect(() => {
-    if (auth.status !== "authenticated") return;
+    if (!isReceipt || auth.status !== "authenticated" || !rows?.length) return;
+    const purchaseIds = [...new Set(rows.flatMap((row) => row.referenceId ? [row.referenceId] : []))]
+      .filter((id) => !(id in invoiceNumbers));
+    if (purchaseIds.length === 0) return;
+    Promise.all(purchaseIds.map(async (id) => {
+      try {
+        const purchase = await getPurchase(auth.accessToken, id);
+        return [id, purchase.invoiceNumber] as const;
+      } catch {
+        return [id, null] as const;
+      }
+    })).then((entries) => setInvoiceNumbers((current) => ({ ...current, ...Object.fromEntries(entries) })));
+  }, [auth, isReceipt, rows, invoiceNumbers]);
+
+  useEffect(() => {
+    // Material seçimi yalnız çıxarış forması üçün lazımdır.
+    if (auth.status !== "authenticated" || isReceipt) return;
     searchNomenclatures(auth.accessToken, {
       sortCriteria: { columnName: "Code", direction: 0 },
       pageSize: 500,
@@ -53,7 +78,7 @@ export function MovementView({ transactionType }: { transactionType: Transaction
       .catch(() => {
         /* the picker is only needed for the create form */
       });
-  }, [auth]);
+  }, [auth, isReceipt]);
 
   if (auth.status !== "authenticated") return null;
 
@@ -80,13 +105,13 @@ export function MovementView({ transactionType }: { transactionType: Transaction
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        {canManage && (
+        {canCreate && (
           <button
             type="button"
             className="panel-btn panel-btn-primary"
             onClick={() => setFormOpen(true)}
           >
-            {isReceipt ? "+ Yeni daxilolma" : "+ Yeni çıxarış"}
+            + Yeni çıxarış
           </button>
         )}
       </div>
@@ -111,11 +136,12 @@ export function MovementView({ transactionType }: { transactionType: Transaction
             <span className="vendor-count">{visible.length} qeyd</span>
           </div>
           <div className="owner-table-scroll">
-            <table className="data-table">
+            <table className={`data-table movement-table${isReceipt ? " movement-receipts" : ""}`}>
               <thead>
                 <tr>
                   <th>Tarix</th>
                   <th>Material</th>
+                  {isReceipt && <th>Qaimə</th>}
                   <th className="vendor-th-amount">Miqdar</th>
                   {isReceipt && <th className="vendor-th-amount">Vahid qiymət</th>}
                   {isReceipt && <th className="vendor-th-amount">Ümumi</th>}
@@ -125,19 +151,20 @@ export function MovementView({ transactionType }: { transactionType: Transaction
               <tbody>
                 {visible.length === 0 && (
                   <tr>
-                    <td colSpan={isReceipt ? 6 : 4}>
+                    <td colSpan={isReceipt ? 7 : 4}>
                       {rows.length === 0
                         ? isReceipt
-                          ? "Hələ daxilolma yoxdur."
+                          ? "Hələ daxilolma yoxdur — alışlar Payments bölməsində qəbul edilir."
                           : "Hələ çıxarış yoxdur."
                         : "Nəticə tapılmadı."}
                     </td>
                   </tr>
                 )}
                 {visible.map((r) => (
-                  <tr key={r.id}>
+                  <tr key={r.id} className="data-table-row-clickable" onClick={() => router.push(`/panel/inventar/materiallar/${r.nomenclatureId}`)}>
                     <td>{formatDateTime(r.transactionDate)}</td>
-                    <td className="vendor-cell-vendor">{r.nomenclatureName}</td>
+                    <td className="vendor-cell-vendor"><Link className="owner-link" href={`/panel/inventar/materiallar/${r.nomenclatureId}`} onClick={(event) => event.stopPropagation()}>{r.nomenclatureName}</Link></td>
+                    {isReceipt && <td>{r.referenceId ? <Link className="owner-link" href={`/panel/maliyye-emeliyyatlari/salinmalar/${r.referenceId}`} onClick={(event) => event.stopPropagation()}>{invoiceNumbers[r.referenceId] ?? "Qaiməyə bax"}</Link> : "—"}</td>}
                     <td className="vendor-amount">{formatQuantity(r.quantity)}</td>
                     {isReceipt && (
                       <td className="vendor-amount">
@@ -158,14 +185,13 @@ export function MovementView({ transactionType }: { transactionType: Transaction
         </div>
       )}
 
-      {formOpen && (
-        <MovementFormModal
-          transactionType={transactionType}
+      {formOpen && !isReceipt && (
+        <IssueFormModal
           nomenclatures={nomenclatures}
           onClose={() => setFormOpen(false)}
           onSaved={() => {
             setFormOpen(false);
-            setNotice(isReceipt ? "Daxilolma qeydə alındı." : "Çıxarış qeydə alındı.");
+            setNotice("Çıxarış qeydə alındı.");
             setReloadKey((k) => k + 1);
           }}
         />
@@ -174,22 +200,18 @@ export function MovementView({ transactionType }: { transactionType: Transaction
   );
 }
 
-function MovementFormModal({
-  transactionType,
+function IssueFormModal({
   nomenclatures,
   onClose,
   onSaved,
 }: {
-  transactionType: TransactionTypeKey;
   nomenclatures: NomenclatureListItem[];
   onClose: () => void;
   onSaved: () => void;
 }) {
   const auth = useAuth();
-  const isReceipt = transactionType === "Receipt";
   const [nomenclatureId, setNomenclatureId] = useState(nomenclatures[0]?.id ?? "");
   const [quantity, setQuantity] = useState("");
-  const [unitPrice, setUnitPrice] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -208,29 +230,15 @@ function MovementFormModal({
       setError("Miqdar 0-dan böyük olmalıdır.");
       return;
     }
-    const price = unitPrice.trim() === "" ? null : Number(unitPrice);
-    if (price != null && (Number.isNaN(price) || price < 0)) {
-      setError("Vahid qiymət mənfi ola bilməz.");
-      return;
-    }
 
     setSaving(true);
     setError(null);
     try {
-      if (isReceipt) {
-        await recordReceipt(accessToken, {
-          nomenclatureId,
-          quantity: qty,
-          unitPrice: price,
-          notes: notes || null,
-        });
-      } else {
-        await recordIssue(accessToken, {
-          nomenclatureId,
-          quantity: qty,
-          notes: notes || null,
-        });
-      }
+      await recordIssue(accessToken, {
+        nomenclatureId,
+        quantity: qty,
+        notes: notes || null,
+      });
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -240,11 +248,7 @@ function MovementFormModal({
   }
 
   return (
-    <Modal
-      title={isReceipt ? "Yeni daxilolma" : "Yeni çıxarış"}
-      onClose={onClose}
-      wide
-    >
+    <Modal title="Yeni çıxarış" onClose={onClose} wide>
       <form onSubmit={handleSubmit}>
         {error && <p className="form-error">{error}</p>}
         <div className="form-field">
@@ -263,32 +267,17 @@ function MovementFormModal({
             ))}
           </select>
         </div>
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="mov-quantity">Miqdar</label>
-            <input
-              id="mov-quantity"
-              type="number"
-              min={0.01}
-              step="0.01"
-              required
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-            />
-          </div>
-          {isReceipt && (
-            <div className="form-field">
-              <label htmlFor="mov-price">Vahid qiymət (₼)</label>
-              <input
-                id="mov-price"
-                type="number"
-                min={0}
-                step="0.01"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-              />
-            </div>
-          )}
+        <div className="form-field">
+          <label htmlFor="mov-quantity">Miqdar</label>
+          <input
+            id="mov-quantity"
+            type="number"
+            min={0.01}
+            step="0.01"
+            required
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+          />
         </div>
         <div className="form-field">
           <label htmlFor="mov-notes">Qeyd</label>

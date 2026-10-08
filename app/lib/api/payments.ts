@@ -222,6 +222,8 @@ export function searchPayments(accessToken: string, params: SearchParams = {}) {
 // (payments are not reversible, so there is no reversal entry). createTransaction
 // below is the one deliberate exception — a manual entry for a cost/income with
 // no charge or vendor behind it (a utility bill paid by hand, etc.).
+export type TransactionDocumentType = "Purchase" | "ResidentPayment" | "VendorPayment" | "LedgerEntry";
+
 export type TransactionResponse = {
   id: string;
   direction: number;
@@ -235,6 +237,9 @@ export type TransactionResponse = {
   // Null for a manual entry (Xərc/Əlavə gəlir), which instead carries its own
   // FileAttachment keyed directly by this row's own id (via FileAttachmentTarget.transactionId).
   sourcePaymentId: string | null;
+  sourcePurchaseId: string | null;
+  documentType: TransactionDocumentType;
+  referenceId: string;
 };
 
 export type SearchTransactionsResult = {
@@ -249,6 +254,12 @@ export function searchTransactions(accessToken: string, params: SearchParams = {
     method: "POST",
     body: searchBody(params),
   }).then((e) => e.data);
+}
+
+export function getPayment(accessToken: string, paymentId: string) {
+  return apiFetch<Envelope<PaymentResponse>>(`api/payments/payments/${paymentId}`, accessToken).then(
+    (e) => e.data,
+  );
 }
 
 // Kim yaradıb/dəyişdirib — hər entity dəyişikliyi avtomatik (EF SaveChanges

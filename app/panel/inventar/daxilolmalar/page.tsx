@@ -10,8 +10,8 @@ export default function DaxilolmalarPage() {
           <div>
             <h1>Daxilolmalar</h1>
             <p className="panel-page-lead">
-              Anbara mal qəbulu. Hər daxilolma materialın qalığını artırır və əməliyyat
-              tarixçəsində iz qoyur.
+              Anbara daxil olan mallar. Məhsullar Payments bölməsindəki alışlarda alınır və
+              orada qəbul edilir — bu səhifə yalnız həmin qəbulların tarixçəsini göstərir.
             </p>
           </div>
           <span className="ledger-badge">Daxilolma</span>

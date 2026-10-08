@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useCanDoEverything } from "../../../lib/auth/roles";
 import {
@@ -23,7 +24,13 @@ import {
   type UnitKey,
 } from "../../../lib/api/inventory";
 import { Modal } from "../../Modal";
-import { errorMessage } from "../shared";
+import {
+  getNomenclaturePurchaseHistory,
+  purchaseStatusLabel,
+  type NomenclaturePurchaseHistoryItem,
+} from "../../../lib/api/purchases-client";
+import { formatDateTime } from "../../../lib/format";
+import { errorMessage, formatMoney, formatQuantity } from "../shared";
 
 const PAGE_SIZE = 10;
 
@@ -40,6 +47,7 @@ export function MateriallarView() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<NomenclatureResponse | null>(null);
   const [workingId, setWorkingId] = useState<string | null>(null);
+  const [historyItem, setHistoryItem] = useState<NomenclatureListItem | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setSearchTerm(searchInput.trim()), 350);
@@ -171,7 +179,9 @@ export function MateriallarView() {
                   <tr key={item.id}>
                     <td>{item.code}</td>
                     <td className="vendor-cell-vendor">
-                      {item.name}
+                      <Link className="owner-link" href={`/panel/inventar/materiallar/${item.id}`}>
+                        {item.name}
+                      </Link>
                       {item.description && (
                         <span className="vendor-cell-sub">{item.description}</span>
                       )}
@@ -190,6 +200,14 @@ export function MateriallarView() {
                     <td>
                       {canManage && (
                         <div className="data-table-actions">
+                          <button
+                            type="button"
+                            className="panel-btn panel-btn-sm"
+                            disabled={workingId === item.id}
+                            onClick={() => setHistoryItem(item)}
+                          >
+                            Alış tarixçəsi
+                          </button>
                           <button
                             type="button"
                             className="panel-btn panel-btn-sm"
@@ -254,7 +272,69 @@ export function MateriallarView() {
           }}
         />
       )}
+      {historyItem && (
+        <NomenclaturePurchaseHistoryModal
+          nomenclature={historyItem}
+          accessToken={accessToken}
+          onClose={() => setHistoryItem(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function NomenclaturePurchaseHistoryModal({
+  nomenclature,
+  accessToken,
+  onClose,
+}: {
+  nomenclature: NomenclatureListItem;
+  accessToken: string;
+  onClose: () => void;
+}) {
+  const [history, setHistory] = useState<NomenclaturePurchaseHistoryItem[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getNomenclaturePurchaseHistory(accessToken, nomenclature.id)
+      .then(setHistory)
+      .catch((err) => setError(errorMessage(err)));
+  }, [accessToken, nomenclature.id]);
+
+  return (
+    <Modal title={`${nomenclature.name} — alış tarixçəsi`} onClose={onClose} wide>
+      {error && <p className="form-error">{error}</p>}
+      {!history && !error && <p className="panel-page-lead">Yüklənir…</p>}
+      {history && history.length === 0 && <p>Bu material üzrə alış qeydi yoxdur.</p>}
+      {history && history.length > 0 && (
+        <div className="owner-table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Tarix</th>
+                <th>Tədarükçü</th>
+                <th>Qaimə</th>
+                <th>Status</th>
+                <th className="vendor-th-amount">Miqdar</th>
+                <th className="vendor-th-amount">Alış qiyməti</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((entry, index) => (
+                <tr key={`${entry.purchaseId}-${index}`}>
+                  <td>{formatDateTime(entry.purchaseDate)}</td>
+                  <td>{entry.vendorName ?? "—"}</td>
+                  <td>{entry.invoiceNumber ?? "—"}</td>
+                  <td>{purchaseStatusLabel(entry.status)}</td>
+                  <td className="vendor-amount">{formatQuantity(entry.quantity)}</td>
+                  <td className="vendor-amount">{formatMoney(entry.unitPrice)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Modal>
   );
 }
 

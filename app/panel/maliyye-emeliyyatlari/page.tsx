@@ -6,6 +6,7 @@ const links = [
   { href: "/panel/maliyye-emeliyyatlari/odenisler", label: "Ödənişlərin daxil edilməsi" },
   { href: "/panel/maliyye-emeliyyatlari/tariflar", label: "Tariflər" },
   { href: "/panel/maliyye-emeliyyatlari/xercler", label: "Xərclərin daxil edilməsi" },
+  { href: "/panel/maliyye-emeliyyatlari/salinmalar", label: "Satınalmalar" },
   {
     href: "/panel/maliyye-emeliyyatlari/elave-gelirler",
     label: "Əlavə gəlirlərin daxil edilməsi",

@@ -5,6 +5,7 @@ import { ApiError } from "../lib/api/client";
 import {
   deleteFileAttachment,
   downloadFileAttachment,
+  getFileAttachmentBlob,
   listFileAttachments,
   uploadFileAttachment,
   type FileAttachmentResponse,
@@ -53,6 +54,7 @@ export function SignedDocumentsPanel({
   const [attachments, setAttachments] = useState<FileAttachmentResponse[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; contentType: string; fileName: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Identifies the target by value, not by object identity, so the effect only
@@ -79,6 +81,10 @@ export function SignedDocumentsPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, targetKey]);
 
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview.url);
+  }, [preview]);
+
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -101,6 +107,19 @@ export function SignedDocumentsPanel({
     setError(null);
     try {
       await downloadFileAttachment(accessToken, id);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handlePreview(file: FileAttachmentResponse) {
+    setBusyId(file.id);
+    setError(null);
+    try {
+      const { blob, fileName } = await getFileAttachmentBlob(accessToken, file.id);
+      setPreview({ url: URL.createObjectURL(blob), contentType: file.contentType, fileName });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -140,6 +159,16 @@ export function SignedDocumentsPanel({
                 {formatSize(a.sizeBytes)} · {formatDateTime(a.createdAt)}
               </span>
               <span className="signed-documents-actions">
+                {(a.contentType === "application/pdf" || a.contentType.startsWith("image/")) && (
+                  <button
+                    type="button"
+                    className="panel-btn panel-btn-sm"
+                    disabled={busyId === a.id}
+                    onClick={() => handlePreview(a)}
+                  >
+                    Baxış
+                  </button>
+                )}
                 <button
                   type="button"
                   className="panel-btn panel-btn-sm"
@@ -162,6 +191,20 @@ export function SignedDocumentsPanel({
             </li>
           ))}
         </ul>
+      )}
+
+      {preview && (
+        <div className="signed-document-preview">
+          <div className="signed-document-preview-head">
+            <strong>{preview.fileName}</strong>
+            <button type="button" className="panel-btn panel-btn-sm" onClick={() => setPreview(null)}>Bağla</button>
+          </div>
+          {preview.contentType.startsWith("image/") ? (
+            <img src={preview.url} alt={preview.fileName} />
+          ) : (
+            <iframe src={preview.url} title={preview.fileName} />
+          )}
+        </div>
       )}
 
       {canUpload && (

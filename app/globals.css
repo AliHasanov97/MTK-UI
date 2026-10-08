@@ -23,7 +23,50 @@
 .hero-centered h1{max-width:900px;font-size:clamp(54px,7vw,88px);letter-spacing:-5px;line-height:1.03;margin:27px 0 20px}
 .hero-centered .hero-description{max-width:650px;font-size:16px}
 .hero-centered .hero-actions{justify-content:center;margin-top:31px}
+.purchase-detail{display:grid;gap:20px}.purchase-detail-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(220px,1fr);gap:20px}.purchase-detail-card,.purchase-lines{padding:22px}.purchase-detail-card h2,.purchase-lines h2{font-size:16px;margin:0 0 18px}.purchase-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px;margin:0}.purchase-meta div{min-width:0}.purchase-meta dt{font-size:12px;color:#78837c;margin-bottom:6px}.purchase-meta dd{font-size:14px;font-weight:600;margin:0;overflow-wrap:anywhere}.purchase-total{font-size:30px;font-weight:700;letter-spacing:-1px;color:var(--green);margin:0}.purchase-lines .panel-page-lead{margin-bottom:0}
+.transaction-document-modal{display:grid;gap:16px;min-width:0}.transaction-document-modal h3{font-size:15px;margin:0 0 16px}.transaction-document-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.transaction-document-heading h3{margin:0}.transaction-document-description{grid-column:1/-1}.transaction-receipt-preview{display:block;width:100%;height:min(70vh,760px);margin-top:14px;border:1px solid var(--line);border-radius:8px;background:#f3f5f1}.signed-document-preview{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f3f5f1}.signed-document-preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line)}.signed-document-preview-head strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.signed-document-preview iframe{display:block;width:100%;height:min(65vh,680px);border:0}.signed-document-preview img{display:block;max-width:100%;max-height:65vh;margin:0 auto;object-fit:contain}
+.purchase-entry-lines{margin-top:24px}.purchase-entry-lines .form-section-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:12px}.purchase-entry-lines .form-section-head h3{margin:0;font-size:16px}.purchase-entry-lines .form-section-head .panel-page-lead{margin:5px 0 0}.purchase-entry-table-wrap{position:relative;width:100%;overflow:visible;border:1px solid var(--border,#e4e9e5);border-radius:12px}.purchase-entry-table{width:100%;min-width:0;table-layout:fixed}.purchase-entry-table th{white-space:nowrap}.purchase-entry-table th:first-child,.purchase-entry-table td:first-child{width:42%}.purchase-entry-table th:nth-child(2),.purchase-entry-table td:nth-child(2){width:14%}.purchase-entry-table th:nth-child(3),.purchase-entry-table td:nth-child(3){width:17%}.purchase-entry-table th:nth-child(4),.purchase-entry-table td:nth-child(4){width:17%}.purchase-entry-table th:nth-child(5),.purchase-entry-table td:nth-child(5){width:10%}.purchase-entry-table input{width:100%;min-width:0;box-sizing:border-box;padding:10px 11px;border:1px solid #dce3de;border-radius:8px;background:#fff;color:inherit;font:inherit}.purchase-entry-table input:focus{outline:2px solid color-mix(in srgb,var(--green) 25%,transparent);border-color:var(--green)}.purchase-entry-table tfoot th{background:#f7f9f7}.purchase-line-number{text-align:right}.purchase-nomenclature-picker{position:relative;z-index:1;width:100%;min-width:0}.purchase-nomenclature-picker:focus-within{z-index:20}.purchase-nomenclature-options{position:absolute;top:calc(100% + 5px);left:0;z-index:30;display:grid;width:min(420px,calc(100vw - 56px));max-height:min(240px,40vh);overflow:auto;margin:0;border:1px solid #dce3de;border-radius:9px;background:#fff;box-shadow:0 12px 28px #16271c24}.purchase-nomenclature-options button{display:flex;justify-content:space-between;gap:12px;padding:9px 11px;border:0;border-bottom:1px solid #edf0ed;background:transparent;text-align:left;cursor:pointer}.purchase-nomenclature-options button strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.purchase-nomenclature-options button:hover,.purchase-nomenclature-options button[aria-selected=true]{background:#f0f5f0}.purchase-nomenclature-options button span{flex-shrink:0;color:#7b867f;font-size:12px}.purchase-nomenclature-options p{margin:0;padding:11px;color:#68736c}.purchase-vendor-readonly{padding:11px 13px;border:1px solid #dce3de;border-radius:8px;background:#f7f9f7}
+.purchase-nomenclature-options .purchase-options-more{border-top:1px solid #edf0ed;color:#7b867f;font-size:11px}
 @media(max-width:640px){.hero-centered{min-height:0;padding-block:82px 76px}.hero-centered::before{height:330px;top:34px}.hero-centered h1{font-size:clamp(42px,11vw,59px);letter-spacing:-3px;line-height:1.08}.hero-centered .hero-description{font-size:13px}.hero-centered .hero-actions{justify-content:center;gap:17px}}
+@media(max-width:640px){.purchase-detail-grid{grid-template-columns:1fr}.purchase-meta{grid-template-columns:1fr 1fr}.purchase-detail-card,.purchase-lines{padding:17px}.purchase-entry-lines .form-section-head{align-items:flex-start;flex-direction:column}}
+
+@media(max-width:640px){
+  .purchase-entry-table-wrap{overflow:visible;border:0}
+  .purchase-entry-table{min-width:0!important;display:block}
+  .purchase-entry-table thead{display:none}
+  .purchase-entry-table tbody,.purchase-entry-table tfoot{display:block}
+  .purchase-entry-table tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .purchase-entry-table tbody td{display:grid;gap:6px;min-width:0;padding:0!important;border:0!important;white-space:normal}
+  .purchase-entry-table tbody td:first-child{grid-column:1/-1}
+  .purchase-entry-table tbody td:first-child::before{content:"Nomenklatura"}
+  .purchase-entry-table tbody td:nth-child(2)::before{content:"Miqdar"}
+  .purchase-entry-table tbody td:nth-child(3)::before{content:"Vahid qiymət"}
+  .purchase-entry-table tbody td:nth-child(4)::before{content:"Məbləğ"}
+  .purchase-entry-table tbody td:nth-child(5){align-self:end;justify-items:end}
+  .purchase-entry-table tbody td::before{font-size:10px;font-weight:700;letter-spacing:.35px;color:#849087;text-transform:uppercase}
+  .purchase-entry-table .purchase-nomenclature-picker{min-width:0;width:100%}
+  .purchase-entry-table input{min-width:0}
+  .purchase-entry-table tfoot tr{display:flex;justify-content:flex-end;gap:10px;padding:12px}
+  .purchase-entry-table tfoot th{padding:0!important;border:0!important}
+  .purchase-entry-table tfoot th:first-child{margin-right:auto}
+  .purchase-list-table{display:block}
+  .purchase-list-table thead{display:none}
+  .purchase-list-table tbody{display:grid;gap:10px;padding:10px}
+  .purchase-list-table tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;padding:13px;border:1px solid var(--line);border-radius:10px;background:#fff;white-space:normal}
+  .purchase-list-table tbody td{display:grid;gap:4px;min-width:0;padding:0!important;border:0!important;white-space:normal;overflow-wrap:anywhere}
+  .purchase-list-table tbody td:first-child,.purchase-list-table tbody td:last-child{grid-column:1/-1}
+  .purchase-list-table tbody td:nth-child(1)::before{content:"Qaimə"}
+  .purchase-list-table tbody td:nth-child(2)::before{content:"Tədarükçü"}
+  .purchase-list-table tbody td:nth-child(3)::before{content:"Tarix"}
+  .purchase-list-table tbody td:nth-child(4)::before{content:"Qəbul tarixi"}
+  .purchase-list-table tbody td:nth-child(5)::before{content:"Status"}
+  .purchase-list-table tbody td:nth-child(6)::before{content:"Toplam"}
+  .purchase-list-table tbody td::before{font-size:10px;font-weight:700;letter-spacing:.35px;color:#849087;text-transform:uppercase}
+  .purchase-list-table .data-table-actions{flex-wrap:wrap}
+  .purchase-list-table~.panel-pagination{gap:10px;flex-wrap:wrap;padding:12px}
+  .modal-backdrop:has(.purchase-entry-table){padding:8px;align-items:flex-start}
+  .modal-card:has(.purchase-entry-table){width:100%;max-height:calc(100dvh - 16px);padding:16px}
+}
 
 /* Keycloak callback screen */
 .auth-callback{min-height:100vh;display:grid;place-items:center;padding:32px}

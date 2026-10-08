@@ -21,7 +21,9 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   );
 
   const activeModule = visibleModules.find(
-    (mod) => mod.href === pathname || mod.tabs?.some((tab) => tab.href === pathname),
+    (mod) =>
+      mod.href === pathname ||
+      mod.tabs?.some((tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`)),
   );
 
   return (
@@ -80,7 +82,11 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={pathname === tab.href ? "panel-tab active" : "panel-tab"}
+                className={
+                  pathname === tab.href || pathname.startsWith(`${tab.href}/`)
+                    ? "panel-tab active"
+                    : "panel-tab"
+                }
               >
                 {tab.label}
               </Link>

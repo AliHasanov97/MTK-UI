@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { useCanPay } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
@@ -8,15 +9,23 @@ import { SortDirection } from "../../lib/api/buildings";
 import { formatDateTime } from "../../lib/format";
 import {
   TRANSACTION_DIRECTION_LABELS,
+  exportPaymentReceipt,
+  getPayment,
+  getPaymentAllocations,
+  PAYMENT_METHOD_LABELS,
+  paymentMethodFromOrdinal,
+  paymentStatusFromOrdinal,
   searchTransactions,
   transactionDirectionFromOrdinal,
   type TransactionDirectionKey,
+  type TransactionDocumentType,
   type TransactionResponse,
 } from "../../lib/api/payments";
-import type { FileAttachmentTarget } from "../../lib/api/fileAttachments";
 import { useCreatedByMap } from "../binalar/finance";
 import { Modal } from "../Modal";
 import { SignedDocumentsPanel } from "../SignedDocuments";
+import { getPurchase, purchaseStatusLabel, type PurchaseResponse } from "../../lib/api/purchases-client";
+import type { PaymentAllocationDetailResponse, PaymentResponse } from "../../lib/api/payments";
 
 // Fetched unfiltered/unpaged from the API (large flat pull, sorted newest first) —
 // the date range below is applied client-side. The generic QueryFilter mechanism
@@ -53,6 +62,9 @@ type Row = {
   // Set only for a row auto-posted from a resident/vendor payment — see
   // TransactionResponse.sourcePaymentId.
   sourcePaymentId: string | null;
+  sourcePurchaseId: string | null;
+  documentType: TransactionDocumentType;
+  referenceId: string;
 };
 
 type MonthGroup = {
@@ -177,7 +189,7 @@ export function TranzaksiyalarView() {
   const [startDate, setStartDate] = useState(() => currentMonthRange().start);
   const [endDate, setEndDate] = useState(() => currentMonthRange().end);
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
-  const [docTarget, setDocTarget] = useState<FileAttachmentTarget | null>(null);
+  const [docTarget, setDocTarget] = useState<Row | null>(null);
   const transactionCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Transaction");
 
   const load = useCallback(() => {
@@ -213,6 +225,9 @@ export function TranzaksiyalarView() {
         note: t.description ?? "—",
         amount: direction === "Income" ? t.amount : -t.amount,
         sourcePaymentId: t.sourcePaymentId,
+        sourcePurchaseId: t.sourcePurchaseId,
+        documentType: t.documentType,
+        referenceId: t.referenceId,
       };
     })
     // Real instants, not strings — same reasoning as rangeStartMs/rangeEndMs below.
@@ -396,13 +411,7 @@ export function TranzaksiyalarView() {
                           key={row.key}
                           className="ledger-row-clickable"
                           title="Əlaqəli sənədə bax"
-                          onClick={() =>
-                            setDocTarget(
-                              row.sourcePaymentId
-                                ? { paymentId: row.sourcePaymentId }
-                                : { transactionId: row.id },
-                            )
-                          }
+                          onClick={() => setDocTarget(row)}
                         >
                           <td className="ledger-cell-date">{formatDateTime(row.date)}</td>
                           <td>
@@ -436,14 +445,182 @@ export function TranzaksiyalarView() {
       </p>
 
       {docTarget && (
-        <Modal title="Əlaqəli sənəd" onClose={() => setDocTarget(null)}>
-          <SignedDocumentsPanel
-            accessToken={auth.accessToken}
-            target={docTarget}
-            canUpload={canUploadDocuments}
-          />
-        </Modal>
+        <TransactionDocumentModal
+          row={docTarget}
+          accessToken={auth.accessToken}
+          canUploadDocuments={canUploadDocuments}
+          onClose={() => setDocTarget(null)}
+        />
       )}
     </div>
+  );
+}
+
+function TransactionDocumentModal({
+  row,
+  accessToken,
+  canUploadDocuments,
+  onClose,
+}: {
+  row: Row;
+  accessToken: string;
+  canUploadDocuments: boolean;
+  onClose: () => void;
+}) {
+  const [purchase, setPurchase] = useState<PurchaseResponse | null>(null);
+  const [payment, setPayment] = useState<PaymentResponse | null>(null);
+  const [allocations, setAllocations] = useState<PaymentAllocationDetailResponse[]>([]);
+  const isPurchase = row.documentType === "Purchase";
+  const isPayment = row.documentType === "ResidentPayment" || row.documentType === "VendorPayment";
+  const [loading, setLoading] = useState(isPurchase || isPayment);
+  const [error, setError] = useState<string | null>(null);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (isPurchase) {
+      getPurchase(accessToken, row.referenceId)
+        .then((result) => { if (active) setPurchase(result); })
+        .catch((err) => { if (active) setError(errorMessage(err)); })
+        .finally(() => { if (active) setLoading(false); });
+    } else if (isPayment) {
+      Promise.all([
+        getPayment(accessToken, row.referenceId),
+        getPaymentAllocations(accessToken, row.referenceId).catch(() => []),
+      ])
+        .then(([paymentResult, allocationRows]) => {
+          if (!active) return;
+          setPayment(paymentResult);
+          setAllocations(allocationRows);
+        })
+        .catch((err) => { if (active) setError(errorMessage(err)); })
+        .finally(() => { if (active) setLoading(false); });
+    }
+    return () => { active = false; };
+  }, [accessToken, isPayment, isPurchase, row.referenceId]);
+
+  useEffect(() => () => {
+    if (receiptUrl) URL.revokeObjectURL(receiptUrl);
+  }, [receiptUrl]);
+
+  async function openReceiptPreview() {
+    if (!isPayment) return;
+    setReceiptLoading(true);
+    setError(null);
+    try {
+      const file = await exportPaymentReceipt(accessToken, row.referenceId);
+      setReceiptUrl(URL.createObjectURL(file.blob));
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setReceiptLoading(false);
+    }
+  }
+
+  const fileTarget = isPayment
+    ? { paymentId: row.referenceId }
+    : isPurchase
+      ? { purchaseId: row.referenceId }
+      : { transactionId: row.id };
+
+  return (
+    <Modal
+      title={isPurchase ? "Satınalma qaiməsi" : row.documentType === "VendorPayment" ? "Tədarükçü ödənişi" : isPayment ? "Sakin ödənişi" : "Tranzaksiya sənədi"}
+      onClose={onClose}
+      wide
+    >
+      <div className="transaction-document-modal">
+        {!isPurchase && !isPayment && (
+          <section className="data-table-wrap purchase-detail-card">
+            <h3>Tranzaksiya məlumatı</h3>
+            <dl className="purchase-meta">
+              <div><dt>Tarix</dt><dd>{formatDateTime(row.date)}</dd></div>
+              <div><dt>Növ</dt><dd>{TRANSACTION_DIRECTION_LABELS[row.direction]}</dd></div>
+              <div><dt>Kateqoriya</dt><dd>{row.category}</dd></div>
+              <div><dt>Məbləğ</dt><dd className={row.amount < 0 ? "ledger-value-out" : "ledger-value-in"}>{formatSigned(row.amount)}</dd></div>
+              <div className="transaction-document-description"><dt>Açıqlama</dt><dd>{row.note || "—"}</dd></div>
+            </dl>
+          </section>
+        )}
+
+        {loading && <p className="panel-page-lead">Əlaqəli sənəd yüklənir…</p>}
+        {error && <p className="form-error" role="alert">{error}</p>}
+
+        {row.documentType !== "Purchase" && !isPayment && (
+          <p className="panel-page-lead">Bu tranzaksiya növü üçün ayrıca əlaqəli sənəd yoxdur. Sənəd ID: {row.referenceId}</p>
+        )}
+
+        {purchase && (
+          <section className="data-table-wrap purchase-lines">
+            <div className="transaction-document-heading">
+              <h3>Satınalma qaiməsi {purchase.invoiceNumber ?? ""}</h3>
+              <Link className="panel-btn panel-btn-sm" href={`/panel/maliyye-emeliyyatlari/salinmalar/${purchase.id}`}>Satınalma detalı</Link>
+            </div>
+            <dl className="purchase-meta">
+              <div><dt>Tədarükçü</dt><dd><Link className="owner-link" href={`/panel/tedarukculer/${purchase.vendorId}`}>{purchase.vendorName ?? "Tədarükçü"}</Link></dd></div>
+              <div><dt>Tarix</dt><dd>{formatDateTime(purchase.purchaseDate)}</dd></div>
+              <div><dt>Status</dt><dd>{purchaseStatusLabel(purchase.status)}</dd></div>
+              <div><dt>Yekun</dt><dd>{formatMoney(purchase.totalAmount)}</dd></div>
+              {purchase.note && <div className="transaction-document-description"><dt>Qeyd</dt><dd>{purchase.note}</dd></div>}
+            </dl>
+            <div className="owner-table-scroll">
+              <table className="data-table">
+                <thead><tr><th>Nomenklatura</th><th className="vendor-th-amount">Miqdar</th><th className="vendor-th-amount">Vahid qiymət</th><th className="vendor-th-amount">Məbləğ</th></tr></thead>
+                <tbody>{purchase.lines?.map((line) => (
+                  <tr key={line.id}>
+                    <td><Link className="owner-link" href={`/panel/inventar/materiallar/${line.nomenclatureId}`}>{line.nomenclatureName ?? line.nomenclatureCode ?? "Nomenklatura"}</Link></td>
+                    <td className="vendor-amount">{line.quantity}</td>
+                    <td className="vendor-amount">{formatMoney(line.unitPrice)}</td>
+                    <td className="vendor-amount">{formatMoney(line.lineTotal)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {payment && (
+          <section className="data-table-wrap purchase-detail-card">
+            <h3>{row.documentType === "VendorPayment" ? "Tədarükçü ödənişi" : "Sakin ödənişi"}</h3>
+            <dl className="purchase-meta">
+              <div><dt>Ödəyən</dt><dd>{payment.partyName ?? "—"}</dd></div>
+              <div><dt>Əlaqəli əmlak</dt><dd>{payment.propertyLabel ?? "Ümumi ödəniş"}</dd></div>
+              <div><dt>Tarix</dt><dd>{formatDateTime(payment.paymentDate)}</dd></div>
+              <div><dt>Ödəniş üsulu</dt><dd>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(payment.paymentMethod)]}</dd></div>
+              <div><dt>Status</dt><dd>{paymentStatusFromOrdinal(payment.status) === "Completed" ? "Tamamlanıb" : "Gözləyir"}</dd></div>
+              <div><dt>Məbləğ</dt><dd>{formatMoney(payment.amount)}</dd></div>
+              {payment.notes && <div className="transaction-document-description"><dt>Qeyd</dt><dd>{payment.notes}</dd></div>}
+            </dl>
+            {allocations.length > 0 && (
+              <div className="owner-table-scroll">
+                <table className="data-table">
+                  <thead><tr><th>Əmlak</th><th>Dövr</th><th>Haqq</th><th className="vendor-th-amount">Ödənilən</th></tr></thead>
+                  <tbody>{allocations.map((allocation) => (
+                    <tr key={allocation.id}>
+                      <td>{allocation.propertyLabel ?? "—"}</td>
+                      <td>{allocation.period ?? "—"}</td>
+                      <td>{allocation.description ?? "Aylıq haqq"}</td>
+                      <td className="vendor-amount">{formatMoney(allocation.allocatedAmount)}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            )}
+            {canUploadDocuments && (receiptUrl ? (
+              <iframe className="transaction-receipt-preview" src={receiptUrl} title="Ödəniş qəbzi" />
+            ) : (
+              <button type="button" className="panel-btn panel-btn-sm" disabled={receiptLoading} onClick={openReceiptPreview}>
+                {receiptLoading ? "Qəbz açılır…" : "Qəbzə bax"}
+              </button>
+            ))}
+          </section>
+        )}
+
+        <section className="data-table-wrap purchase-detail-card">
+          <SignedDocumentsPanel accessToken={accessToken} target={fileTarget} canUpload={canUploadDocuments} />
+        </section>
+      </div>
+    </Modal>
   );
 }

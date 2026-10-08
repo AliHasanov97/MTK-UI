@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { formatDateTime } from "../../../lib/format";
 import {
@@ -126,7 +127,7 @@ function StockSegment() {
               {visible.map((s) => (
                 <tr key={s.nomenclatureId}>
                   <td className="vendor-cell-vendor">
-                    {s.nomenclatureName}
+                    <Link className="owner-link" href={`/panel/inventar/materiallar/${s.nomenclatureId}`}>{s.nomenclatureName}</Link>
                     <span className="vendor-cell-sub">{s.nomenclatureCode}</span>
                   </td>
                   <td className="vendor-amount">
@@ -203,7 +204,7 @@ function LowStockSegment() {
               {items.map((s) => (
                 <tr key={s.nomenclatureId}>
                   <td className="vendor-cell-vendor">
-                    {s.nomenclatureName}
+                    <Link className="owner-link" href={`/panel/inventar/materiallar/${s.nomenclatureId}`}>{s.nomenclatureName}</Link>
                     <span className="vendor-cell-sub">{s.nomenclatureCode}</span>
                   </td>
                   <td className="vendor-amount">
