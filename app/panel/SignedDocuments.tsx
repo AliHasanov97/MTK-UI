@@ -54,7 +54,12 @@ export function SignedDocumentsPanel({
   const [attachments, setAttachments] = useState<FileAttachmentResponse[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [preview, setPreview] = useState<{ url: string; contentType: string; fileName: string } | null>(null);
+  const [preview, setPreview] = useState<{
+    url: string;
+    contentType: string;
+    fileName: string;
+    openInNewTab: boolean;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Identifies the target by value, not by object identity, so the effect only
@@ -119,7 +124,12 @@ export function SignedDocumentsPanel({
     setError(null);
     try {
       const { blob, fileName } = await getFileAttachmentBlob(accessToken, file.id);
-      setPreview({ url: URL.createObjectURL(blob), contentType: file.contentType, fileName });
+      setPreview({
+        url: URL.createObjectURL(blob),
+        contentType: file.contentType,
+        fileName,
+        openInNewTab: window.matchMedia("(max-width: 768px), (pointer: coarse)").matches,
+      });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -201,6 +211,13 @@ export function SignedDocumentsPanel({
           </div>
           {preview.contentType.startsWith("image/") ? (
             <img src={preview.url} alt={preview.fileName} />
+          ) : preview.openInNewTab ? (
+            <div className="signed-document-mobile-open">
+              <span>PDF sənədi telefonda ayrıca açılmalıdır.</span>
+              <a href={preview.url} target="_blank" rel="noopener noreferrer">
+                PDF-i aç
+              </a>
+            </div>
           ) : (
             <iframe src={preview.url} title={preview.fileName} />
           )}
