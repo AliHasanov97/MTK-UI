@@ -89,6 +89,10 @@ export const NAV_MODULES: NavModule[] = [
     label: "Hesabatlar",
     icon: "▩",
     roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT, ROLES.OWNER],
+    tabs: [
+      { href: "/panel/hesabatlar", label: "Ödəniş qrafiki" },
+      { href: "/panel/hesabatlar/umumi", label: "Ümumi hesabat" },
+    ],
   },
   {
     href: "/panel/muraciyetler",

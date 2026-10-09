@@ -365,7 +365,6 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
 .ledger-col-note{width:auto}
 .ledger-col-amount{width:152px}
 .ledger-table tbody tr:not(.ledger-month-row):hover td{background:#fafbf8}
-.ledger-row-clickable{cursor:pointer}
 .ledger-cell-date{color:#6d7973;white-space:nowrap}
 .ledger-cell-note{white-space:normal;overflow-wrap:anywhere;word-break:break-word;color:#78837c;line-height:1.55}
 .ledger-th-amount{text-align:right}
@@ -444,17 +443,33 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
 
 .hesabat-legend{display:flex;flex-wrap:wrap;gap:16px;padding:12px 18px 0;font-size:11px;color:#6d7973}
 .hesabat-legend span{display:inline-flex;align-items:center;gap:6px}
-.hesabat-swatch{display:inline-block;width:14px;height:14px;border-radius:4px}
+/* Fluid (inherits .data-table's width:100%) — but with table-layout:fixed,
+   every column without a declared width would normally share the surplus
+   equally, including the 40px month columns and Əmlak, blowing both up on
+   a wide screen. The markup leaves exactly one trailing spacer <col> with
+   no width; that's the sole column that absorbs the leftover space, so the
+   real columns stay at the size they were given no matter how wide the
+   container is. */
 .hesabat-grid{table-layout:fixed}
-.hesabat-grid th,.hesabat-grid td{text-align:center;padding:8px}
+.hesabat-grid th,.hesabat-grid td{text-align:center;padding:10px 8px}
 .hesabat-grid th:first-child,.hesabat-grid td.hesabat-row-head{text-align:left;white-space:nowrap}
-.hesabat-row-head{position:sticky;left:0;z-index:1;background:#fff;min-width:170px;padding:12px 16px!important}
+/* Fluid, not a fixed budget: the column only needs to fit "Mənzil 290"-style
+   labels, not a fixed 170px regardless of content — overflow:hidden +
+   ellipsis lets it stay tight (and shrink further on narrow screens) without
+   ever clipping mid-character or stealing width the month columns need. */
+.hesabat-row-head{position:sticky;left:0;z-index:1;background:#fff;max-width:120px;overflow:hidden;text-overflow:ellipsis;padding:12px 12px!important}
 .hesabat-grid thead th.hesabat-row-head{z-index:2;background:#fff}
-.hesabat-cell{font:700 13px/1 var(--font-sans);font-variant-numeric:tabular-nums;width:40px;min-width:40px;border-left:1px solid #f0f2ec;cursor:default}
-.hesabat-cell-paid{color:#4c7a38;background:#eef6e6}
-.hesabat-cell-partial{color:#8a6d1f;background:#fbf0d9}
-.hesabat-cell-unpaid{color:#a24a4a;background:#fbf2f2}
-.hesabat-cell-empty{color:#c3cabd;background:#fafbf8}
+.hesabat-cell{width:40px;min-width:40px;border-left:1px solid #f0f2ec;cursor:default}
+/* Status chips, in both the grid cells and the legend swatches — one shape,
+   one size, same element in both places instead of a separate swatch class
+   that could drift out of sync with the grid's own colors. */
+.hesabat-chip{display:inline-block;width:16px;height:16px;border-radius:5px;vertical-align:middle;transition:transform .1s ease}
+.hesabat-cell:hover .hesabat-chip{transform:scale(1.15)}
+.hesabat-chip-paid{background:#4c7a38}
+.hesabat-chip-partial{background:#c99a35}
+.hesabat-chip-unpaid{background:#c0645a}
+.hesabat-chip-empty{background:#e4e8e0}
+@media(max-width:640px){.hesabat-row-head{max-width:92px;padding:10px!important}}
 
 /* Rendered through a portal into <body> (see HesabatTooltip) so it never gets
    clipped by the table's own horizontal-scroll container. position:fixed with
@@ -478,7 +493,7 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
 .hesabat-tooltip-arrow[data-direction="down"]{border-top-color:var(--ink)}
 .hesabat-tooltip-arrow[data-direction="up"]{border-bottom-color:var(--ink)}
 
-.hesabat-tab-switch,.xerc-tab-switch{margin:4px 0 18px}
+.xerc-tab-switch{margin:4px 0 18px}
 
 .umumi-hesabat-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}
 .umumi-period-nav{display:flex;align-items:center;gap:8px}
@@ -487,40 +502,21 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
 .umumi-period-input{border:1px solid var(--line);border-radius:8px;padding:7px 12px;font:inherit;font-size:13px;background:#fff;color:var(--ink);min-width:150px}
 .umumi-toolbar-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .umumi-balance-pill{font-size:12px;color:#6d7973;background:#fff;border:1px solid var(--line);border-radius:20px;padding:7px 14px}
-.umumi-balance-pill strong{color:var(--green);font-variant-numeric:tabular-nums;margin-left:3px}
+.umumi-balance-pill strong{font-variant-numeric:tabular-nums;margin-left:3px}
 
-.umumi-grid{--band-bg:#eaf2fb;--band-ink:#2c5a82;--band-line:#d2e2f1;--cell-line:#e7ecf1;background:#fff;border:1px solid var(--line);border-radius:12px;padding:30px 34px 24px;max-width:900px;margin:0 auto;box-shadow:0 1px 2px rgba(22,37,34,.04),0 10px 28px -18px rgba(22,37,34,.14)}
-
-.umumi-grid-title{text-align:center;font-size:19px;font-weight:700;letter-spacing:-.2px;color:var(--ink);margin:0 0 20px}
-
-.umumi-grid-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:22px}
-.umumi-grid-table:last-of-type{margin-bottom:0}
-.umumi-grid-table th,.umumi-grid-table td{border:1px solid var(--cell-line);padding:9px 12px;vertical-align:middle}
-.umumi-grid-band{background:var(--band-bg);color:var(--band-ink);font-weight:700;font-size:12px;letter-spacing:.2px;text-align:center;padding:10px 12px;border-color:var(--band-line)}
-.umumi-grid-colheads th{background:#f6f9fc;color:#5c7690;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;text-align:left;border-color:var(--band-line)}
-.umumi-grid-table td.amount,.umumi-grid-table th.amount{text-align:right;font-variant-numeric:tabular-nums}
-.umumi-grid-table tbody tr:hover td{background:#fbfcfe}
-.umumi-grid-table tfoot td{background:#f6f9fc;font-weight:700;color:var(--ink);border-color:var(--band-line)}
+.umumi-grid{display:flex;flex-direction:column;gap:16px;max-width:900px;margin:0 auto}
+.umumi-grid-title{text-align:center;font-size:19px;font-weight:700;letter-spacing:-.2px;color:var(--ink);margin:0}
 .umumi-grid-col-num{width:34px;text-align:center;color:#9fb0c0;font-variant-numeric:tabular-nums}
-.umumi-grid-category{text-align:center;font-weight:700;color:#3c463f;background:#fafbfd}
-.umumi-grid-emphasis{font-weight:700;color:var(--band-ink)}
-
-.umumi-negative{color:#a24a4a}
-.umumi-empty{text-align:center;color:#8a938c;padding:20px!important}
+.umumi-grid-category{text-align:center;font-weight:700;color:#3c463f;background:var(--paper)}
+.data-table tfoot td{border-top:2px solid var(--line)}
 
 .umumi-grid-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;font-size:11px;color:#8a938c;padding-top:4px}
-.umumi-grid-footer strong{color:var(--ink);font-variant-numeric:tabular-nums}
-
-@media(max-width:760px){
-  .umumi-grid{padding:22px 16px 18px}
-  .umumi-grid-table{font-size:12px}
-  .umumi-grid-table th,.umumi-grid-table td{padding:7px 8px}
-}
+.umumi-grid-footer strong{font-variant-numeric:tabular-nums}
 
 @media print{
-  .panel-sidebar,.panel-topbar,.panel-tabs,.panel-page-head,.hesabat-tab-switch,.umumi-hesabat-toolbar{display:none!important}
+  .panel-sidebar,.panel-topbar,.panel-tabs,.panel-page-head,.umumi-hesabat-toolbar{display:none!important}
   .panel-content{padding:0!important}
-  .umumi-grid{border:none;box-shadow:none;padding:0;max-width:none}
+  .umumi-grid{max-width:none}
   body{background:#fff}
 }
 

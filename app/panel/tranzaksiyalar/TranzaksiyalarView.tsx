@@ -409,7 +409,7 @@ export function TranzaksiyalarView() {
                       {group.rows.map((row) => (
                         <tr
                           key={row.key}
-                          className="ledger-row-clickable"
+                          className="data-table-row-clickable"
                           title="Əlaqəli sənədə bax"
                           onClick={() => setDocTarget(row)}
                         >
