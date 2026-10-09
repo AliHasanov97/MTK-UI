@@ -27,7 +27,9 @@ import {
   vendorChargeStatusFromOrdinal,
   type VendorChargeResponse,
 } from "../../lib/api/vendorCharges";
+import { getChargeAllocations, type ChargeAllocationResponse } from "../../lib/api/payments";
 import { resolveVendorNames } from "../binalar/resolve";
+import { useCreatedByMap } from "../binalar/finance";
 import { Modal } from "../Modal";
 
 const VENDOR_PAGE_SIZE = 10;
@@ -362,8 +364,12 @@ function DebtsSegment() {
   const [scope, setScope] = useState<"open" | "all">("open");
   const [search, setSearch] = useState("");
   const [payCharge, setPayCharge] = useState<VendorChargeResponse | null>(null);
+  const [allocationChargeId, setAllocationChargeId] = useState<string | null>(null);
+  const [allocationsByCharge, setAllocationsByCharge] = useState<Record<string, ChargeAllocationResponse[]>>({});
+  const [loadingAllocationsId, setLoadingAllocationsId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [workingId, setWorkingId] = useState<string | null>(null);
+  const allocationCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "PaymentAllocation");
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -407,6 +413,17 @@ function DebtsSegment() {
   const overdue = openCharges.filter((c) => c.isOverdue);
   const totalOverdue = overdue.reduce((sum, c) => sum + c.outstandingAmount, 0);
   const totalPaid = (charges ?? []).reduce((sum, c) => sum + c.paidAmount, 0);
+  const selectedAllocationCharge = charges?.find((charge) => charge.id === allocationChargeId) ?? null;
+
+  function openAllocations(chargeId: string) {
+    setAllocationChargeId(chargeId);
+    if (allocationsByCharge[chargeId]) return;
+    setLoadingAllocationsId(chargeId);
+    getChargeAllocations(accessToken, chargeId)
+      .then((allocations) => setAllocationsByCharge((current) => ({ ...current, [chargeId]: allocations })))
+      .catch((err) => setError(errorMessage(err)))
+      .finally(() => setLoadingAllocationsId(null));
+  }
 
   async function handleCancel(charge: VendorChargeResponse) {
     if (!window.confirm(`"${charge.description}" borcu ləğv edilsin?`)) return;
@@ -423,38 +440,49 @@ function DebtsSegment() {
   }
 
   return (
-    <div>
-      <div className="ledger-stats">
-        <article className="ledger-stat ledger-stat-out">
-          <span className="vendor-stat-label">Açıq borc</span>
-          <strong className="ledger-value-out">{formatMoney(totalOpen)}</strong>
-          <span className="ledger-stat-caption">{openCharges.length} ödənilməmiş borc</span>
-        </article>
-        <article className="ledger-stat vendor-stat-danger">
-          <span className="vendor-stat-label">Gecikmiş</span>
-          <strong className={totalOverdue > 0 ? "ledger-value-out" : ""}>{formatMoney(totalOverdue)}</strong>
-          <span className="ledger-stat-caption">{overdue.length} borc son tarixi keçib</span>
-        </article>
-        <article className="ledger-stat ledger-stat-in">
-          <span className="vendor-stat-label">Ödənilib</span>
-          <strong className="ledger-value-in">{formatMoney(totalPaid)}</strong>
-          <span className="ledger-stat-caption">bütün dövrlər üzrə</span>
-        </article>
+    <div className="debt-page vendor-debt-page">
+      <div className="panel-page-head debt-page-heading">
+        <div>
+          <div className="eyebrow">TƏDARÜKÇÜLƏR · MALİYYƏ</div>
+          <h1>Tədarükçü borcları</h1>
+          <p className="panel-page-lead">Açıq xidmət haqları, gecikmələr və tədarükçülərə edilən ödənişlər.</p>
+        </div>
       </div>
 
-      {error && (
-        <p className="ledger-alert" role="alert">
-          {error}
-        </p>
-      )}
+      <section className="debt-summary-grid" aria-label="Tədarükçü borclarının xülasəsi">
+        <article className="debt-summary-card debt-summary-open">
+          <span className="debt-summary-label">Açıq borc</span>
+          <strong>{formatMoney(totalOpen)}</strong>
+          <span>{openCharges.length} ödənilməmiş haqq</span>
+        </article>
+        <article className="debt-summary-card debt-summary-overdue">
+          <span className="debt-summary-label">Gecikmiş</span>
+          <strong>{formatMoney(totalOverdue)}</strong>
+          <span>{overdue.length} borcun son tarixi keçib</span>
+        </article>
+        <article className="debt-summary-card debt-summary-paid">
+          <span className="debt-summary-label">Ödənilmiş</span>
+          <strong>{formatMoney(totalPaid)}</strong>
+          <span>Bütün dövrlər üzrə</span>
+        </article>
+      </section>
 
-      <div className="data-table-wrap">
-        <div className="vendor-head">
-          <h3>Borclar</h3>
-          <span className="vendor-count">{visible.length} qeyd</span>
+      {error && <p className="ledger-alert" role="alert">{error}</p>}
+
+      <section className="debt-filter-card" aria-label="Tədarükçü borclarının axtarışı və filtrləri">
+        <div className="debt-filter-title">
+          <div>
+            <h2>Borc siyahısı</h2>
+            <p>{visible.length} haqq göstərilir</p>
+          </div>
+          <input
+            className="panel-search debt-search"
+            placeholder="Tədarükçü, xidmət və ya dövr üzrə axtar"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
         </div>
-
-        <div className="ledger-filter-footer" style={{ padding: "12px 18px 0" }}>
+        <div className="debt-filter-options">
           <div className="ledger-segmented" role="group" aria-label="Borc əhatəsi">
             {(["open", "all"] as const).map((value) => (
               <button
@@ -468,123 +496,125 @@ function DebtsSegment() {
               </button>
             ))}
           </div>
-          <input
-            className="panel-search"
-            style={{ maxWidth: 280 }}
-            placeholder="Axtar (təsvir, tədarükçü…)"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
         </div>
+      </section>
 
-        {!charges ? (
-          <div className="ledger-skeletons" aria-hidden="true">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <div key={index} className="ledger-skeleton" />
-            ))}
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="ledger-empty">
-            <span aria-hidden="true">⌗</span>
-            <strong>Borc yoxdur</strong>
-            <p>
-              {scope === "open"
-                ? "Bütün borclar ödənilib və ya ləğv edilib."
-                : "Bu axtarışa uyğun borc tapılmadı."}
-            </p>
-          </div>
-        ) : (
-          <div className="owner-table-scroll">
-            <table className="data-table ledger-table vendor-table">
-              <colgroup>
-                <col className="vendor-col-vendor" />
-                <col className="vendor-col-desc" />
-                <col className="vendor-col-amount" />
-                <col className="vendor-col-amount" />
-                <col className="vendor-col-status" />
-                <col className="vendor-col-actions" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>Tədarükçü</th>
-                  <th>Təsvir</th>
-                  <th className="vendor-th-amount">Qalıq</th>
-                  <th className="vendor-th-amount">Məbləğ</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((c) => {
-                  const status = vendorChargeStatusFromOrdinal(c.status);
-                  const canPay = status === "Unpaid" || status === "PartiallyPaid";
-                  return (
-                    <tr key={c.id}>
-                      <td className="vendor-cell-vendor">
-                        <Link className="owner-link" href={`/panel/tedarukculer/${c.vendorId}`}>
-                          {vendorNames[c.vendorId] ?? "…"}
-                        </Link>
-                        {c.period && <span className="vendor-cell-sub">Dövr: {c.period}</span>}
-                      </td>
-                      <td className="ledger-cell-note">
-                        {c.description}
-                        {c.isOverdue && (
-                          <span className="vendor-cell-sub vendor-value-danger">
-                            Son tarix {dateOnly(c.dueDate!)} — gecikib
-                          </span>
-                        )}
-                      </td>
-                      <td className="vendor-amount">
-                        <strong className={c.outstandingAmount > 0 ? "vendor-value-danger" : "vendor-value-ok"}>
-                          {formatMoney(c.outstandingAmount)}
-                        </strong>
-                        <span className="vendor-cell-sub">
-                          ödənilib {formatMoney(c.paidAmount)} / {formatMoney(c.amount)}
-                        </span>
-                      </td>
-                      <td className="vendor-amount">{formatMoney(c.amount)}</td>
-                      <td>
-                        <span className={`vendor-status vendor-status-${status.toLowerCase()}`}>
-                          {VENDOR_CHARGE_STATUS_LABELS[status]}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="data-table-actions">
-                          {canMakePayments && canPay && (
-                            <button
-                              type="button"
-                              className="panel-btn panel-btn-sm panel-btn-primary"
-                              disabled={workingId === c.id}
-                              onClick={() => setPayCharge(c)}
-                            >
-                              Ödə
-                            </button>
-                          )}
-                          {canManage && status !== "Paid" && status !== "Cancelled" && (
-                            <button
-                              type="button"
-                              className="panel-btn panel-btn-sm panel-btn-danger"
-                              disabled={workingId === c.id}
-                              onClick={() => handleCancel(c)}
-                            >
-                              Ləğv et
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {!charges ? (
+        <div className="debt-charge-list" aria-label="Borclar yüklənir">
+          {Array.from({ length: 4 }).map((_, index) => <div key={index} className="debt-charge-skeleton" />)}
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="debt-empty">
+          <span aria-hidden="true">₼</span>
+          <strong>{scope === "open" ? "Açıq borc yoxdur" : "Uyğun borc tapılmadı"}</strong>
+          <p>{scope === "open" ? "Bütün borclar ödənilib və ya ləğv edilib." : "Axtarışı dəyişin və ya başqa filtri seçin."}</p>
+        </div>
+      ) : (
+        <div className="debt-charge-list">
+          {visible.map((charge) => {
+            const status = vendorChargeStatusFromOrdinal(charge.status);
+            const canPay = status === "Unpaid" || status === "PartiallyPaid";
+            return (
+              <article className="debt-charge-card" key={charge.id}>
+                <div className="debt-charge-top">
+                  <div className="debt-resident">
+                    <Link className="owner-link" href={`/panel/tedarukculer/${charge.vendorId}`}>
+                      {vendorNames[charge.vendorId] ?? "Tədarükçü"}
+                    </Link>
+                    <span>{charge.description ?? "Xidmət borcu"}</span>
+                    {charge.isOverdue && charge.dueDate && (
+                      <span className="debt-advance-note debt-overdue-note">Son tarix {dateOnly(charge.dueDate)} · gecikib</span>
+                    )}
+                  </div>
+                  <span className={`vendor-status vendor-status-${status.toLowerCase()}`}>
+                    {charge.isOverdue && canPay ? "Gecikib" : VENDOR_CHARGE_STATUS_LABELS[status]}
+                  </span>
+                </div>
+
+                <div className="debt-charge-details">
+                  <div><span>Dövr</span><strong>{charge.period ?? "—"}</strong></div>
+                  <div><span>Son ödəniş tarixi</span><strong>{charge.dueDate ? dateOnly(charge.dueDate) : "—"}</strong></div>
+                  <div><span>Ümumi məbləğ</span><strong>{formatMoney(charge.amount)}</strong></div>
+                  <div><span>Ödənilib</span><strong>{formatMoney(charge.paidAmount)}</strong></div>
+                </div>
+
+                <div className="debt-charge-footer">
+                  <div className="debt-remaining">
+                    <span>Qalıq borc</span>
+                    <strong className={charge.outstandingAmount > 0 ? "vendor-value-danger" : "vendor-value-ok"}>
+                      {formatMoney(charge.outstandingAmount)}
+                    </strong>
+                  </div>
+                  <div className="debt-charge-actions">
+                    <button
+                      type="button"
+                      className="panel-btn panel-btn-sm"
+                      aria-haspopup="dialog"
+                      onClick={() => openAllocations(charge.id)}
+                    >
+                      {loadingAllocationsId === charge.id ? "Yüklənir…" : "Ödəniş bölgüsünə bax"}
+                    </button>
+                    {canMakePayments && canPay && (
+                      <button
+                        type="button"
+                        className="panel-btn panel-btn-sm panel-btn-primary"
+                        disabled={workingId === charge.id}
+                        onClick={() => setPayCharge(charge)}
+                      >Ödə</button>
+                    )}
+                    {canManage && canPay && (
+                      <button
+                        type="button"
+                        className="panel-btn panel-btn-sm panel-btn-danger"
+                        disabled={workingId === charge.id}
+                        onClick={() => handleCancel(charge)}
+                      >Ləğv et</button>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
 
       <p className="vendor-note">
-        Cədvəl üzrə xidmət borcları (texniki baxış, sığorta və s.) hər ayın 1-də avtomatik yaranır.
-        Ödəniş tranzaksiyalar jurnalına xərc kimi düşür.
+        Xidmət borcları (texniki baxış, sığorta və s.) hər ayın 1-də avtomatik yaranır. Ödənişlər tranzaksiyalar jurnalında xərc kimi göstərilir.
       </p>
+
+      {selectedAllocationCharge && (
+        <Modal title="Ödəniş bölgüsü" onClose={() => setAllocationChargeId(null)} wide>
+          <div className="debt-allocation-modal">
+            <div className="debt-allocation-summary">
+              <div><span>Tədarükçü</span><strong>{vendorNames[selectedAllocationCharge.vendorId] ?? "—"}</strong></div>
+              <div><span>Xidmət və dövr</span><strong>{selectedAllocationCharge.description ?? "Xidmət borcu"} · {selectedAllocationCharge.period ?? "—"}</strong></div>
+              <div><span>Haqqın məbləği</span><strong>{formatMoney(selectedAllocationCharge.amount)}</strong></div>
+              <div><span>Qalıq borc</span><strong>{formatMoney(selectedAllocationCharge.outstandingAmount)}</strong></div>
+            </div>
+            {loadingAllocationsId === selectedAllocationCharge.id ? (
+              <p className="panel-page-lead">Ödəniş məlumatları yüklənir…</p>
+            ) : (allocationsByCharge[selectedAllocationCharge.id]?.length ?? 0) === 0 ? (
+              <div className="debt-allocation-empty">Bu borca hələ ödəniş tətbiq olunmayıb.</div>
+            ) : (
+              <div className="debt-allocation-list">
+                {(allocationsByCharge[selectedAllocationCharge.id] ?? []).map((allocation) => (
+                  <div className="debt-allocation-item" key={allocation.id}>
+                    <div><span>Ödəniş tarixi</span><strong>{formatDateTime(allocation.paymentDate)}</strong></div>
+                    <div><span>Məbləğ</span><strong>{formatMoney(allocation.allocatedAmount)}</strong></div>
+                    <div>
+                      <span>Mənbə</span>
+                      <strong className={`vendor-status ${allocation.isFromAdvance ? "vendor-status-partial" : "vendor-status-paid"}`}>
+                        {allocation.isFromAdvance ? "Avansdan" : "Birbaşa ödəniş"}
+                      </strong>
+                    </div>
+                    <div><span>İcra edən</span><strong>{allocationCreators[allocation.id] ?? "—"}</strong></div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
 
       {payCharge && (
         <PayVendorChargeModal

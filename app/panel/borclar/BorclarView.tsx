@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { useCanDoEverything } from "../../lib/auth/roles";
@@ -130,59 +130,60 @@ export function BorclarView() {
 
   const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
   const pageRows = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const selectedCharge = charges?.find((charge) => charge.id === expandedId) ?? null;
 
   return (
-    <div className="panel-page">
-      <div className="panel-page-head">
+    <div className="panel-page debt-page">
+      <div className="panel-page-head debt-page-heading">
         <div>
+          <div className="eyebrow">MALİYYƏ İZLƏMƏSİ</div>
           <h1>Borclar</h1>
-          <p className="panel-page-lead">
-            Sakinlərin mənzil və qaraj üzrə ödənilməmiş haqqları. Ödəniş daxil olan kimi borc FIFO
-            qaydasında bağlanır və jurnal gəlir qeydi yazılır.
-          </p>
+          <p className="panel-page-lead">Sakinlər üzrə açıq haqları, ödənişləri və qalıq borcları izləyin.</p>
         </div>
         {canManage && (
-          <button
-            type="button"
-            className="panel-btn panel-btn-primary"
-            onClick={() => setShowAddCharge(true)}
-          >
-            + Yeni haqq
+          <button type="button" className="panel-btn panel-btn-primary" onClick={() => setShowAddCharge(true)}>
+            + Yeni haqq əlavə et
           </button>
         )}
       </div>
 
-      <div className="ledger-stats">
-        <article className="ledger-stat ledger-stat-out">
-          <span className="vendor-stat-label">Açıq borc</span>
-          <strong className="ledger-value-out">{formatMoney(totalOpen)}</strong>
-          <span className="ledger-stat-caption">{openCharges.length} ödənilməmiş haqq</span>
+      <section className="debt-summary-grid" aria-label="Borc xülasəsi">
+        <article className="debt-summary-card debt-summary-open">
+          <span className="debt-summary-label">Açıq borc</span>
+          <strong>{formatMoney(totalOpen)}</strong>
+          <span>{openCharges.length} ödənilməmiş haqq</span>
         </article>
-        <article className="ledger-stat ledger-stat-in">
-          <span className="vendor-stat-label">Ödənilib</span>
-          <strong className="ledger-value-in">{formatMoney(totalPaidAll)}</strong>
-          <span className="ledger-stat-caption">bütün dövrlər üzrə</span>
+        <article className="debt-summary-card debt-summary-paid">
+          <span className="debt-summary-label">Ödənilmiş</span>
+          <strong>{formatMoney(totalPaidAll)}</strong>
+          <span>Bütün dövrlər üzrə</span>
         </article>
-        <article className="ledger-stat ledger-stat-net">
-          <span className="vendor-stat-label">Borclu sahib</span>
+        <article className="debt-summary-card debt-summary-owners">
+          <span className="debt-summary-label">Borclu sakinlər</span>
           <strong>{ownerCount}</strong>
-          <span className="ledger-stat-caption">unikal şəxs</span>
+          <span>Açıq borcu olan sakinlər</span>
         </article>
-      </div>
+      </section>
 
-      {error && (
-        <p className="ledger-alert" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <p className="ledger-alert" role="alert">{error}</p>}
 
-      <div className="data-table-wrap">
-        <div className="vendor-head">
-          <h3>Haqqlar</h3>
-          <span className="vendor-count">{visible.length} qeyd</span>
+      <section className="debt-filter-card" aria-label="Borc axtarışı və filtrləri">
+        <div className="debt-filter-title">
+          <div>
+            <h2>Borc siyahısı</h2>
+            <p>{visible.length} haqq göstərilir</p>
+          </div>
+          <input
+            className="panel-search debt-search"
+            placeholder="Sakin, əmlak və ya dövr üzrə axtar"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
         </div>
-
-        <div className="ledger-filter-footer" style={{ padding: "12px 18px 0" }}>
+        <div className="debt-filter-options">
           <div className="ledger-segmented" role="group" aria-label="Borc vəziyyəti">
             {(["open", "paid", "all"] as const).map((value) => (
               <button
@@ -195,216 +196,157 @@ export function BorclarView() {
                   setPage(1);
                 }}
               >
-                {value === "open" ? "Açıq" : value === "paid" ? "Ödənilib" : "Hamısı"}
+                {value === "open" ? "Açıq borclar" : value === "paid" ? "Ödənilib" : "Hamısı"}
               </button>
             ))}
           </div>
-          <input
-            className="panel-search"
-            style={{ maxWidth: 300 }}
-            placeholder="Axtar (sahib, əmlak, dövr…)"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
         </div>
+      </section>
 
-        {!charges ? (
-          <div className="ledger-skeletons" aria-hidden="true">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="ledger-skeleton" />
-            ))}
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="ledger-empty">
-            <span aria-hidden="true">₼</span>
-            <strong>Borc yoxdur</strong>
-            <p>
-              {scope === "open"
-                ? "Bütün haqqlar ödənilib."
-                : "Bu axtarışa uyğun haqq tapılmadı."}
-            </p>
-          </div>
-        ) : (
-          <div className="owner-table-scroll">
-            <table className="data-table ledger-table vendor-table">
-              <colgroup>
-                <col style={{ width: 44 }} />
-                <col className="vendor-col-vendor" />
-                <col className="vendor-col-desc" />
-                <col className="vendor-col-source" />
-                <col className="vendor-col-amount" />
-                <col className="vendor-col-amount" />
-                <col className="vendor-col-status" />
-                <col className="vendor-col-actions" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Sahib</th>
-                  <th>Əmlak</th>
-                  <th>Dövr</th>
-                  <th className="vendor-th-amount">Qalıq</th>
-                  <th className="vendor-th-amount">Məbləğ</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pageRows.map((c) => {
-                  const status = chargeStatusFromOrdinal(c.status);
-                  const remaining = c.amount - c.paidAmount;
-                  const propertyType: PropertyTypeKey | undefined = c.apartmentId
-                    ? "Apartment"
-                    : c.garageId
-                      ? "Garage"
-                      : undefined;
-                  const propertyId = c.apartmentId ?? c.garageId ?? undefined;
-                  const rows = allocationsByCharge[c.id];
-                  const isOpen = expandedId === c.id;
-                  // Avans izi: bu borca tətbiq olunmuş ödəniş borc yaranmazdan əvvəl
-                  // alınıbsa, pul həmin an avans idi.
-                  const fromAdvance = (rows ?? []).some(
-                    (a) => new Date(a.paymentDate) < new Date(c.issuedOn),
-                  );
-                  return (
-                    <Fragment key={c.id}>
-                      <tr>
-                        <td>
-                          <button
-                            type="button"
-                            className="panel-btn panel-btn-sm"
-                            aria-expanded={isOpen}
-                            title="Hansı ödənişlərlə bağlanıb"
-                            onClick={() => toggleAllocations(c.id)}
-                          >
-                            {isOpen ? "▲" : "▼"}
-                          </button>
-                        </td>
-                        <td className="vendor-cell-vendor">
-                          <Link className="owner-link" href={`/panel/binalar/sahibler/${c.ownerId}`}>
-                            {c.partyName ?? "…"}
-                          </Link>
-                          {c.description && <span className="vendor-cell-sub">{c.description}</span>}
-                          {fromAdvance && <span className="vendor-cell-sub">avansdan ödənilib</span>}
-                        </td>
-                        <td>{c.propertyLabel ?? "—"}</td>
-                        <td>
-                          {c.period || "—"}
-                          <span className="vendor-cell-sub">borc tarixi {formatDateTime(c.issuedOn)}</span>
-                        </td>
-                        <td className="vendor-amount">
-                          <strong className={remaining > 0 ? "vendor-value-danger" : "vendor-value-ok"}>
-                            {formatMoney(remaining)}
-                          </strong>
-                          <span className="vendor-cell-sub">ödənilib {formatMoney(c.paidAmount)}</span>
-                        </td>
-                        <td className="vendor-amount">{formatMoney(c.amount)}</td>
-                        <td>
-                          <span
-                            className={`vendor-status ${
-                              status === "Paid"
-                                ? "vendor-status-paid"
-                                : status === "PartiallyPaid"
-                                  ? "vendor-status-partial"
-                                  : "vendor-status-open"
-                            }`}
-                          >
-                            {CHARGE_STATUS_LABELS[status]}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="data-table-actions">
-                            {remaining > 0 && (
-                              <PayButton
-                                ownerId={c.ownerId}
-                                propertyId={propertyId}
-                                propertyType={propertyType}
-                                balance={-remaining}
-                                onPaid={load}
-                              />
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                      {isOpen && (
-                        <tr>
-                          <td></td>
-                          <td colSpan={7}>
-                            <ChargeCreatedByLine accessToken={auth.accessToken} chargeId={c.id} />
-                            {loadingId === c.id ? (
-                              <p className="panel-page-lead">Yüklənir…</p>
-                            ) : (rows?.length ?? 0) === 0 ? (
-                              <p className="panel-page-lead">Bu haqqa hələ heç bir ödəniş tətbiq olunmayıb.</p>
-                            ) : (
-                              <table className="data-table" style={{ margin: 0 }}>
-                                <thead>
-                                  <tr>
-                                    <th>Ödəniş tarixi</th>
-                                    <th>Məbləğ</th>
-                                    <th>Mənbə</th>
-                                    <th>İcra edən</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {(rows ?? []).map((a) => (
-                                    <tr key={a.id}>
-                                      <td>{formatDateTime(a.paymentDate)}</td>
-                                      <td>{formatMoney(a.allocatedAmount)}</td>
-                                      <td>
-                                        <span
-                                          className={`vendor-status ${
-                                            a.isFromAdvance ? "vendor-status-partial" : "vendor-status-paid"
-                                          }`}
-                                        >
-                                          {a.isFromAdvance ? "Avansdan" : "Birbaşa ödənişdən"}
-                                        </span>
-                                      </td>
-                                      <td>{allocationCreators[a.id] ?? "—"}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            )}
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {!charges ? (
+        <div className="debt-charge-list" aria-label="Borclar yüklənir">
+          {Array.from({ length: 4 }).map((_, index) => <div key={index} className="debt-charge-skeleton" />)}
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="debt-empty">
+          <span aria-hidden="true">₼</span>
+          <strong>{scope === "open" ? "Açıq borc yoxdur" : "Uyğun borc tapılmadı"}</strong>
+          <p>{scope === "open" ? "Bütün haqlar ödənilib." : "Axtarışı dəyişin və ya başqa filtri seçin."}</p>
+        </div>
+      ) : (
+        <div className="debt-charge-list">
+          {pageRows.map((c) => {
+            const status = chargeStatusFromOrdinal(c.status);
+            const remaining = c.amount - c.paidAmount;
+            const propertyType: PropertyTypeKey | undefined = c.apartmentId
+              ? "Apartment"
+              : c.garageId
+                ? "Garage"
+                : undefined;
+            const propertyId = c.apartmentId ?? c.garageId ?? undefined;
+            const allocations = allocationsByCharge[c.id];
+            const fromAdvance = (allocations ?? []).some(
+              (allocation) => new Date(allocation.paymentDate) < new Date(c.issuedOn),
+            );
 
-        {visible.length > PAGE_SIZE && (
-          <div className="panel-pagination">
-            <span>
-              {visible.length} haqq — səhifə {page}/{pageCount}
-            </span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                type="button"
-                className="panel-btn panel-btn-sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Əvvəlki
-              </button>
-              <button
-                type="button"
-                className="panel-btn panel-btn-sm"
-                disabled={page >= pageCount}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Növbəti
-              </button>
+            return (
+              <article className="debt-charge-card" key={c.id}>
+                <div className="debt-charge-top">
+                  <div className="debt-resident">
+                    <Link className="owner-link" href={`/panel/binalar/sahibler/${c.ownerId}`}>
+                      {c.partyName ?? "Sakin"}
+                    </Link>
+                    {c.description && <span>{c.description}</span>}
+                    {fromAdvance && <span className="debt-advance-note">Avansdan ödənilib</span>}
+                  </div>
+                  <span className={`vendor-status ${
+                    status === "Paid" ? "vendor-status-paid" : status === "PartiallyPaid" ? "vendor-status-partial" : "vendor-status-open"
+                  }`}>
+                    {CHARGE_STATUS_LABELS[status]}
+                  </span>
+                </div>
+
+                <div className="debt-charge-details">
+                  <div><span>Əmlak</span><strong>{c.propertyLabel ?? "—"}</strong></div>
+                  <div><span>Dövr</span><strong>{c.period || "—"}</strong><small>Yaranma tarixi: {formatDateTime(c.issuedOn)}</small></div>
+                  <div><span>Ümumi məbləğ</span><strong>{formatMoney(c.amount)}</strong></div>
+                  <div><span>Ödənilib</span><strong>{formatMoney(c.paidAmount)}</strong></div>
+                </div>
+
+                <div className="debt-charge-footer">
+                  <div className="debt-remaining">
+                    <span>Qalıq borc</span>
+                    <strong className={remaining > 0 ? "vendor-value-danger" : "vendor-value-ok"}>{formatMoney(remaining)}</strong>
+                  </div>
+                  <div className="debt-charge-actions">
+                    <button
+                      type="button"
+                      className="panel-btn panel-btn-sm"
+                      aria-haspopup="dialog"
+                      onClick={() => toggleAllocations(c.id)}
+                    >
+                      {loadingId === c.id ? "Yüklənir…" : "Ödəniş bölgüsünə bax"}
+                    </button>
+                    {remaining > 0 && (
+                      <PayButton
+                        ownerId={c.ownerId}
+                        propertyId={propertyId}
+                        propertyType={propertyType}
+                        balance={-remaining}
+                        onPaid={load}
+                      />
+                    )}
+                  </div>
+                </div>
+
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      {visible.length > PAGE_SIZE && (
+        <div className="debt-pagination">
+          <span>{visible.length} haqq · Səhifə {page}/{pageCount}</span>
+          <div>
+            <button type="button" className="panel-btn panel-btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Əvvəlki</button>
+            <button type="button" className="panel-btn panel-btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}>Növbəti</button>
+          </div>
+        </div>
+      )}
+
+      {selectedCharge && (
+        <Modal
+          title="Ödəniş bölgüsü"
+          onClose={() => setExpandedId(null)}
+          wide
+        >
+          <div className="debt-allocation-modal">
+            <div className="debt-allocation-summary">
+              <div>
+                <span>Sakin</span>
+                <strong>{selectedCharge.partyName ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Əmlak və dövr</span>
+                <strong>{selectedCharge.propertyLabel ?? "—"} · {selectedCharge.period ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Haqqın məbləği</span>
+                <strong>{formatMoney(selectedCharge.amount)}</strong>
+              </div>
+              <div>
+                <span>Qalıq borc</span>
+                <strong>{formatMoney(selectedCharge.amount - selectedCharge.paidAmount)}</strong>
+              </div>
             </div>
+
+            <ChargeCreatedByLine accessToken={auth.accessToken} chargeId={selectedCharge.id} />
+
+            {loadingId === selectedCharge.id ? (
+              <p className="panel-page-lead">Ödəniş məlumatları yüklənir…</p>
+            ) : (allocationsByCharge[selectedCharge.id]?.length ?? 0) === 0 ? (
+              <div className="debt-allocation-empty">Bu haqqa hələ ödəniş tətbiq olunmayıb.</div>
+            ) : (
+              <div className="debt-allocation-list">
+                {(allocationsByCharge[selectedCharge.id] ?? []).map((allocation) => (
+                  <div className="debt-allocation-item" key={allocation.id}>
+                    <div><span>Ödəniş tarixi</span><strong>{formatDateTime(allocation.paymentDate)}</strong></div>
+                    <div><span>Məbləğ</span><strong>{formatMoney(allocation.allocatedAmount)}</strong></div>
+                    <div>
+                      <span>Mənbə</span>
+                      <strong className={`vendor-status ${allocation.isFromAdvance ? "vendor-status-partial" : "vendor-status-paid"}`}>
+                        {allocation.isFromAdvance ? "Avansdan" : "Birbaşa ödəniş"}
+                      </strong>
+                    </div>
+                    <div><span>İcra edən</span><strong>{allocationCreators[allocation.id] ?? "—"}</strong></div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </Modal>
+      )}
 
       {showAddCharge && (
         <AddChargeModal
