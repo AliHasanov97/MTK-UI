@@ -211,7 +211,7 @@ export function UmumiHesabatView() {
           </h2>
 
           <div className="owner-table-scroll">
-            <table className="umumi-grid-table">
+            <table className="umumi-grid-table umumi-income-table">
               <thead>
                 <tr>
                   <th colSpan={5} className="umumi-grid-band">
@@ -228,13 +228,13 @@ export function UmumiHesabatView() {
               </thead>
               <tbody>
                 <tr>
-                  <td className="umumi-grid-col-num">1</td>
-                  <td className="vendor-amount">{formatMoney(summary.collected)}</td>
-                  <td className="vendor-amount">{formatMoney(summary.otherIncome)}</td>
-                  <td className={`vendor-amount ${summary.previousBalance < 0 ? "vendor-value-danger" : ""}`}>
+                  <td className="umumi-grid-col-num" data-label="№">1</td>
+                  <td className="vendor-amount" data-label="Cari ay faktiki yığım">{formatMoney(summary.collected)}</td>
+                  <td className="vendor-amount" data-label="Digər gəlirlər">{formatMoney(summary.otherIncome)}</td>
+                  <td data-label="Əvvəlki balans" className={`vendor-amount ${summary.previousBalance < 0 ? "vendor-value-danger" : ""}`}>
                     {formatMoney(summary.previousBalance)}
                   </td>
-                  <td className="vendor-amount umumi-grid-emphasis">{formatMoney(summary.monthlyIncome)}</td>
+                  <td className="vendor-amount umumi-grid-emphasis" data-label="Cari ay ümumi gəlir">{formatMoney(summary.monthlyIncome)}</td>
                 </tr>
               </tbody>
             </table>
@@ -289,7 +289,7 @@ export function UmumiHesabatView() {
               )}
             </table>
 
-            <table className="umumi-grid-table">
+            <table className="umumi-grid-table umumi-income-table">
               <thead>
                 <tr>
                   <th colSpan={6} className="umumi-grid-band">
@@ -307,16 +307,16 @@ export function UmumiHesabatView() {
               </thead>
               <tbody>
                 <tr>
-                  <td className={`vendor-amount ${summary.previousBalance < 0 ? "vendor-value-danger" : ""}`}>
+                  <td data-label="Əvvəlki balans" className={`vendor-amount ${summary.previousBalance < 0 ? "vendor-value-danger" : ""}`}>
                     {formatMoney(summary.previousBalance)}
                   </td>
-                  <td className="vendor-amount">{formatMoney(summary.collected)}</td>
-                  <td className="vendor-amount">{formatMoney(summary.otherIncome)}</td>
-                  <td className={`vendor-amount ${summary.monthlyBalance < 0 ? "vendor-value-danger" : ""}`}>
+                  <td data-label="Cari aylıq gəlir" className="vendor-amount">{formatMoney(summary.collected)}</td>
+                  <td data-label="Digər gəlirlər" className="vendor-amount">{formatMoney(summary.otherIncome)}</td>
+                  <td data-label="Aylıq cəmi balans" className={`vendor-amount ${summary.monthlyBalance < 0 ? "vendor-value-danger" : ""}`}>
                     {formatMoney(summary.monthlyBalance)}
                   </td>
-                  <td className="vendor-amount">{formatMoney(summary.totalExpense)}</td>
-                  <td className={`vendor-amount umumi-grid-emphasis ${summary.finalBalance < 0 ? "vendor-value-danger" : ""}`}>
+                  <td data-label="Cəmi aylıq xərc" className="vendor-amount">{formatMoney(summary.totalExpense)}</td>
+                  <td data-label="Yekun balans" className={`vendor-amount umumi-grid-emphasis ${summary.finalBalance < 0 ? "vendor-value-danger" : ""}`}>
                     {formatMoney(summary.finalBalance)}
                   </td>
                 </tr>

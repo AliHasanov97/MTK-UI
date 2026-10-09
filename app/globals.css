@@ -528,6 +528,12 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
   .umumi-grid{padding:22px 16px 18px}
   .umumi-grid-table{font-size:12px}
   .umumi-grid-table th,.umumi-grid-table td{padding:7px 8px}
+  .umumi-income-table,.umumi-income-table tbody,.umumi-income-table tr,.umumi-income-table td{display:block;width:100%}
+  .umumi-income-table .umumi-grid-colheads{display:none}
+  .umumi-income-table thead,.umumi-income-table thead tr,.umumi-income-table .umumi-grid-band{display:block;width:100%}
+  .umumi-income-table td{display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:right}
+  .umumi-income-table td::before{content:attr(data-label);font-size:11px;font-weight:600;color:#5c7690;text-align:left}
+  .umumi-income-table td.umumi-grid-col-num{display:none}
 }
 
 @media print{
