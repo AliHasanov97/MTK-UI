@@ -19,7 +19,12 @@ export function Modal({
       }}
     >
       <div className={wide ? "modal-card modal-card-wide" : "modal-card"}>
-        <h2>{title}</h2>
+        <div className="modal-card-head">
+          <h2>{title}</h2>
+          <button type="button" className="modal-close" aria-label="Bağla" onClick={onClose}>
+            ✕
+          </button>
+        </div>
         {children}
       </div>
     </div>

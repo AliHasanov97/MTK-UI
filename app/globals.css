@@ -238,7 +238,10 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
 .modal-backdrop{position:fixed;inset:0;background:rgba(18,28,22,.4);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal-card{background:#fff;border-radius:12px;padding:28px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 30px 70px #1d35253a}
 .modal-card-wide{max-width:720px}
-.modal-card h2{font-size:18px;margin:0 0 18px;letter-spacing:-.3px}
+.modal-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 18px}
+.modal-card h2{font-size:18px;margin:0;letter-spacing:-.3px}
+.modal-close{flex-shrink:0;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;color:#5c6963;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#f2f4ee}
 .form-field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
 .form-field label{font-size:12px;font-weight:700;color:#526354}
 .form-field input,.form-field textarea,.form-field select{font:inherit;font-size:13px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff}

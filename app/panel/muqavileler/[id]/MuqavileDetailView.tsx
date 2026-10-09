@@ -140,6 +140,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
       <div className="panel-denied">
         <h2>Məlumat alınmadı</h2>
         <p>{error}</p>
+        <Link className="panel-btn" href="/panel/muqavileler">Müqavilələrə qayıt</Link>
       </div>
     );
   }
@@ -153,127 +154,108 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
   const money = (n: number) => `${n.toFixed(2)} ₼`;
 
   return (
-    <div>
+    <div className="purchase-detail">
       {error && <p className="form-error">{error}</p>}
 
-      <section className="panel-card owner-section-card">
-        <h4>
-          {contract.number} · {contract.vendorName ?? "Tədarükçü tapılmadı"}
-        </h4>
-        <div className="owner-hero-meta">
-          <span>
-            Müddət: {dateOnly(contract.startDate)} — {dateOnly(contract.endDate)}
-          </span>
-          <span>
-            Status:{" "}
-            <strong
-              className={
-                contract.isActive ? "owner-balance-tag-credit" : "owner-balance-tag-debt"
-              }
-            >
-              {CONTRACT_STATUS_LABELS[status]}
-            </strong>
-          </span>
-          {contract.isExpired && status === "Active" && <span>Müddəti bitib</span>}
-          {createdBy && <span>Əməliyyatı icra etdi: {createdBy}</span>}
-        </div>
-        {contract.note && <p className="panel-page-lead" style={{ marginTop: 12 }}>{contract.note}</p>}
-
-        <div className="owner-hero-stats" style={{ marginTop: 16 }}>
-          <div className="owner-hero-stat">
-            <span className="owner-stat-label">Aylıq yük</span>
-            <strong>{money(contract.monthlyAmount)}</strong>
-          </div>
-          <div className="owner-hero-stat">
-            <span className="owner-stat-label">Dövr üzrə cəm</span>
-            <strong>{money(contract.totalAmount)}</strong>
-          </div>
-          <div className="owner-hero-stat">
-            <span className="owner-stat-label">Xidmət sayı</span>
-            <strong>{contract.services.length}</strong>
-          </div>
-        </div>
-
-        {!hasDocument && canMakePayments && (
-          <div className="form-actions" style={{ justifyContent: "flex-start", margin: "12px 0 0" }}>
-            <button type="button" className="panel-btn panel-btn-sm" disabled={exporting} onClick={handleExport}>
-              {exporting ? "Yüklənir…" : "Sənədi yüklə (PDF)"}
+      {canManage && (
+        <div className="form-actions purchase-receive-actions">
+          {status !== "Terminated" && (
+            <button type="button" className="panel-btn" disabled={busy} onClick={() => setDatesOpen(true)}>
+              Müddəti/qeydi dəyiş
             </button>
-          </div>
-        )}
+          )}
+          {(status === "Draft" || status === "Suspended") && (
+            <button
+              type="button"
+              className="panel-btn panel-btn-primary"
+              disabled={busy}
+              onClick={() => run(() => activateContract(accessToken, contract.id))}
+            >
+              Aktivləşdir
+            </button>
+          )}
+          {status === "Active" && (
+            <button
+              type="button"
+              className="panel-btn"
+              disabled={busy}
+              onClick={() => run(() => suspendContract(accessToken, contract.id, null))}
+            >
+              Dayandır
+            </button>
+          )}
+          {status !== "Terminated" && (
+            <button
+              type="button"
+              className="panel-btn panel-btn-danger"
+              disabled={busy}
+              onClick={() => setTerminateOpen(true)}
+            >
+              Ləğv et
+            </button>
+          )}
+          {status !== "Active" && (
+            <button
+              type="button"
+              className="panel-btn panel-btn-danger"
+              disabled={busy}
+              onClick={async () => {
+                if (!window.confirm(`${contract.number} müqaviləsi silinsin?`)) return;
+                setBusy(true);
+                setError(null);
+                try {
+                  await deleteContract(accessToken, contract.id);
+                  router.push("/panel/muqavileler");
+                } catch (err) {
+                  setError(errorMessage(err));
+                  setBusy(false);
+                }
+              }}
+            >
+              Sil
+            </button>
+          )}
+        </div>
+      )}
 
-        <SignedDocumentsPanel
-          accessToken={accessToken}
-          target={{ contractId: contract.id }}
-          canUpload={canMakePayments}
-          onAttachmentsChange={(list) => setHasDocument(list.length > 0)}
-        />
+      <div className="purchase-detail-grid">
+        <section className="data-table-wrap purchase-detail-card">
+          <h2>Ümumi məlumat</h2>
+          <dl className="purchase-meta">
+            <div><dt>Nömrə</dt><dd>{contract.number}</dd></div>
+            <div><dt>Tədarükçü</dt><dd>{contract.vendorName ?? "Tədarükçü tapılmadı"}</dd></div>
+            <div><dt>Müddət</dt><dd>{dateOnly(contract.startDate)} — {dateOnly(contract.endDate)}</dd></div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <strong className={contract.isActive ? "owner-balance-tag-credit" : "owner-balance-tag-debt"}>
+                  {CONTRACT_STATUS_LABELS[status]}
+                </strong>
+                {contract.isExpired && status === "Active" && (
+                  <span className="panel-role-tag panel-role-tag-inactive" style={{ marginLeft: 6 }}>
+                    müddəti bitib
+                  </span>
+                )}
+              </dd>
+            </div>
+            <div className="transaction-document-description"><dt>Qeyd</dt><dd>{contract.note || "—"}</dd></div>
+          </dl>
+          {createdBy && <p className="panel-page-lead" style={{ margin: "14px 0 0" }}>Əməliyyatı icra etdi: <strong>{createdBy}</strong></p>}
+        </section>
 
-        {canManage && (
-          <div className="form-actions" style={{ justifyContent: "flex-start", flexWrap: "wrap" }}>
-            {status !== "Terminated" && (
-              <button type="button" className="panel-btn" disabled={busy} onClick={() => setDatesOpen(true)}>
-                Müddəti/qeydi dəyiş
-              </button>
-            )}
-            {(status === "Draft" || status === "Suspended") && (
-              <button
-                type="button"
-                className="panel-btn panel-btn-primary"
-                disabled={busy}
-                onClick={() => run(() => activateContract(accessToken, contract.id))}
-              >
-                Aktivləşdir
-              </button>
-            )}
-            {status === "Active" && (
-              <button
-                type="button"
-                className="panel-btn"
-                disabled={busy}
-                onClick={() => run(() => suspendContract(accessToken, contract.id, null))}
-              >
-                Dayandır
-              </button>
-            )}
-            {status !== "Terminated" && (
-              <button
-                type="button"
-                className="panel-btn panel-btn-danger"
-                disabled={busy}
-                onClick={() => setTerminateOpen(true)}
-              >
-                Ləğv et
-              </button>
-            )}
-            {status !== "Active" && (
-              <button
-                type="button"
-                className="panel-btn panel-btn-danger"
-                disabled={busy}
-                onClick={async () => {
-                  if (!window.confirm(`${contract.number} müqaviləsi silinsin?`)) return;
-                  setBusy(true);
-                  setError(null);
-                  try {
-                    await deleteContract(accessToken, contract.id);
-                    router.push("/panel/muqavileler");
-                  } catch (err) {
-                    setError(errorMessage(err));
-                    setBusy(false);
-                  }
-                }}
-              >
-                Sil
-              </button>
-            )}
-          </div>
-        )}
-      </section>
+        <section className="data-table-wrap purchase-detail-card">
+          <h2>Aylıq yük</h2>
+          <p className="purchase-total">{money(contract.monthlyAmount)}</p>
+          <dl className="purchase-meta" style={{ marginTop: 16 }}>
+            <div><dt>Dövr üzrə cəm</dt><dd>{money(contract.totalAmount)}</dd></div>
+            <div><dt>Xidmət sayı</dt><dd>{contract.services.length}</dd></div>
+          </dl>
+        </section>
+      </div>
 
-      <section className="panel-card owner-section-card">
-        <h4 style={{ justifyContent: "space-between" }}>
-          <span>Müqavilə üzrə xidmətlər</span>
+      <section className="data-table-wrap purchase-lines">
+        <div className="transaction-document-heading">
+          <h2>Müqavilə üzrə xidmətlər</h2>
           {canManage && isDraft && (
             <button
               type="button"
@@ -283,7 +265,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
               + Xidmət əlavə et
             </button>
           )}
-        </h4>
+        </div>
 
         {contract.services.length === 0 ? (
           <p className="panel-page-lead">
@@ -385,8 +367,8 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
         )}
       </section>
 
-      <section className="panel-card owner-section-card">
-        <h4>Tədarükçü borcları</h4>
+      <section className="data-table-wrap purchase-lines">
+        <h2>Tədarükçü borcları</h2>
         {chargesError && <p className="form-error">{chargesError}</p>}
         {charges === null && !chargesError ? (
           <p className="panel-page-lead">Yüklənir…</p>
@@ -476,13 +458,21 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
         )}
       </section>
 
-      <Link
-        className="panel-btn panel-btn-sm"
-        style={{ display: "inline-block" }}
-        href="/panel/muqavileler"
-      >
-        ← Müqavilələr siyahısına qayıt
-      </Link>
+      <section className="data-table-wrap purchase-detail-card">
+        {!hasDocument && canMakePayments && (
+          <div className="form-actions" style={{ justifyContent: "flex-start", margin: "0 0 14px" }}>
+            <button type="button" className="panel-btn panel-btn-sm" disabled={exporting} onClick={handleExport}>
+              {exporting ? "Yüklənir…" : "Sənədi yüklə (PDF)"}
+            </button>
+          </div>
+        )}
+        <SignedDocumentsPanel
+          accessToken={accessToken}
+          target={{ contractId: contract.id }}
+          canUpload={canMakePayments}
+          onAttachmentsChange={(list) => setHasDocument(list.length > 0)}
+        />
+      </section>
 
       {serviceForm && (
         <ServiceFormModal
