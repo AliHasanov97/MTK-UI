@@ -64,7 +64,7 @@
   .purchase-list-table tbody td::before{font-size:10px;font-weight:700;letter-spacing:.35px;color:#849087;text-transform:uppercase}
   .purchase-list-table .data-table-actions{flex-wrap:wrap}
   .purchase-list-table~.panel-pagination{gap:10px;flex-wrap:wrap;padding:12px}
-  .modal-backdrop:has(.purchase-entry-table){padding:8px;align-items:flex-start}
+  .modal-backdrop:has(.purchase-entry-table){padding:8px;align-items:center}
   .modal-card:has(.purchase-entry-table){width:100%;max-height:calc(100dvh - 16px);padding:16px}
 }
 
@@ -274,7 +274,7 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
   .data-table-mobile-cards .ledger-month-row td{display:block}
 }
 @media(max-width:640px){
-  .modal-backdrop:has(.transaction-document-modal){padding:8px;align-items:flex-start}
+  .modal-backdrop:has(.transaction-document-modal){padding:8px;align-items:center}
   .modal-card:has(.transaction-document-modal){width:100%;max-height:calc(100dvh - 16px);padding:16px;overflow-y:auto}
   .transaction-document-modal,.transaction-document-modal>section,.signed-documents{min-width:0}
   .transaction-document-modal .purchase-meta{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 12px}
