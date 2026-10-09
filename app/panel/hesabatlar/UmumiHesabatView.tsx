@@ -210,117 +210,119 @@ export function UmumiHesabatView() {
             {AZ_MONTHS_FULL[month - 1]} ayının hesabatı ({year})
           </h2>
 
-          <table className="umumi-grid-table">
-            <thead>
-              <tr>
-                <th colSpan={5} className="umumi-grid-band">
-                  Aylıq gəlirlər barədə hesabat (manatla)
-                </th>
-              </tr>
-              <tr className="umumi-grid-colheads">
-                <th className="umumi-grid-col-num">№</th>
-                <th className="vendor-th-amount">Cari ay faktiki yığım</th>
-                <th className="vendor-th-amount">Digər gəlirlər</th>
-                <th className="vendor-th-amount">Əvvəlki balans</th>
-                <th className="vendor-th-amount">Cari ay ümumi gəlir</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="umumi-grid-col-num">1</td>
-                <td className="vendor-amount">{formatMoney(summary.collected)}</td>
-                <td className="vendor-amount">{formatMoney(summary.otherIncome)}</td>
-                <td className={`vendor-amount ${summary.previousBalance < 0 ? "vendor-value-danger" : ""}`}>
-                  {formatMoney(summary.previousBalance)}
-                </td>
-                <td className="vendor-amount umumi-grid-emphasis">{formatMoney(summary.monthlyIncome)}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <table className="umumi-grid-table">
-            <thead>
-              <tr>
-                <th colSpan={4} className="umumi-grid-band">
-                  Aylıq xərclər barədə hesabat (manatla)
-                </th>
-              </tr>
-              <tr className="umumi-grid-colheads">
-                <th className="umumi-grid-col-num">№</th>
-                <th>Kateqoriya</th>
-                <th>Təsvir</th>
-                <th className="vendor-th-amount">Məbləğ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.expenseRows.length === 0 ? (
+          <div className="owner-table-scroll">
+            <table className="umumi-grid-table">
+              <thead>
                 <tr>
-                  <td colSpan={4} className="umumi-empty">
-                    Bu ay üzrə xərc qeydə alınmayıb.
+                  <th colSpan={5} className="umumi-grid-band">
+                    Aylıq gəlirlər barədə hesabat (manatla)
+                  </th>
+                </tr>
+                <tr className="umumi-grid-colheads">
+                  <th className="umumi-grid-col-num">№</th>
+                  <th className="vendor-th-amount">Cari ay faktiki yığım</th>
+                  <th className="vendor-th-amount">Digər gəlirlər</th>
+                  <th className="vendor-th-amount">Əvvəlki balans</th>
+                  <th className="vendor-th-amount">Cari ay ümumi gəlir</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="umumi-grid-col-num">1</td>
+                  <td className="vendor-amount">{formatMoney(summary.collected)}</td>
+                  <td className="vendor-amount">{formatMoney(summary.otherIncome)}</td>
+                  <td className={`vendor-amount ${summary.previousBalance < 0 ? "vendor-value-danger" : ""}`}>
+                    {formatMoney(summary.previousBalance)}
+                  </td>
+                  <td className="vendor-amount umumi-grid-emphasis">{formatMoney(summary.monthlyIncome)}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table className="umumi-grid-table">
+              <thead>
+                <tr>
+                  <th colSpan={4} className="umumi-grid-band">
+                    Aylıq xərclər barədə hesabat (manatla)
+                  </th>
+                </tr>
+                <tr className="umumi-grid-colheads">
+                  <th className="umumi-grid-col-num">№</th>
+                  <th>Kateqoriya</th>
+                  <th>Təsvir</th>
+                  <th className="vendor-th-amount">Məbləğ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.expenseRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="umumi-empty">
+                      Bu ay üzrə xərc qeydə alınmayıb.
+                    </td>
+                  </tr>
+                ) : (
+                  summary.expenseRows.map((row, i) => (
+                    <tr key={row.id}>
+                      {categoryRowSpans.has(i) && (
+                        <>
+                          <td rowSpan={categoryRowSpans.get(i)} className="umumi-grid-col-num">
+                            {categoryGroupNumbers.get(i)}
+                          </td>
+                          <td rowSpan={categoryRowSpans.get(i)} className="umumi-grid-category">
+                            {row.category}
+                          </td>
+                        </>
+                      )}
+                      <td>{row.description}</td>
+                      <td className="vendor-amount">{formatMoney(row.amount)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              {summary.expenseRows.length > 0 && (
+                <tfoot>
+                  <tr>
+                    <td colSpan={3}>Cəmi xərc</td>
+                    <td className="vendor-amount">{formatMoney(summary.totalExpense)}</td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+
+            <table className="umumi-grid-table">
+              <thead>
+                <tr>
+                  <th colSpan={6} className="umumi-grid-band">
+                    Yekun hesabat (manatla)
+                  </th>
+                </tr>
+                <tr className="umumi-grid-colheads">
+                  <th className="vendor-th-amount">Əvvəlki balans</th>
+                  <th className="vendor-th-amount">Cari aylıq gəlir</th>
+                  <th className="vendor-th-amount">Digər gəlirlər</th>
+                  <th className="vendor-th-amount">Aylıq cəmi balans</th>
+                  <th className="vendor-th-amount">Cəmi aylıq xərc</th>
+                  <th className="vendor-th-amount">Yekun balans</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className={`vendor-amount ${summary.previousBalance < 0 ? "vendor-value-danger" : ""}`}>
+                    {formatMoney(summary.previousBalance)}
+                  </td>
+                  <td className="vendor-amount">{formatMoney(summary.collected)}</td>
+                  <td className="vendor-amount">{formatMoney(summary.otherIncome)}</td>
+                  <td className={`vendor-amount ${summary.monthlyBalance < 0 ? "vendor-value-danger" : ""}`}>
+                    {formatMoney(summary.monthlyBalance)}
+                  </td>
+                  <td className="vendor-amount">{formatMoney(summary.totalExpense)}</td>
+                  <td className={`vendor-amount umumi-grid-emphasis ${summary.finalBalance < 0 ? "vendor-value-danger" : ""}`}>
+                    {formatMoney(summary.finalBalance)}
                   </td>
                 </tr>
-              ) : (
-                summary.expenseRows.map((row, i) => (
-                  <tr key={row.id}>
-                    {categoryRowSpans.has(i) && (
-                      <>
-                        <td rowSpan={categoryRowSpans.get(i)} className="umumi-grid-col-num">
-                          {categoryGroupNumbers.get(i)}
-                        </td>
-                        <td rowSpan={categoryRowSpans.get(i)} className="umumi-grid-category">
-                          {row.category}
-                        </td>
-                      </>
-                    )}
-                    <td>{row.description}</td>
-                    <td className="vendor-amount">{formatMoney(row.amount)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-            {summary.expenseRows.length > 0 && (
-              <tfoot>
-                <tr>
-                  <td colSpan={3}>Cəmi xərc</td>
-                  <td className="vendor-amount">{formatMoney(summary.totalExpense)}</td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-
-          <table className="umumi-grid-table">
-            <thead>
-              <tr>
-                <th colSpan={6} className="umumi-grid-band">
-                  Yekun hesabat (manatla)
-                </th>
-              </tr>
-              <tr className="umumi-grid-colheads">
-                <th className="vendor-th-amount">Əvvəlki balans</th>
-                <th className="vendor-th-amount">Cari aylıq gəlir</th>
-                <th className="vendor-th-amount">Digər gəlirlər</th>
-                <th className="vendor-th-amount">Aylıq cəmi balans</th>
-                <th className="vendor-th-amount">Cəmi aylıq xərc</th>
-                <th className="vendor-th-amount">Yekun balans</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className={`vendor-amount ${summary.previousBalance < 0 ? "vendor-value-danger" : ""}`}>
-                  {formatMoney(summary.previousBalance)}
-                </td>
-                <td className="vendor-amount">{formatMoney(summary.collected)}</td>
-                <td className="vendor-amount">{formatMoney(summary.otherIncome)}</td>
-                <td className={`vendor-amount ${summary.monthlyBalance < 0 ? "vendor-value-danger" : ""}`}>
-                  {formatMoney(summary.monthlyBalance)}
-                </td>
-                <td className="vendor-amount">{formatMoney(summary.totalExpense)}</td>
-                <td className={`vendor-amount umumi-grid-emphasis ${summary.finalBalance < 0 ? "vendor-value-danger" : ""}`}>
-                  {formatMoney(summary.finalBalance)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
 
           <div className="umumi-grid-footer">
             <span>Hazırlanma tarixi: {generatedOn}</span>
