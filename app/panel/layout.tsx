@@ -18,7 +18,7 @@ export default function PanelLayout({ children }: LayoutProps<"/panel">) {
   useEffect(() => {
     const updateTableLabels = () => {
       const tables = document.querySelectorAll<HTMLTableElement>(
-        ".data-table:not(.purchase-entry-table):not(.hesabat-grid):not(.payment-document-table):not(.data-table-nested)",
+        ".data-table:not(.purchase-entry-table):not(.hesabat-grid):not(.data-table-nested)",
       );
 
       tables.forEach((table) => {

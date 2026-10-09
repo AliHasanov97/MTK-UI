@@ -585,34 +585,45 @@ function DebtsSegment() {
 
       {selectedAllocationCharge && (
         <Modal title="Ödəniş bölgüsü" onClose={() => setAllocationChargeId(null)} wide>
-          <div className="debt-allocation-modal">
-            <div className="debt-allocation-summary">
-              <div><span>Tədarükçü</span><strong>{vendorNames[selectedAllocationCharge.vendorId] ?? "—"}</strong></div>
-              <div><span>Xidmət və dövr</span><strong>{selectedAllocationCharge.description ?? "Xidmət borcu"} · {selectedAllocationCharge.period ?? "—"}</strong></div>
-              <div><span>Haqqın məbləği</span><strong>{formatMoney(selectedAllocationCharge.amount)}</strong></div>
-              <div><span>Qalıq borc</span><strong>{formatMoney(selectedAllocationCharge.outstandingAmount)}</strong></div>
-            </div>
-            {loadingAllocationsId === selectedAllocationCharge.id ? (
-              <p className="panel-page-lead">Ödəniş məlumatları yüklənir…</p>
-            ) : (allocationsByCharge[selectedAllocationCharge.id]?.length ?? 0) === 0 ? (
-              <div className="debt-allocation-empty">Bu borca hələ ödəniş tətbiq olunmayıb.</div>
-            ) : (
-              <div className="debt-allocation-list">
-                {(allocationsByCharge[selectedAllocationCharge.id] ?? []).map((allocation) => (
-                  <div className="debt-allocation-item" key={allocation.id}>
-                    <div><span>Ödəniş tarixi</span><strong>{formatDateTime(allocation.paymentDate)}</strong></div>
-                    <div><span>Məbləğ</span><strong>{formatMoney(allocation.allocatedAmount)}</strong></div>
-                    <div>
-                      <span>Mənbə</span>
-                      <strong className={`vendor-status ${allocation.isFromAdvance ? "vendor-status-partial" : "vendor-status-paid"}`}>
-                        {allocation.isFromAdvance ? "Avansdan" : "Birbaşa ödəniş"}
-                      </strong>
-                    </div>
-                    <div><span>İcra edən</span><strong>{allocationCreators[allocation.id] ?? "—"}</strong></div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="transaction-document-modal">
+            <section className="data-table-wrap purchase-detail-card">
+              <h3>Haqq məlumatı</h3>
+              <dl className="purchase-meta">
+                <div><dt>Tədarükçü</dt><dd>{vendorNames[selectedAllocationCharge.vendorId] ?? "—"}</dd></div>
+                <div><dt>Xidmət və dövr</dt><dd>{selectedAllocationCharge.description ?? "Xidmət borcu"} · {selectedAllocationCharge.period ?? "—"}</dd></div>
+                <div><dt>Haqqın məbləği</dt><dd>{formatMoney(selectedAllocationCharge.amount)}</dd></div>
+                <div><dt>Qalıq borc</dt><dd>{formatMoney(selectedAllocationCharge.outstandingAmount)}</dd></div>
+              </dl>
+            </section>
+
+            <section className="data-table-wrap purchase-detail-card">
+              <h3>Ödənişlər</h3>
+              {loadingAllocationsId === selectedAllocationCharge.id ? (
+                <p className="panel-page-lead">Ödəniş məlumatları yüklənir…</p>
+              ) : (allocationsByCharge[selectedAllocationCharge.id]?.length ?? 0) === 0 ? (
+                <p className="panel-page-lead">Bu borca hələ ödəniş tətbiq olunmayıb.</p>
+              ) : (
+                <div className="owner-table-scroll">
+                  <table className="data-table">
+                    <thead><tr><th>Ödəniş tarixi</th><th className="vendor-th-amount">Məbləğ</th><th>Mənbə</th><th>İcra edən</th></tr></thead>
+                    <tbody>
+                      {(allocationsByCharge[selectedAllocationCharge.id] ?? []).map((allocation) => (
+                        <tr key={allocation.id}>
+                          <td>{formatDateTime(allocation.paymentDate)}</td>
+                          <td className="vendor-amount">{formatMoney(allocation.allocatedAmount)}</td>
+                          <td>
+                            <span className={`vendor-status ${allocation.isFromAdvance ? "vendor-status-partial" : "vendor-status-paid"}`}>
+                              {allocation.isFromAdvance ? "Avansdan" : "Birbaşa ödəniş"}
+                            </span>
+                          </td>
+                          <td>{allocationCreators[allocation.id] ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </div>
         </Modal>
       )}

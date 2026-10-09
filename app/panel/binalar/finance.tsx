@@ -575,75 +575,65 @@ export function ChargeDetailModal({
   }, [accessToken, charge.id]);
 
   return (
-    <Modal title="Haqq təfərrüatı" onClose={onClose}>
-      <div className="payment-document">
-        <div className="payment-document-head">
-          <div className="payment-document-field">
-            <span className="payment-document-label">Tarix</span>
-            <strong>{formatDateTime(charge.createdAt)}</strong>
-          </div>
-          <div className="payment-document-field">
-            <span className="payment-document-label">Məbləğ</span>
-            <strong>{charge.amount.toFixed(2)} ₼</strong>
-          </div>
-          <div className="payment-document-field">
-            <span className="payment-document-label">Ödənilib</span>
-            <strong>{charge.paidAmount.toFixed(2)} ₼</strong>
-          </div>
-          <div className="payment-document-field">
-            <span className="payment-document-label">Status</span>
-            <span className={`panel-role-tag ${chargeStatusTagClass(chargeStatusFromOrdinal(charge.status))}`}>
-              {CHARGE_STATUS_LABELS[chargeStatusFromOrdinal(charge.status)]}
-            </span>
-          </div>
-        </div>
+    <Modal title="Haqq təfərrüatı" onClose={onClose} wide>
+      <div className="transaction-document-modal">
+        <section className="data-table-wrap purchase-detail-card">
+          <h3>Haqq təfərrüatı</h3>
+          <dl className="purchase-meta">
+            <div><dt>Tarix</dt><dd>{formatDateTime(charge.createdAt)}</dd></div>
+            <div><dt>Məbləğ</dt><dd>{charge.amount.toFixed(2)} ₼</dd></div>
+            <div><dt>Ödənilib</dt><dd>{charge.paidAmount.toFixed(2)} ₼</dd></div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span className={`panel-role-tag ${chargeStatusTagClass(chargeStatusFromOrdinal(charge.status))}`}>
+                  {CHARGE_STATUS_LABELS[chargeStatusFromOrdinal(charge.status)]}
+                </span>
+              </dd>
+            </div>
+            <div className="transaction-document-description"><dt>Açıqlama</dt><dd>{chargeDescription(charge)}.</dd></div>
+          </dl>
+          {createdBy && <p className="panel-page-lead" style={{ margin: "14px 0 0" }}>Əməliyyatı icra etdi: <strong>{createdBy}</strong></p>}
+        </section>
 
-        {createdBy && (
-          <p className="payment-document-byline">
-            Əməliyyatı icra etdi: <strong>{createdBy}</strong>
-          </p>
-        )}
-
-        <div className="payment-document-divider" />
-
-        <p className="payment-document-statement">{chargeDescription(charge)}.</p>
-
-        <h5 className="payment-document-section-title">Bölgü — bu haqqı hansı ödənişlər qarşılayıb</h5>
-
-        {rows === null ? (
-          <p className="payment-document-statement">Bölgü məlumatı yüklənir…</p>
-        ) : rows.length === 0 ? (
-          <p className="payment-document-statement">Bu haqqa hələ heç bir ödəniş tətbiq olunmayıb.</p>
-        ) : (
-          <table className="data-table payment-document-table" style={{ margin: 0 }}>
-            <thead>
-              <tr>
-                <th>Ödəniş tarixi</th>
-                <th>Bu haqqa tətbiq (₼)</th>
-                <th>Qalıq (₼)</th>
-                <th>İcra edən</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((a, i) => (
-                <tr key={i}>
-                  <td>{formatDateTime(a.paymentDate)}</td>
-                  <td>{a.allocatedAmount.toFixed(2)}</td>
-                  <td className={a.remainingDebtAfterPayment > 0.005 ? "owner-balance-tag-debt" : "owner-balance-tag-credit"}>
-                    {a.remainingDebtAfterPayment.toFixed(2)}
-                  </td>
-                  <td>{allocationCreators[a.id] ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        {rows !== null && rows.length === 0 && remaining > 0.005 && (
-          <p className="payment-document-statement" style={{ marginTop: 12 }}>
-            Qalıq borc: <strong className="owner-balance-tag-debt">{remaining.toFixed(2)} ₼</strong>
-          </p>
-        )}
+        <section className="data-table-wrap purchase-detail-card">
+          <h3>Bölgü — bu haqqı hansı ödənişlər qarşılayıb</h3>
+          {rows === null ? (
+            <p className="panel-page-lead">Bölgü məlumatı yüklənir…</p>
+          ) : rows.length === 0 ? (
+            <p className="panel-page-lead">Bu haqqa hələ heç bir ödəniş tətbiq olunmayıb.</p>
+          ) : (
+            <div className="owner-table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Ödəniş tarixi</th>
+                    <th className="vendor-th-amount">Bu haqqa tətbiq (₼)</th>
+                    <th className="vendor-th-amount">Qalıq (₼)</th>
+                    <th>İcra edən</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((a, i) => (
+                    <tr key={i}>
+                      <td>{formatDateTime(a.paymentDate)}</td>
+                      <td className="vendor-amount">{a.allocatedAmount.toFixed(2)}</td>
+                      <td className={`vendor-amount ${a.remainingDebtAfterPayment > 0.005 ? "owner-balance-tag-debt" : "owner-balance-tag-credit"}`}>
+                        {a.remainingDebtAfterPayment.toFixed(2)}
+                      </td>
+                      <td>{allocationCreators[a.id] ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {rows !== null && rows.length === 0 && remaining > 0.005 && (
+            <p className="panel-page-lead" style={{ margin: "14px 0 0" }}>
+              Qalıq borc: <strong className="owner-balance-tag-debt">{remaining.toFixed(2)} ₼</strong>
+            </p>
+          )}
+        </section>
       </div>
     </Modal>
   );
@@ -762,112 +752,94 @@ export function PaymentDetailModal({
 
   return (
     <Modal title="Ödəniş sənədi" onClose={onClose} wide>
-      <div className="payment-document">
-        <div className="payment-document-head">
-          <div className="payment-document-field">
-            <span className="payment-document-label">Sənəd №</span>
-            <strong>{payment.id.slice(0, 8).toUpperCase()}</strong>
-          </div>
-          <div className="payment-document-field">
-            <span className="payment-document-label">Tarix</span>
-            <strong>{formatDateTime(payment.paymentDate)}</strong>
-          </div>
-          <div className="payment-document-field">
-            <span className="payment-document-label">Məbləğ</span>
-            <strong>{payment.amount.toFixed(2)} ₼</strong>
-          </div>
-          <div className="payment-document-field">
-            <span className="payment-document-label">Ödəniş üsulu</span>
-            <strong>{methodLabel}</strong>
-          </div>
-          <div className="payment-document-field">
-            <span className="payment-document-label">Status</span>
-            <span className={`panel-role-tag ${paymentStatusTagClass(status)}`}>
-              {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}
-            </span>
-          </div>
-        </div>
-
-        {createdBy && (
-          <p className="payment-document-byline">
-            Əməliyyatı icra etdi: <strong>{createdBy}</strong>
-          </p>
-        )}
-
-        {!hasDocument && canUploadDocuments && (
-          <div className="form-actions" style={{ justifyContent: "flex-start", margin: "0 0 4px" }}>
-            <button type="button" className="panel-btn panel-btn-sm" disabled={downloading} onClick={handleDownload}>
-              {downloading ? "Yüklənir…" : "Qəbzi yüklə (PDF)"}
-            </button>
-          </div>
-        )}
-        {downloadError && <p className="form-error">{downloadError}</p>}
-
-        <div className="payment-document-divider" />
-
-        <p className="payment-document-statement">
-          <strong>{formatDateTime(payment.paymentDate)}</strong> tarixində {methodLabel.toLowerCase()} üsulu ilə{" "}
-          <strong>{payment.amount.toFixed(2)} ₼</strong> məbləğində ödəniş qeydə alınıb.
-        </p>
-        {payment.notes && <p className="payment-document-statement">Qeyd: {payment.notes}.</p>}
-
-        <h5 className="payment-document-section-title">Bölgü — bu ödəniş haraya getdi</h5>
-
-        {rows === null ? (
-          <p className="payment-document-statement">Bölgü məlumatı yüklənir…</p>
-        ) : rows.length === 0 ? (
-          <p className="payment-document-statement">
-            Bu ödəniş hələ heç bir haqqa tətbiq olunmayıb — tam {payment.amount.toFixed(2)} ₼ sahibin hesabında
-            avans kimi saxlanılır.
-          </p>
-        ) : (
-          <>
-            <table className="data-table payment-document-table" style={{ margin: "0 0 12px" }}>
-              <thead>
-                <tr>
-                  {showPropertyColumn && <th>Əmlak</th>}
-                  <th>Haqq</th>
-                  <th>Məbləğ (₼)</th>
-                  <th>Tətbiq (₼)</th>
-                  <th>Qalıq (₼)</th>
-                  <th>İcra edən</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.chargeId}>
-                    {showPropertyColumn && <td>{r.propertyLabel ?? "—"}</td>}
-                    <td>{r.description ?? formatPeriod(r.period)}</td>
-                    <td>{r.chargeAmount.toFixed(2)}</td>
-                    <td>{r.allocatedAmount.toFixed(2)}</td>
-                    <td className={r.remainingDebtAfterPayment > 0.005 ? "owner-balance-tag-debt" : "owner-balance-tag-credit"}>
-                      {r.remainingDebtAfterPayment.toFixed(2)}
-                    </td>
-                    <td>{allocationCreators[r.id] ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {unallocated > 0.005 && (
-              <p className="payment-document-statement">
-                Qalan <strong>{unallocated.toFixed(2)} ₼</strong> sahibin hesabında avans kimi saxlanılır və
-                növbəti haqqa avtomatik tətbiq olunacaq.
-              </p>
+      <div className="transaction-document-modal">
+        <section className="data-table-wrap purchase-detail-card">
+          <div className="transaction-document-heading">
+            <h3>Ödəniş sənədi {payment.id.slice(0, 8).toUpperCase()}</h3>
+            {!hasDocument && canUploadDocuments && (
+              <button type="button" className="panel-btn panel-btn-sm" disabled={downloading} onClick={handleDownload}>
+                {downloading ? "Yüklənir…" : "Qəbzi yüklə (PDF)"}
+              </button>
             )}
-          </>
-        )}
+          </div>
+          <dl className="purchase-meta">
+            <div><dt>Tarix</dt><dd>{formatDateTime(payment.paymentDate)}</dd></div>
+            <div><dt>Məbləğ</dt><dd>{payment.amount.toFixed(2)} ₼</dd></div>
+            <div><dt>Ödəniş üsulu</dt><dd>{methodLabel}</dd></div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span className={`panel-role-tag ${paymentStatusTagClass(status)}`}>
+                  {status === "Completed" ? "Tamamlanıb" : "Gözləyir"}
+                </span>
+              </dd>
+            </div>
+            {payment.notes && <div className="transaction-document-description"><dt>Qeyd</dt><dd>{payment.notes}</dd></div>}
+          </dl>
+          {downloadError && <p className="form-error">{downloadError}</p>}
+          {createdBy && <p className="panel-page-lead" style={{ margin: "14px 0 0" }}>Əməliyyatı icra etdi: <strong>{createdBy}</strong></p>}
+          {status !== "Completed" && (
+            <p className="panel-page-lead" style={{ margin: "14px 0 0" }}>Bu ödəniş hələ gözləmə statusundadır, tamamlanmayıb.</p>
+          )}
+        </section>
 
-        {status !== "Completed" && (
-          <p className="payment-document-statement">Qeyd: bu ödəniş hələ gözləmə statusundadır, tamamlanmayıb.</p>
-        )}
+        <section className="data-table-wrap purchase-detail-card">
+          <h3>Bölgü — bu ödəniş haraya getdi</h3>
+          {rows === null ? (
+            <p className="panel-page-lead">Bölgü məlumatı yüklənir…</p>
+          ) : rows.length === 0 ? (
+            <p className="panel-page-lead">
+              Bu ödəniş hələ heç bir haqqa tətbiq olunmayıb — tam {payment.amount.toFixed(2)} ₼ sahibin hesabında
+              avans kimi saxlanılır.
+            </p>
+          ) : (
+            <>
+              <div className="owner-table-scroll">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      {showPropertyColumn && <th>Əmlak</th>}
+                      <th>Haqq</th>
+                      <th className="vendor-th-amount">Məbləğ (₼)</th>
+                      <th className="vendor-th-amount">Tətbiq (₼)</th>
+                      <th className="vendor-th-amount">Qalıq (₼)</th>
+                      <th>İcra edən</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.chargeId}>
+                        {showPropertyColumn && <td>{r.propertyLabel ?? "—"}</td>}
+                        <td>{r.description ?? formatPeriod(r.period)}</td>
+                        <td className="vendor-amount">{r.chargeAmount.toFixed(2)}</td>
+                        <td className="vendor-amount">{r.allocatedAmount.toFixed(2)}</td>
+                        <td className={`vendor-amount ${r.remainingDebtAfterPayment > 0.005 ? "owner-balance-tag-debt" : "owner-balance-tag-credit"}`}>
+                          {r.remainingDebtAfterPayment.toFixed(2)}
+                        </td>
+                        <td>{allocationCreators[r.id] ?? "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {unallocated > 0.005 && (
+                <p className="panel-page-lead" style={{ margin: "14px 0 0" }}>
+                  Qalan <strong>{unallocated.toFixed(2)} ₼</strong> sahibin hesabında avans kimi saxlanılır və
+                  növbəti haqqa avtomatik tətbiq olunacaq.
+                </p>
+              )}
+            </>
+          )}
+        </section>
 
-        <div className="payment-document-divider" />
-        <SignedDocumentsPanel
-          accessToken={accessToken}
-          target={{ paymentId: payment.id }}
-          canUpload={canUploadDocuments}
-          onAttachmentsChange={(list) => setHasDocument(list.length > 0)}
-        />
+        <section className="data-table-wrap purchase-detail-card">
+          <SignedDocumentsPanel
+            accessToken={accessToken}
+            target={{ paymentId: payment.id }}
+            canUpload={canUploadDocuments}
+            onAttachmentsChange={(list) => setHasDocument(list.length > 0)}
+          />
+        </section>
       </div>
     </Modal>
   );

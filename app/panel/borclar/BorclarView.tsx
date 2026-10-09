@@ -301,49 +301,46 @@ export function BorclarView() {
           onClose={() => setExpandedId(null)}
           wide
         >
-          <div className="debt-allocation-modal">
-            <div className="debt-allocation-summary">
-              <div>
-                <span>Sakin</span>
-                <strong>{selectedCharge.partyName ?? "—"}</strong>
-              </div>
-              <div>
-                <span>Əmlak və dövr</span>
-                <strong>{selectedCharge.propertyLabel ?? "—"} · {selectedCharge.period ?? "—"}</strong>
-              </div>
-              <div>
-                <span>Haqqın məbləği</span>
-                <strong>{formatMoney(selectedCharge.amount)}</strong>
-              </div>
-              <div>
-                <span>Qalıq borc</span>
-                <strong>{formatMoney(selectedCharge.amount - selectedCharge.paidAmount)}</strong>
-              </div>
-            </div>
+          <div className="transaction-document-modal">
+            <section className="data-table-wrap purchase-detail-card">
+              <h3>Haqq məlumatı</h3>
+              <dl className="purchase-meta">
+                <div><dt>Sakin</dt><dd>{selectedCharge.partyName ?? "—"}</dd></div>
+                <div><dt>Əmlak və dövr</dt><dd>{selectedCharge.propertyLabel ?? "—"} · {selectedCharge.period ?? "—"}</dd></div>
+                <div><dt>Haqqın məbləği</dt><dd>{formatMoney(selectedCharge.amount)}</dd></div>
+                <div><dt>Qalıq borc</dt><dd>{formatMoney(selectedCharge.amount - selectedCharge.paidAmount)}</dd></div>
+              </dl>
+              <ChargeCreatedByLine accessToken={auth.accessToken} chargeId={selectedCharge.id} />
+            </section>
 
-            <ChargeCreatedByLine accessToken={auth.accessToken} chargeId={selectedCharge.id} />
-
-            {loadingId === selectedCharge.id ? (
-              <p className="panel-page-lead">Ödəniş məlumatları yüklənir…</p>
-            ) : (allocationsByCharge[selectedCharge.id]?.length ?? 0) === 0 ? (
-              <div className="debt-allocation-empty">Bu haqqa hələ ödəniş tətbiq olunmayıb.</div>
-            ) : (
-              <div className="debt-allocation-list">
-                {(allocationsByCharge[selectedCharge.id] ?? []).map((allocation) => (
-                  <div className="debt-allocation-item" key={allocation.id}>
-                    <div><span>Ödəniş tarixi</span><strong>{formatDateTime(allocation.paymentDate)}</strong></div>
-                    <div><span>Məbləğ</span><strong>{formatMoney(allocation.allocatedAmount)}</strong></div>
-                    <div>
-                      <span>Mənbə</span>
-                      <strong className={`vendor-status ${allocation.isFromAdvance ? "vendor-status-partial" : "vendor-status-paid"}`}>
-                        {allocation.isFromAdvance ? "Avansdan" : "Birbaşa ödəniş"}
-                      </strong>
-                    </div>
-                    <div><span>İcra edən</span><strong>{allocationCreators[allocation.id] ?? "—"}</strong></div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <section className="data-table-wrap purchase-detail-card">
+              <h3>Ödənişlər</h3>
+              {loadingId === selectedCharge.id ? (
+                <p className="panel-page-lead">Ödəniş məlumatları yüklənir…</p>
+              ) : (allocationsByCharge[selectedCharge.id]?.length ?? 0) === 0 ? (
+                <p className="panel-page-lead">Bu haqqa hələ ödəniş tətbiq olunmayıb.</p>
+              ) : (
+                <div className="owner-table-scroll">
+                  <table className="data-table">
+                    <thead><tr><th>Ödəniş tarixi</th><th className="vendor-th-amount">Məbləğ</th><th>Mənbə</th><th>İcra edən</th></tr></thead>
+                    <tbody>
+                      {(allocationsByCharge[selectedCharge.id] ?? []).map((allocation) => (
+                        <tr key={allocation.id}>
+                          <td>{formatDateTime(allocation.paymentDate)}</td>
+                          <td className="vendor-amount">{formatMoney(allocation.allocatedAmount)}</td>
+                          <td>
+                            <span className={`vendor-status ${allocation.isFromAdvance ? "vendor-status-partial" : "vendor-status-paid"}`}>
+                              {allocation.isFromAdvance ? "Avansdan" : "Birbaşa ödəniş"}
+                            </span>
+                          </td>
+                          <td>{allocationCreators[allocation.id] ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </div>
         </Modal>
       )}
