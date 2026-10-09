@@ -72,6 +72,17 @@ export function AuthProvider({
     });
   }, []);
 
+  const refreshWithStoredToken = useCallback(
+    (refreshToken: string) =>
+      refreshAccessToken(config, refreshToken)
+        .then((res) => applyTokens(toTokenSet(res)))
+        .catch(() => {
+          clearTokens();
+          setState({ status: "unauthenticated" });
+        }),
+    [config, applyTokens],
+  );
+
   useEffect(() => {
     // Reading localStorage must wait for the client-only effect phase (it
     // doesn't exist during SSR), so these are the initial synchronous
@@ -95,13 +106,8 @@ export function AuthProvider({
       setState({ status: "unauthenticated" });
       return;
     }
-    refreshAccessToken(config, stored.refreshToken)
-      .then((res) => applyTokens(toTokenSet(res)))
-      .catch(() => {
-        clearTokens();
-        setState({ status: "unauthenticated" });
-      });
-  }, [config, applyTokens]);
+    refreshWithStoredToken(stored.refreshToken);
+  }, [config, applyTokens, refreshWithStoredToken]);
 
   // Proactively refresh the access token in the background, well before it
   // expires, so API calls in flight never race an expiring token and the
@@ -113,17 +119,35 @@ export function AuthProvider({
     if (!stored?.refreshToken) return;
 
     const delay = Math.max(stored.expiresAt - Date.now() - REFRESH_BUFFER_MS, 0);
-    const timer = setTimeout(() => {
-      refreshAccessToken(config, stored.refreshToken!)
-        .then((res) => applyTokens(toTokenSet(res)))
-        .catch(() => {
-          clearTokens();
-          setState({ status: "unauthenticated" });
-        });
-    }, delay);
+    const timer = setTimeout(() => refreshWithStoredToken(stored.refreshToken!), delay);
 
     return () => clearTimeout(timer);
-  }, [state, config, applyTokens]);
+  }, [state, config, applyTokens, refreshWithStoredToken]);
+
+  // The setTimeout above is a best-effort schedule: browsers throttle or fully
+  // pause timers in a backgrounded/inactive tab (and suspend them entirely
+  // across system sleep), so it can miss its mark while the tab is away. If the
+  // user comes back to find the token already past expiry, catch up immediately
+  // on return rather than waiting for the next request to fail with a 401 that
+  // only a manual page reload would otherwise recover from.
+  useEffect(() => {
+    if (state.status !== "authenticated") return;
+
+    const handleVisibility = () => {
+      if (document.visibilityState !== "visible") return;
+      const stored = loadTokens();
+      if (!stored || !isExpired(stored)) return;
+      if (!stored.refreshToken) {
+        clearTokens();
+        setState({ status: "unauthenticated" });
+        return;
+      }
+      refreshWithStoredToken(stored.refreshToken);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [state, refreshWithStoredToken]);
 
   const login = useCallback(async () => {
     const { codeVerifier, codeChallenge } = await generatePkcePair();
