@@ -28,6 +28,7 @@ import {
   type VendorChargeResponse,
 } from "../../lib/api/vendorCharges";
 import { getChargeAllocations, type ChargeAllocationResponse } from "../../lib/api/payments";
+import { formatDateTime } from "../../lib/format";
 import { resolveVendorNames } from "../binalar/resolve";
 import { useCreatedByMap } from "../binalar/finance";
 import { Modal } from "../Modal";
