@@ -18,7 +18,7 @@ export default function PanelLayout({ children }: LayoutProps<"/panel">) {
   useEffect(() => {
     const updateTableLabels = () => {
       const tables = document.querySelectorAll<HTMLTableElement>(
-        ".data-table:not(.purchase-entry-table):not(.hesabat-grid):not(.data-table-nested)",
+        ".data-table:not(.purchase-entry-table):not(.hesabat-grid):not(.data-table-nested), .umumi-grid-table",
       );
 
       tables.forEach((table) => {
@@ -32,17 +32,30 @@ export default function PanelLayout({ children }: LayoutProps<"/panel">) {
 
         table.classList.add("data-table-mobile-cards");
         Array.from(table.tBodies).forEach((body) => {
+          // Columns still covered by a previous row's rowSpan have no cell of
+          // their own in this row's DOM — track how many rows they still span
+          // so later cells in the row don't get shifted onto the wrong label.
+          const rowSpanRemaining: number[] = [];
           Array.from(body.rows).forEach((row) => {
             let columnIndex = 0;
             Array.from(row.cells).forEach((cell) => {
-              if (cell.colSpan > 1) {
-                cell.removeAttribute("data-label");
-                columnIndex += cell.colSpan;
-                return;
+              while (rowSpanRemaining[columnIndex] > 0) {
+                rowSpanRemaining[columnIndex] -= 1;
+                columnIndex += 1;
               }
 
-              const label = labels[columnIndex] || "Məlumat";
-              if (cell.dataset.label !== label) cell.dataset.label = label;
+              if (cell.colSpan > 1) {
+                cell.removeAttribute("data-label");
+              } else {
+                const label = labels[columnIndex] || "Məlumat";
+                if (cell.dataset.label !== label) cell.dataset.label = label;
+              }
+
+              if (cell.rowSpan > 1) {
+                for (let c = columnIndex; c < columnIndex + cell.colSpan; c++) {
+                  rowSpanRemaining[c] = cell.rowSpan - 1;
+                }
+              }
               columnIndex += cell.colSpan;
             });
           });
