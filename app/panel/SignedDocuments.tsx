@@ -58,6 +58,7 @@ export function SignedDocumentsPanel({
     url: string;
     contentType: string;
     fileName: string;
+    openInNewTab: boolean;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,6 +128,7 @@ export function SignedDocumentsPanel({
         url: URL.createObjectURL(blob),
         contentType: file.contentType,
         fileName,
+        openInNewTab: window.matchMedia("(max-width: 768px), (pointer: coarse)").matches,
       });
     } catch (err) {
       setError(errorMessage(err));
@@ -150,15 +152,14 @@ export function SignedDocumentsPanel({
     }
   }
 
+  const hasAttachments = !!attachments && attachments.length > 0;
+  if (!hasAttachments && !canUpload && !preview && !error) return null;
+
   return (
     <div className="signed-documents">
       <h5 className="payment-document-section-title">Sənədlər</h5>
 
-      {attachments === null ? (
-        <p className="payment-document-statement">Yüklənir…</p>
-      ) : attachments.length === 0 ? (
-        <p className="payment-document-statement">Hələ sənəd yüklənməyib.</p>
-      ) : (
+      {!hasAttachments ? null : (
         <ul className="signed-documents-list">
           {attachments.map((a) => (
             <li key={a.id} className="signed-documents-item">
@@ -209,13 +210,14 @@ export function SignedDocumentsPanel({
           </div>
           {preview.contentType.startsWith("image/") ? (
             <img src={preview.url} alt={preview.fileName} />
-          ) : (
+          ) : preview.openInNewTab ? (
             <div className="signed-document-open-link">
-              <span>PDF-i brauzerdə ayrıca açın.</span>
               <a href={preview.url} target="_blank" rel="noopener noreferrer">
-                PDF-i ayrıca aç
+                PDF-i aç
               </a>
             </div>
+          ) : (
+            <iframe src={preview.url} title={preview.fileName} />
           )}
         </div>
       )}

@@ -621,3 +621,6 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
   .debt-pagination>div{width:100%}
   .debt-pagination button{flex:1}
 }
+
+.transaction-files-card:empty{display:none}
+.signed-document-preview iframe{display:block;width:100%;height:min(65vh,680px);border:0}

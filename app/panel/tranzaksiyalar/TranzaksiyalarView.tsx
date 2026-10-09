@@ -547,10 +547,6 @@ function TransactionDocumentModal({
         {loading && <p className="panel-page-lead">Əlaqəli sənəd yüklənir…</p>}
         {error && <p className="form-error" role="alert">{error}</p>}
 
-        {row.documentType !== "Purchase" && !isPayment && (
-          <p className="panel-page-lead">Bu tranzaksiya növü üçün ayrıca əlaqəli sənəd yoxdur. Sənəd ID: {row.referenceId}</p>
-        )}
-
         {purchase && (
           <section className="data-table-wrap purchase-lines">
             <div className="transaction-document-heading">
@@ -617,7 +613,7 @@ function TransactionDocumentModal({
           </section>
         )}
 
-        <section className="data-table-wrap purchase-detail-card">
+        <section className="data-table-wrap purchase-detail-card transaction-files-card">
           <SignedDocumentsPanel accessToken={accessToken} target={fileTarget} canUpload={canUploadDocuments} />
         </section>
       </div>
