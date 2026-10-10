@@ -202,6 +202,50 @@ export function IscilerView() {
         </button>
       </div>
 
+      <div className="em-mobile-filters" aria-label="Filtrlər">
+        <span className="em-mf">
+          İşçi <ColumnFilter options={employeeOptions} selected={employeeFilter} onChange={setEmployeeFilter} />
+        </span>
+        <span className="em-mf">
+          Vəzifə <ColumnFilter options={jobOptions} selected={jobFilter} onChange={setJobFilter} />
+        </span>
+        <span className="em-mf">
+          FİN <ColumnFilter options={finOptions} selected={finFilter} onChange={setFinFilter} />
+        </span>
+        <span className="em-mf">
+          İş rejimi
+          <ColumnFilter
+            options={EMPLOYMENT_TYPES.map((o) => ({ value: o.value, label: o.label }))}
+            selected={typeFilter}
+            onChange={setTypeFilter}
+          />
+        </span>
+        <span className="em-mf">
+          Status
+          <ColumnFilter
+            options={EMPLOYEE_STATUSES.map((o) => ({ value: o.value, label: o.label }))}
+            selected={statusFilter}
+            onChange={setStatusFilter}
+          />
+        </span>
+        <select
+          className="panel-select em-mf-sort"
+          aria-label="Çeşidlə"
+          value={`${sort.column}:${sort.direction}`}
+          onChange={(e) => {
+            const [column, direction] = e.target.value.split(":");
+            setSort({ column: column as SortColumn, direction: direction as "asc" | "desc" });
+          }}
+        >
+          <option value="RegisterNumber:asc">Tabel № ↑</option>
+          <option value="RegisterNumber:desc">Tabel № ↓</option>
+          <option value="Surname:asc">Soyad A→Z</option>
+          <option value="Surname:desc">Soyad Z→A</option>
+          <option value="StartWorkDate:desc">Ən yeni işə qəbul</option>
+          <option value="StartWorkDate:asc">Ən köhnə işə qəbul</option>
+        </select>
+      </div>
+
       {error && (
         <p className="ledger-alert" role="alert">
           {error}
@@ -293,8 +337,8 @@ export function IscilerView() {
                   const active = e.isActive === 1;
                   return (
                     <tr key={e.id} className={active ? "" : "em-row-off"}>
-                      <td className="em-col-no">{e.registerNumber}</td>
-                      <td>
+                      <td className="em-col-no" data-label="Tabel №">{e.registerNumber}</td>
+                      <td className="em-cell-person" data-label="İşçi">
                         <div className="em-person">
                           <span className={`em-avatar ${e.gender === 2 ? "em-avatar-f" : ""}`}>{initials(e)}</span>
                           <Link className="em-name" href={`/panel/hr/isciler/${e.id}`}>
@@ -302,20 +346,20 @@ export function IscilerView() {
                           </Link>
                         </div>
                       </td>
-                      <td>{e.job?.name ?? "—"}</td>
-                      <td>{e.finCode ?? "—"}</td>
-                      <td>{e.phoneNumber ?? "—"}</td>
-                      <td>{optionLabel(EMPLOYMENT_TYPES, e.employmentType)}</td>
-                      <td>
+                      <td data-label="Vəzifə">{e.job?.name ?? "—"}</td>
+                      <td data-label="FİN">{e.finCode ?? "—"}</td>
+                      <td data-label="Telefon">{e.phoneNumber ?? "—"}</td>
+                      <td data-label="İş rejimi">{optionLabel(EMPLOYMENT_TYPES, e.employmentType)}</td>
+                      <td data-label="İşə başlama">
                         {formatDate(e.startWorkDate)}
                         <small className="em-sub">{tenure(e.startWorkDate)}</small>
                       </td>
-                      <td>
+                      <td data-label="Status">
                         <span className={`panel-role-tag ${active ? "panel-role-tag-good" : "panel-role-tag-bad"}`}>
                           {optionLabel(EMPLOYEE_STATUSES, e.isActive)}
                         </span>
                       </td>
-                      <td>
+                      <td className="em-cell-actions">
                         <div className="em-actions">
                           <Link className="panel-btn panel-btn-sm" href={`/panel/hr/isciler/${e.id}`}>
                             Aç
