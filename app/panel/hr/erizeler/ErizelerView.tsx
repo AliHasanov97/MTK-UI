@@ -12,12 +12,19 @@ import {
   type ApplicationKind,
 } from "../../../lib/api/hr";
 import { formatDateTime } from "../../../lib/format";
+import { ColumnFilter } from "../../ColumnFilter";
+import { FilterChip, MobileFilterBar } from "../../MobileFilterBar";
 import { DocumentDetailModal, type DocTarget } from "../DocumentDetailModal";
 import { CreateApplicationModal } from "../CreateDocumentModals";
 import { Pagination } from "../Pagination";
 import { PAGE_SIZE, hrErrorMessage } from "../shared";
 
 const KINDS = Object.keys(APPLICATION_KINDS) as ApplicationKind[];
+const typeOptions = KINDS.map((k) => ({ value: APPLICATION_KINDS[k].value as number, label: APPLICATION_KINDS[k].label }));
+const STATUS_OPTIONS = [
+  { value: 0, label: "Gözləmədə" },
+  { value: 1, label: "Əmrə çevrilib" },
+];
 
 export function ErizelerView() {
   const auth = useAuth();
@@ -25,8 +32,8 @@ export function ErizelerView() {
   const [totalCount, setTotalCount] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [filterType, setFilterType] = useState<number[]>([]);
+  const [filterStatus, setFilterStatus] = useState<number[]>([]);
   const [pageNumber, setPageNumber] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
@@ -42,11 +49,11 @@ export function ErizelerView() {
   useEffect(() => {
     if (auth.status !== "authenticated") return;
     const filters = [];
-    if (filterType) {
-      filters.push({ columnName: "Type", comparison: QueryComparisonType.Equals, value: Number(filterType) });
+    if (filterType.length > 0) {
+      filters.push({ columnName: "Type", comparison: QueryComparisonType.In, value: filterType });
     }
-    if (filterStatus) {
-      filters.push({ columnName: "Status", comparison: QueryComparisonType.Equals, value: Number(filterStatus) });
+    if (filterStatus.length > 0) {
+      filters.push({ columnName: "Status", comparison: QueryComparisonType.In, value: filterStatus });
     }
     searchApplications(auth.accessToken, {
       filters: filters.length > 0 ? filters : null,
@@ -66,6 +73,13 @@ export function ErizelerView() {
   if (auth.status !== "authenticated") return null;
   const accessToken = auth.accessToken;
 
+  const activeFilterCount = [filterType, filterStatus].filter((f) => f.length > 0).length;
+
+  function clearFilters() {
+    setFilterType([]);
+    setFilterStatus([]);
+  }
+
   if (error && !items) {
     return (
       <div className="panel-denied">
@@ -78,19 +92,11 @@ export function ErizelerView() {
   return (
     <div>
       <div className="panel-toolbar">
-        <select className="panel-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-          <option value="">Bütün növlər</option>
-          {KINDS.map((k) => (
-            <option key={k} value={APPLICATION_KINDS[k].value}>
-              {APPLICATION_KINDS[k].label}
-            </option>
-          ))}
-        </select>
-        <select className="panel-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="">Bütün statuslar</option>
-          <option value="0">Gözləmədə</option>
-          <option value="1">Əmrə çevrilib</option>
-        </select>
+        {activeFilterCount > 0 && (
+          <button type="button" className="panel-btn panel-btn-sm" onClick={clearFilters}>
+            Filtrləri təmizlə ({activeFilterCount})
+          </button>
+        )}
         <button
           type="button"
           className="panel-btn panel-btn-primary"
@@ -100,6 +106,15 @@ export function ErizelerView() {
           + Yeni ərizə
         </button>
       </div>
+
+      <MobileFilterBar activeCount={activeFilterCount} onClear={clearFilters}>
+        <FilterChip label="Növ">
+          <ColumnFilter options={typeOptions} selected={filterType} onChange={setFilterType} />
+        </FilterChip>
+        <FilterChip label="Status">
+          <ColumnFilter options={STATUS_OPTIONS} selected={filterStatus} onChange={setFilterStatus} />
+        </FilterChip>
+      </MobileFilterBar>
 
       {error && (
         <p className="ledger-alert" role="alert">
@@ -116,11 +131,21 @@ export function ErizelerView() {
               <thead>
                 <tr>
                   <th>Ərizə №</th>
-                  <th>Növ</th>
+                  <th>
+                    <div className="th-row">
+                      <span className="th-label">Növ</span>
+                      <ColumnFilter options={typeOptions} selected={filterType} onChange={setFilterType} />
+                    </div>
+                  </th>
                   <th>İşçi / namizəd</th>
                   <th>Yaradan</th>
                   <th>Tarix</th>
-                  <th>Status</th>
+                  <th>
+                    <div className="th-row">
+                      <span className="th-label">Status</span>
+                      <ColumnFilter options={STATUS_OPTIONS} selected={filterStatus} onChange={setFilterStatus} />
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>

@@ -15,6 +15,8 @@ import {
   type PropertyAnnualReportRow,
 } from "../../lib/api/payments";
 import { BalanceTag } from "../binalar/finance";
+import { ColumnFilter } from "../ColumnFilter";
+import { FilterChip, MobileFilterBar } from "../MobileFilterBar";
 
 // One big pull for the property lists — same pattern as Borclar/Tranzaksiyalar: the
 // server-side filter can only express one comparison and the grid needs every
@@ -100,6 +102,11 @@ type Row = {
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+const DEBT_OPTIONS = [
+  { value: "debt", label: "Borcu var" },
+  { value: "clear", label: "Borcu yoxdur" },
+];
+
 export function OdenisQrafikiView() {
   const auth = useAuth();
   const canExport = useCanPay();
@@ -108,8 +115,10 @@ export function OdenisQrafikiView() {
   const [report, setReport] = useState<AnnualPaymentReportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | RowKind>("all");
-  const [buildingFilter, setBuildingFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState<RowKind>("apartment");
+  const [buildingFilter, setBuildingFilter] = useState<string[]>([]);
+  const [propertyFilter, setPropertyFilter] = useState<string[]>([]);
+  const [debtFilter, setDebtFilter] = useState<string[]>([]);
   const [year, setYear] = useState(CURRENT_YEAR);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -143,7 +152,7 @@ export function OdenisQrafikiView() {
     setExporting(true);
     setError(null);
     try {
-      const propertyType = typeFilter === "all" ? null : typeFilter === "apartment" ? "Apartment" : "Garage";
+      const propertyType = typeFilter === "apartment" ? "Apartment" : "Garage";
       const { blob, fileName } = await exportAnnualPaymentReport(auth.accessToken, year, propertyType);
       saveBlobAsFile(blob, fileName);
     } catch (err) {
@@ -189,16 +198,36 @@ export function OdenisQrafikiView() {
 
   if (auth.status !== "authenticated") return null;
 
+  // Qarajların binası olmur: "Bina" sütunu və filtri yalnız Mənzillər tabında göstərilir
+  const isApartments = typeFilter === "apartment";
+
   const term = search.trim().toLowerCase();
   const visibleRows = rows.filter((r) => {
-    if (typeFilter !== "all" && r.kind !== typeFilter) return false;
-    if (buildingFilter !== "all" && r.buildingId !== buildingFilter) return false;
+    if (r.kind !== typeFilter) return false;
+    if (isApartments && buildingFilter.length > 0 && !(r.buildingId && buildingFilter.includes(r.buildingId))) return false;
+    if (propertyFilter.length > 0 && !propertyFilter.includes(r.key)) return false;
     if (term) {
       const haystack = `${r.label} ${r.buildingName ?? ""}`.toLowerCase();
       if (!haystack.includes(term)) return false;
     }
+    const propertyReport = reportByProperty.get(r.propertyId);
+    if (debtFilter.length > 0) {
+      const hasDebt = (propertyReport?.currentDebt ?? 0) > 0.005;
+      if (!debtFilter.includes(hasDebt ? "debt" : "clear")) return false;
+    }
     return true;
   });
+
+  const propertyOptions = rows.filter((r) => r.kind === typeFilter).map((r) => ({ value: r.key, label: r.label }));
+  const buildingFilterOptions = buildingOptions.map(([id, name]) => ({ value: id, label: name }));
+  const activeFilterCount = [isApartments ? buildingFilter : [], propertyFilter, debtFilter].filter(
+    (f) => f.length > 0,
+  ).length;
+  function clearFilters() {
+    setBuildingFilter([]);
+    setPropertyFilter([]);
+    setDebtFilter([]);
+  }
 
   const loading = !apartments || !garages || !report;
   const yearOptions = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - 4 + i);
@@ -229,15 +258,20 @@ export function OdenisQrafikiView() {
 
         <div className="ledger-filter-footer" style={{ padding: "12px 18px 0" }}>
           <div className="ledger-segmented" role="group" aria-label="Əmlak növü">
-            {(["all", "apartment", "garage"] as const).map((value) => (
+            {(["apartment", "garage"] as const).map((value) => (
               <button
                 key={value}
                 type="button"
                 aria-pressed={typeFilter === value}
                 className={typeFilter === value ? "active" : ""}
-                onClick={() => setTypeFilter(value)}
+                onClick={() => {
+                  if (value === typeFilter) return;
+                  setTypeFilter(value);
+                  // Əmlak siyahısı tabdan asılıdır, köhnə seçim yeni tabda keçərsizdir
+                  setPropertyFilter([]);
+                }}
               >
-                {value === "all" ? "Hamısı" : value === "apartment" ? "Mənzillər" : "Qarajlar"}
+                {value === "apartment" ? "Mənzillər" : "Qarajlar"}
               </button>
             ))}
           </div>
@@ -245,18 +279,6 @@ export function OdenisQrafikiView() {
             {yearOptions.map((y) => (
               <option key={y} value={y}>
                 {y}
-              </option>
-            ))}
-          </select>
-          <select
-            className="panel-select"
-            value={buildingFilter}
-            onChange={(e) => setBuildingFilter(e.target.value)}
-          >
-            <option value="all">Bütün binalar</option>
-            {buildingOptions.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
               </option>
             ))}
           </select>
@@ -269,19 +291,28 @@ export function OdenisQrafikiView() {
           />
         </div>
 
-        <div className="hesabat-legend">
-          <span>
-            <i className="hesabat-swatch hesabat-cell-paid" /> Ödənilib
-          </span>
-          <span>
-            <i className="hesabat-swatch hesabat-cell-partial" /> Qismən ödənilib
-          </span>
-          <span>
-            <i className="hesabat-swatch hesabat-cell-unpaid" /> Ödənilməyib
-          </span>
-          <span>
-            <i className="hesabat-swatch hesabat-cell-empty" /> Haqq yoxdur
-          </span>
+        {activeFilterCount > 0 && (
+          <div className="tf-bar" style={{ padding: "10px 18px 0" }}>
+            <button type="button" className="tf-chip tf-chip-clear" onClick={clearFilters}>
+              Filtrləri təmizlə ({activeFilterCount})
+            </button>
+          </div>
+        )}
+
+        <div style={{ padding: "10px 18px 0" }}>
+          <MobileFilterBar>
+            {isApartments && (
+              <FilterChip label="Bina">
+                <ColumnFilter options={buildingFilterOptions} selected={buildingFilter} onChange={setBuildingFilter} />
+              </FilterChip>
+            )}
+            <FilterChip label="Əmlak">
+              <ColumnFilter options={propertyOptions} selected={propertyFilter} onChange={setPropertyFilter} />
+            </FilterChip>
+            <FilterChip label="Borc">
+              <ColumnFilter options={DEBT_OPTIONS} selected={debtFilter} onChange={setDebtFilter} />
+            </FilterChip>
+          </MobileFilterBar>
         </div>
 
         {loading ? (
@@ -300,7 +331,7 @@ export function OdenisQrafikiView() {
           <div className="owner-table-scroll">
             <table className="data-table hesabat-grid">
               <colgroup>
-                <col style={{ width: 150 }} />
+                {isApartments && <col style={{ width: 150 }} />}
                 <col style={{ width: 170 }} />
                 {AZ_MONTHS_SHORT.map((m) => (
                   <col key={m} style={{ width: 40 }} />
@@ -309,12 +340,29 @@ export function OdenisQrafikiView() {
               </colgroup>
               <thead>
                 <tr>
-                  <th>Bina</th>
-                  <th className="hesabat-row-head">Əmlak</th>
+                  {isApartments && (
+                    <th>
+                      <div className="th-row">
+                        <span className="th-label">Bina</span>
+                        <ColumnFilter options={buildingFilterOptions} selected={buildingFilter} onChange={setBuildingFilter} />
+                      </div>
+                    </th>
+                  )}
+                  <th className="hesabat-row-head">
+                    <div className="th-row">
+                      <span className="th-label">Əmlak</span>
+                      <ColumnFilter options={propertyOptions} selected={propertyFilter} onChange={setPropertyFilter} />
+                    </div>
+                  </th>
                   {AZ_MONTHS_SHORT.map((m) => (
                     <th key={m}>{m}</th>
                   ))}
-                  <th>Borc</th>
+                  <th>
+                    <div className="th-row">
+                      <span className="th-label">Borc</span>
+                      <ColumnFilter options={DEBT_OPTIONS} selected={debtFilter} onChange={setDebtFilter} />
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -323,7 +371,7 @@ export function OdenisQrafikiView() {
                   const months = propertyReport?.months;
                   return (
                     <tr key={r.key}>
-                      <td>{r.buildingName ?? "—"}</td>
+                      {isApartments && <td>{r.buildingName ?? "—"}</td>}
                       <td className="hesabat-row-head">
                         <Link className="owner-link" href={r.href}>
                           {r.label}

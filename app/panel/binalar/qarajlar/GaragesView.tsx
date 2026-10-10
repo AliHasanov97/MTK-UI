@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useCanDoEverything } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
-import { SortDirection } from "../../../lib/api/buildings";
+import { QueryComparisonType, SortDirection, type QueryFilter } from "../../../lib/api/buildings";
 import type { OwnerListItem } from "../../../lib/api/owners";
 import {
   GARAGE_TYPE_LABELS,
@@ -14,6 +14,8 @@ import {
   type GarageTypeKey,
   type GarageListItem,
 } from "../../../lib/api/garages";
+import { ColumnFilter, SortIcon } from "../../ColumnFilter";
+import { FilterChip, MobileFilterBar } from "../../MobileFilterBar";
 import { Modal } from "../../Modal";
 import { OwnerPicker } from "../OwnerPicker";
 
@@ -41,10 +43,10 @@ const SORT_COLUMN_MAP: Record<SortColumn, string> = {
 
 const PAGE_SIZE = 10;
 
-function SortIcon({ active, direction }: { active: boolean; direction: "asc" | "desc" }) {
-  if (!active) return <span className="sort-icon">⇅</span>;
-  return <span className="sort-icon active">{direction === "asc" ? "▲" : "▼"}</span>;
-}
+const TYPE_OPTIONS = (Object.keys(GARAGE_TYPE_LABELS) as GarageTypeKey[]).map((k) => ({
+  value: k as string,
+  label: GARAGE_TYPE_LABELS[k],
+}));
 
 export function GaragesView() {
   const auth = useAuth();
@@ -55,6 +57,7 @@ export function GaragesView() {
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sort, setSort] = useState<SortState>(null);
+  const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [pageNumber, setPageNumber] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -64,7 +67,7 @@ export function GaragesView() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const filterSignature = JSON.stringify([searchTerm, sort]);
+  const filterSignature = JSON.stringify([searchTerm, sort, typeFilter]);
   const [prevFilterSignature, setPrevFilterSignature] = useState(filterSignature);
   if (filterSignature !== prevFilterSignature) {
     setPrevFilterSignature(filterSignature);
@@ -81,7 +84,13 @@ export function GaragesView() {
         }
       : null;
 
+    const filters: QueryFilter[] = [];
+    if (typeFilter.length > 0) {
+      filters.push({ columnName: "Type", comparison: QueryComparisonType.In, value: typeFilter });
+    }
+
     searchGarages(auth.accessToken, {
+      filters: filters.length > 0 ? filters : null,
       sortCriteria,
       searchTerm: searchTerm || undefined,
       page: pageNumber - 1,
@@ -93,7 +102,7 @@ export function GaragesView() {
         setError(null);
       })
       .catch((err) => setError(errorMessage(err)));
-  }, [auth, searchTerm, sort, pageNumber, reloadKey]);
+  }, [auth, searchTerm, sort, typeFilter, pageNumber, reloadKey]);
 
   if (auth.status !== "authenticated") return null;
 
@@ -129,12 +138,23 @@ export function GaragesView() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
+        {typeFilter.length > 0 && (
+          <button type="button" className="panel-btn panel-btn-sm" onClick={() => setTypeFilter([])}>
+            Filtrləri təmizlə (1)
+          </button>
+        )}
         {canManage && (
           <button type="button" className="panel-btn panel-btn-primary" onClick={() => setShowCreate(true)}>
             + Yeni qaraj
           </button>
         )}
       </div>
+
+      <MobileFilterBar activeCount={typeFilter.length > 0 ? 1 : 0} onClear={() => setTypeFilter([])}>
+        <FilterChip label="Növ">
+          <ColumnFilter options={TYPE_OPTIONS} selected={typeFilter} onChange={setTypeFilter} />
+        </FilterChip>
+      </MobileFilterBar>
 
       <div className="data-table-wrap">
         <table className="data-table">
@@ -146,9 +166,12 @@ export function GaragesView() {
                 </span>
               </th>
               <th>
-                <span className="th-label" onClick={() => handleSort("type")}>
-                  Növ <SortIcon active={sort?.column === "type"} direction={sort?.direction ?? "asc"} />
-                </span>
+                <div className="th-row">
+                  <span className="th-label" onClick={() => handleSort("type")}>
+                    Növ <SortIcon active={sort?.column === "type"} direction={sort?.direction ?? "asc"} />
+                  </span>
+                  <ColumnFilter options={TYPE_OPTIONS} selected={typeFilter} onChange={setTypeFilter} />
+                </div>
               </th>
               <th>Qeyd</th>
               <th>Sahibi</th>

@@ -11,12 +11,15 @@ import {
   type OrderKind,
 } from "../../../lib/api/hr";
 import { formatDateTime } from "../../../lib/format";
+import { ColumnFilter } from "../../ColumnFilter";
+import { FilterChip, MobileFilterBar } from "../../MobileFilterBar";
 import { DocumentDetailModal, type DocTarget } from "../DocumentDetailModal";
 import { CreateOrderModal } from "../CreateDocumentModals";
 import { Pagination } from "../Pagination";
 import { PAGE_SIZE, hrErrorMessage } from "../shared";
 
 const ORDER_KEYS = Object.keys(ORDER_KINDS) as OrderKind[];
+const typeOptions = ORDER_KEYS.map((k) => ({ value: ORDER_KINDS[k].value as number, label: ORDER_KINDS[k].label }));
 
 export function EmrlerView() {
   const auth = useAuth();
@@ -24,7 +27,7 @@ export function EmrlerView() {
   const [totalCount, setTotalCount] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [error, setError] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState("");
+  const [filterType, setFilterType] = useState<number[]>([]);
   const [pageNumber, setPageNumber] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
@@ -39,9 +42,10 @@ export function EmrlerView() {
   useEffect(() => {
     if (auth.status !== "authenticated") return;
     searchOrders(auth.accessToken, {
-      filters: filterType
-        ? [{ columnName: "Type", comparison: QueryComparisonType.Equals, value: Number(filterType) }]
-        : null,
+      filters:
+        filterType.length > 0
+          ? [{ columnName: "Type", comparison: QueryComparisonType.In, value: filterType }]
+          : null,
       sortCriteria: { columnName: "CreatedAt", direction: 1 },
       page: pageNumber - 1,
       pageSize: PAGE_SIZE,
@@ -70,14 +74,11 @@ export function EmrlerView() {
   return (
     <div>
       <div className="panel-toolbar">
-        <select className="panel-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-          <option value="">Bütün növlər</option>
-          {ORDER_KEYS.map((k) => (
-            <option key={k} value={ORDER_KINDS[k].value}>
-              {ORDER_KINDS[k].label}
-            </option>
-          ))}
-        </select>
+        {filterType.length > 0 && (
+          <button type="button" className="panel-btn panel-btn-sm" onClick={() => setFilterType([])}>
+            Filtrləri təmizlə (1)
+          </button>
+        )}
         <button
           type="button"
           className="panel-btn panel-btn-primary"
@@ -87,6 +88,12 @@ export function EmrlerView() {
           + Yeni əmr
         </button>
       </div>
+
+      <MobileFilterBar activeCount={filterType.length > 0 ? 1 : 0} onClear={() => setFilterType([])}>
+        <FilterChip label="Növ">
+          <ColumnFilter options={typeOptions} selected={filterType} onChange={setFilterType} />
+        </FilterChip>
+      </MobileFilterBar>
 
       {error && (
         <p className="ledger-alert" role="alert">
@@ -103,7 +110,12 @@ export function EmrlerView() {
               <thead>
                 <tr>
                   <th>Əmr №</th>
-                  <th>Növ</th>
+                  <th>
+                    <div className="th-row">
+                      <span className="th-label">Növ</span>
+                      <ColumnFilter options={typeOptions} selected={filterType} onChange={setFilterType} />
+                    </div>
+                  </th>
                   <th>İşçi / namizəd</th>
                   <th>Yaradan</th>
                   <th>Tarix</th>

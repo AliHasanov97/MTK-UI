@@ -840,8 +840,27 @@ thead .tb-sticky{z-index:4;background:#f7f8f4}
 .lg-avatar-alt{background:#e3ecf7;color:#2f5586}
 .lg-name{flex:1;min-width:0;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis}
 .lg-actions{display:flex;gap:6px;flex-shrink:0}
-@media(max-width:860px){.lg-layout{grid-template-columns:1fr}.lg-nav{position:static;flex-direction:row;overflow-x:auto}.lg-nav-item{min-width:260px}}
-@media(max-width:560px){.lg-panel{padding:16px}.lg-panel-head{flex-direction:column}.lg-row{flex-wrap:wrap}.lg-actions{margin-left:46px}}
+@media(max-width:860px){
+  .lg-layout{grid-template-columns:minmax(0,1fr)}
+  .lg-layout>*{min-width:0}
+  .lg-nav{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .lg-nav-item{min-width:0;padding:12px}
+  .lg-nav-text small{display:none}
+}
+@media(max-width:560px){
+  .lg-nav-item{gap:8px;padding:10px}
+  .lg-nav-icon{width:30px;height:30px;font-size:15px}
+  .lg-nav-text strong{font-size:13px}
+  .lg-panel{padding:14px}
+  .lg-panel-head{flex-direction:column;align-items:stretch;gap:10px}
+  .lg-panel-head .panel-btn{width:100%}
+  .lg-search{flex-wrap:wrap}
+  .lg-row{flex-wrap:wrap;gap:8px 10px}
+  .lg-name{flex:1 1 calc(100% - 50px);white-space:normal;overflow-wrap:anywhere}
+  .lg-row .panel-role-tag{margin-left:46px}
+  .lg-actions{flex:1 1 100%;padding-left:46px}
+  .lg-actions .panel-btn{flex:1;text-align:center}
+}
 
 /* ---------- İşçilər siyahısı (cədvəl) ---------- */
 .em-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
@@ -961,4 +980,15 @@ thead .tb-sticky{z-index:4;background:#f7f8f4}
   .em-table tbody td.em-cell-actions{padding-top:10px;border-top:1px dashed var(--line)!important}
   .em-actions{justify-content:flex-start}
   .em-actions .panel-btn{flex:1;text-align:center}
+}
+
+/* ---------- Cədvəl filtrləri: çiplər ---------- */
+.tf-chip{display:inline-flex;align-items:center;gap:2px;padding:4px 4px 4px 12px;border:1px solid var(--line);border-radius:20px;background:#fff;font:inherit;font-size:12px;font-weight:700;color:#3c463f}
+.tf-chip .col-filter{margin-left:0}
+.tf-chip-clear{padding:7px 12px;cursor:pointer;color:#a24a4a;border-color:#f0d9d9}
+.tf-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+/* Telefonda (≤640px) cədvəl kart rejiminə keçəndə başlıqdakı filtrlər gizlənir; bu zolaq onları göstərir */
+.tf-mobile{display:none}
+@media(max-width:640px){
+  .tf-mobile{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
 }

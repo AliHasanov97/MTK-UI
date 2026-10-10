@@ -22,6 +22,8 @@ import {
   type TransactionResponse,
 } from "../../lib/api/payments";
 import { useCreatedByMap } from "../binalar/finance";
+import { ColumnFilter } from "../ColumnFilter";
+import { FilterChip, MobileFilterBar } from "../MobileFilterBar";
 import { Modal } from "../Modal";
 import { SignedDocumentsPanel } from "../SignedDocuments";
 import { getPurchase, purchaseStatusLabel, type PurchaseResponse } from "../../lib/api/purchases-client";
@@ -189,6 +191,7 @@ export function TranzaksiyalarView() {
   const [startDate, setStartDate] = useState(() => currentMonthRange().start);
   const [endDate, setEndDate] = useState(() => currentMonthRange().end);
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [docTarget, setDocTarget] = useState<Row | null>(null);
   const transactionCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Transaction");
 
@@ -233,12 +236,17 @@ export function TranzaksiyalarView() {
     // Real instants, not strings — same reasoning as rangeStartMs/rangeEndMs below.
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  const categoryOptions = [...new Set(allRows.map((r) => r.category))]
+    .sort((a, b) => a.localeCompare(b, "az"))
+    .map((c) => ({ value: c, label: c }));
+
   const term = search.trim().toLowerCase();
   const rows = allRows.filter((row) => {
     const rowMs = new Date(row.date).getTime();
     if (startDate && rowMs < rangeStartMs(startDate)) return false;
     if (endDate && rowMs > rangeEndMs(endDate)) return false;
     if (kindFilter !== "all" && row.kind !== kindFilter) return false;
+    if (categoryFilter.length > 0 && !categoryFilter.includes(row.category)) return false;
     if (term && !row.category.toLowerCase().includes(term) && !row.note.toLowerCase().includes(term)) return false;
     return true;
   });
@@ -350,9 +358,20 @@ export function TranzaksiyalarView() {
         </div>
       </section>
 
+      <MobileFilterBar activeCount={categoryFilter.length > 0 ? 1 : 0} onClear={() => setCategoryFilter([])}>
+        <FilterChip label="Kateqoriya">
+          <ColumnFilter options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} />
+        </FilterChip>
+      </MobileFilterBar>
+
       <div className="data-table-wrap">
         <div className="ledger-table-head">
           <h3>Əməliyyatlar</h3>
+          {categoryFilter.length > 0 && (
+            <button type="button" className="panel-btn panel-btn-sm" onClick={() => setCategoryFilter([])}>
+              Kateqoriya filtrini təmizlə ({categoryFilter.length})
+            </button>
+          )}
           <span className="ledger-count">{rows.length} qeyd</span>
         </div>
 
@@ -383,7 +402,12 @@ export function TranzaksiyalarView() {
                 <tr>
                   <th>Tarix</th>
                   <th>Növ</th>
-                  <th>Kateqoriya</th>
+                  <th>
+                    <div className="th-row">
+                      <span className="th-label">Kateqoriya</span>
+                      <ColumnFilter options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} />
+                    </div>
+                  </th>
                   <th>Qeyd</th>
                   <th className="ledger-th-amount">Məbləğ (₼)</th>
                   <th>Yaradan</th>

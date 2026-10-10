@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { ApiError } from "../../lib/api/client";
@@ -12,6 +11,8 @@ import {
   type Apartment,
   type QueryFilter,
 } from "../../lib/api/buildings";
+import { ColumnFilter, SortIcon } from "../ColumnFilter";
+import { FilterChip, MobileFilterBar } from "../MobileFilterBar";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -43,128 +44,12 @@ const SORT_COLUMN_MAP: Record<SortColumn, string> = {
   status: "Status",
 };
 
-type FilterOption<T> = { value: T; label: string };
-
 const NO_OWNER = "__NONE__";
 const PAGE_SIZE = 10;
 // Fetched once (unfiltered, unpaged) purely to populate the filter dropdown
 // option lists across the whole dataset — the visible table itself uses a
 // separate, properly paginated request below.
 const FILTER_OPTIONS_PAGE_SIZE = 1000;
-
-function ColumnFilter<T extends string | number>({
-  options,
-  selected,
-  onChange,
-}: {
-  options: FilterOption<T>[];
-  selected: T[];
-  onChange: (next: T[]) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(e: MouseEvent) {
-      const target = e.target as Node;
-      if (
-        btnRef.current &&
-        !btnRef.current.contains(target) &&
-        panelRef.current &&
-        !panelRef.current.contains(target)
-      ) {
-        setOpen(false);
-        setQuery("");
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  function toggle(value: T) {
-    onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value]);
-  }
-
-  function toggleOpen(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (!open) {
-      const rect = btnRef.current?.getBoundingClientRect();
-      if (rect) {
-        const panelWidth = 200;
-        setPosition({
-          top: rect.bottom + 6,
-          left: Math.min(Math.max(8, rect.right - panelWidth), window.innerWidth - panelWidth - 8),
-        });
-      }
-    }
-    setOpen((o) => !o);
-  }
-
-  const normalizedQuery = query.trim().toLowerCase();
-  const visibleOptions = normalizedQuery
-    ? options.filter((opt) => opt.label.toLowerCase().includes(normalizedQuery))
-    : options;
-
-  return (
-    <div className="col-filter">
-      <button
-        ref={btnRef}
-        type="button"
-        className={`col-filter-btn${selected.length > 0 ? " active" : ""}`}
-        onClick={toggleOpen}
-      >
-        ▾
-        {selected.length > 0 && <span className="col-filter-badge">{selected.length}</span>}
-      </button>
-      {open &&
-        position &&
-        createPortal(
-          <div
-            className="col-filter-panel"
-            ref={panelRef}
-            style={{ top: position.top, left: position.left }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              className="col-filter-search"
-              placeholder="Axtar…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoFocus
-            />
-            <div className="col-filter-options">
-              {visibleOptions.length === 0 && <p className="col-filter-empty">Nəticə yoxdur</p>}
-              {visibleOptions.map((opt) => (
-                <label key={String(opt.value)} className="col-filter-option">
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(opt.value)}
-                    onChange={() => toggle(opt.value)}
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-            {selected.length > 0 && (
-              <button type="button" className="col-filter-clear" onClick={() => onChange([])}>
-                Təmizlə
-              </button>
-            )}
-          </div>,
-          document.body,
-        )}
-    </div>
-  );
-}
-
-function SortIcon({ active, direction }: { active: boolean; direction: "asc" | "desc" }) {
-  if (!active) return <span className="sort-icon">⇅</span>;
-  return <span className="sort-icon active">{direction === "asc" ? "▲" : "▼"}</span>;
-}
 
 export function BuildingsView() {
   const auth = useAuth();
@@ -340,6 +225,20 @@ export function BuildingsView() {
 
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
+  const activeFilterCount = [buildingFilter, numberFilter, statusFilter, floorFilter, roomFilter, areaFilter, ownerFilter].filter(
+    (f) => f.length > 0,
+  ).length;
+
+  function clearFilters() {
+    setBuildingFilter([]);
+    setNumberFilter([]);
+    setStatusFilter([]);
+    setFloorFilter([]);
+    setRoomFilter([]);
+    setAreaFilter([]);
+    setOwnerFilter([]);
+  }
+
   return (
     <div>
       <div className="panel-toolbar">
@@ -349,7 +248,56 @@ export function BuildingsView() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
+        {activeFilterCount > 0 && (
+          <button type="button" className="panel-btn panel-btn-sm" onClick={clearFilters}>
+            Filtrləri təmizlə ({activeFilterCount})
+          </button>
+        )}
       </div>
+
+      <MobileFilterBar activeCount={activeFilterCount} onClear={clearFilters}>
+        <FilterChip label="Bina">
+          <ColumnFilter options={buildingOptions} selected={buildingFilter} onChange={setBuildingFilter} />
+        </FilterChip>
+        <FilterChip label="Nömrə">
+          <ColumnFilter
+            options={uniqueNumbers.map((n) => ({ value: n, label: n }))}
+            selected={numberFilter}
+            onChange={setNumberFilter}
+          />
+        </FilterChip>
+        <FilterChip label="Mərtəbə">
+          <ColumnFilter
+            options={uniqueFloors.map((floor) => ({ value: floor, label: `${floor}-cü mərtəbə` }))}
+            selected={floorFilter}
+            onChange={setFloorFilter}
+          />
+        </FilterChip>
+        <FilterChip label="Otaq">
+          <ColumnFilter
+            options={uniqueRoomCounts.map((rooms) => ({ value: rooms, label: `${rooms} otaqlı` }))}
+            selected={roomFilter}
+            onChange={setRoomFilter}
+          />
+        </FilterChip>
+        <FilterChip label="Sahə">
+          <ColumnFilter
+            options={uniqueAreas.map((area) => ({ value: area, label: `${area} m²` }))}
+            selected={areaFilter}
+            onChange={setAreaFilter}
+          />
+        </FilterChip>
+        <FilterChip label="Sahibi">
+          <ColumnFilter options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
+        </FilterChip>
+        <FilterChip label="Status">
+          <ColumnFilter
+            options={uniqueStatuses.map((status) => ({ value: status, label: status }))}
+            selected={statusFilter}
+            onChange={setStatusFilter}
+          />
+        </FilterChip>
+      </MobileFilterBar>
 
       <div className="data-table-wrap">
         <table className="data-table">
