@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchFile, saveBlobAsFile } from "./client";
+import { apiFetch, apiFetchFile, apiUploadFile, saveBlobAsFile } from "./client";
 import { dateOnlyToUtcIso, searchBody, type SearchParams } from "./payments";
 
 // HR API (fivestar HR modulunun portu). Enum-lar rəqəm kimi gedib-gəlir (JsonStringEnumConverter yoxdur),
@@ -127,7 +127,7 @@ export const ORDER_KINDS = {
   Warning: { value: 4, route: "warnings", label: "Xəbərdarlıq", pdf: true },
   VacationCompensation: { value: 5, route: "compensationorders", label: "Məzuniyyət əvəzi", pdf: true },
   UnpaidLeave: { value: 6, route: "unpaidleaveorders", label: "Ödənişsiz məzuniyyət", pdf: true },
-  Vacation: { value: 7, route: "vacationorders", label: "Əmək məzuniyyəti", pdf: false },
+  Vacation: { value: 7, route: "vacationorders", label: "Əmək məzuniyyəti", pdf: true },
   EducationLeave: { value: 8, route: "educationleaveorders", label: "Təhsil məzuniyyəti", pdf: true },
   Reprimand: { value: 9, route: "warnings", label: "Töhmət", pdf: true },
   SevereReprimand: { value: 10, route: "warnings", label: "Ciddi töhmət", pdf: true },
@@ -509,6 +509,34 @@ export async function downloadFile(token: string, path: string) {
   saveBlobAsFile(blob, fileName);
 }
 
+/** Ərizə növünə uyğun yaranan əmr növü. */
+export const ORDER_FOR_APPLICATION: Record<ApplicationKind, OrderKind> = {
+  JobApplication: "Employment",
+  ChangeOfPosition: "ChangeOfPosition",
+  VacationCompensation: "VacationCompensation",
+  UnpaidLeave: "UnpaidLeave",
+  Vacation: "Vacation",
+  EducationLeave: "EducationLeave",
+  EmploymentStatusChange: "EmploymentStatusChange",
+  VacationReturn: "VacationReturn",
+};
+
+/** Backend-də silmə endpoint-i olan əmr növləri. */
+export const DELETABLE_ORDERS: OrderKind[] = [
+  "Employment", "ChangeOfPosition", "UnexcusedAbsence", "Warning", "Reprimand", "SevereReprimand",
+  "VacationCompensation", "UnpaidLeave", "EducationLeave", "Bonus", "SalaryDeduction", "WorkOnNonWorkday",
+  "EmploymentStatusChange",
+];
+
+/** Ərizə və ya əmrin tam məlumatı (detal pəncərəsi üçün) — sahələr növə görə dəyişir. */
+export type DocumentDetail = Record<string, unknown>;
+export const getApplicationDetail = (token: string, kind: ApplicationKind, id: string) =>
+  get<DocumentDetail>(token, `api/hr/${APPLICATION_KINDS[kind].route}/${id}`);
+export const getOrderDetail = (token: string, kind: OrderKind, id: string) =>
+  get<DocumentDetail>(token, `api/hr/${ORDER_KINDS[kind].route}/${id}`);
+export const deleteOrder = (token: string, kind: OrderKind, id: string) =>
+  send<unknown>(token, "DELETE", `api/hr/${ORDER_KINDS[kind].route}/${id}`);
+
 export const downloadApplicationPdf = (token: string, kind: ApplicationKind, id: string) =>
   downloadFile(token, `api/hr/${APPLICATION_KINDS[kind].route}/${id}/export-pdf`);
 
@@ -609,3 +637,65 @@ export const bulkCreateCalendarDays = (token: string, days: BulkCalendarDayItem[
   send<BulkCalendarResult>(token, "POST", "api/hr/calendardays/bulk", {
     days: days.map((d) => ({ ...d, name: d.name.trim(), reason: str(d.reason) })),
   });
+
+/* ------------------------------------------------------------------ */
+/* İmzalanmış sənədlər (fayl əlavələri)                                */
+/* ------------------------------------------------------------------ */
+
+export type HrFileAttachment = { id: string; fileName: string; mimeType: string; createdAt: string; documentType: number | null };
+
+/** Fayl əlavəsinin bağlandığı sütun (FileAttachment FK) — ərizə/əmr növünə görə. */
+export const APPLICATION_ATTACHMENT_FK: Record<ApplicationKind, string> = {
+  JobApplication: "JobApplicationId",
+  ChangeOfPosition: "ApplicationForChangeOfPositionId",
+  VacationCompensation: "VacationCompensationApplicationId",
+  UnpaidLeave: "UnpaidLeaveApplicationId",
+  Vacation: "VacationApplicationId",
+  EducationLeave: "EducationLeaveApplicationId",
+  EmploymentStatusChange: "EmploymentStatusChangeApplicationId",
+  VacationReturn: "VacationReturnApplicationId",
+};
+export const ORDER_ATTACHMENT_FK: Record<OrderKind, string> = {
+  Employment: "EmploymentOrderId",
+  ChangeOfPosition: "OrderForChangeOfPositionId",
+  UnexcusedAbsence: "UnexcusedAbsenceId",
+  Warning: "WarningId",
+  Reprimand: "WarningId",
+  SevereReprimand: "WarningId",
+  VacationCompensation: "CompensationOrderId",
+  UnpaidLeave: "UnpaidLeaveOrderId",
+  Vacation: "VacationOrderId",
+  EducationLeave: "EducationLeaveOrderId",
+  Bonus: "BonusOrderId",
+  SalaryDeduction: "SalaryDeductionId",
+  WorkOnNonWorkday: "WorkOnNonWorkdayOrderId",
+  EmploymentStatusChange: "EmploymentStatusChangeOrderId",
+  VacationReturn: "VacationReturnOrderId",
+};
+
+const SIGNED_DOCUMENT_TYPE = 10;
+
+export const listAttachments = (token: string, fkColumn: string, id: string) =>
+  send<Paged<HrFileAttachment>>(token, "POST", "api/hr/fileattachments/search", {
+    filters: [{ columnName: fkColumn, comparison: 0, value: id }],
+    sortCriteria: { columnName: "CreatedAt", direction: 1 },
+    page: 0,
+    pageSize: 100,
+  }).then((r) => r.data);
+
+export function uploadAttachment(token: string, file: File, fkColumn: string, id: string) {
+  const form = new FormData();
+  form.append("File", file);
+  form.append(fkColumn, id);
+  form.append("DocumentType", String(SIGNED_DOCUMENT_TYPE));
+  return apiUploadFile<unknown>("api/hr/fileattachments", token, form);
+}
+
+export const getAttachmentBlob = (token: string, id: string) => apiFetchFile(`api/hr/fileattachments/${id}/download`, token);
+export const downloadAttachment = async (token: string, id: string) => {
+  const { blob, fileName } = await getAttachmentBlob(token, id);
+  saveBlobAsFile(blob, fileName);
+};
+// Backend 204 (boş cavab) qaytarır, ona görə `send` (JSON zərfi gözləyir) əvəzinə birbaşa apiFetch
+export const deleteAttachment = (token: string, id: string) =>
+  apiFetch<void>(`api/hr/fileattachments/${id}`, token, { method: "DELETE" });

@@ -6,7 +6,6 @@ import { QueryComparisonType } from "../../../lib/api/buildings";
 import {
   ORDER_KINDS,
   createDirectOrder,
-  downloadOrderPdf,
   orderKindFromValue,
   searchOrders,
   type DirectOrderKind,
@@ -15,6 +14,7 @@ import {
 } from "../../../lib/api/hr";
 import { formatDateTime } from "../../../lib/format";
 import { Modal } from "../../Modal";
+import { DocumentDetailModal, type DocTarget } from "../DocumentDetailModal";
 import { DynamicForm, buildBody, missingRequired, type FormValues } from "../DynamicForm";
 import { DIRECT_ORDER_FIELDS } from "../documentConfig";
 import { Pagination } from "../Pagination";
@@ -33,7 +33,7 @@ export function EmrlerView() {
   const [pageNumber, setPageNumber] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
-  const [workingId, setWorkingId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<DocTarget | null>(null);
 
   const [prevFilterType, setPrevFilterType] = useState(filterType);
   if (filterType !== prevFilterType) {
@@ -62,18 +62,6 @@ export function EmrlerView() {
 
   if (auth.status !== "authenticated") return null;
   const accessToken = auth.accessToken;
-
-  async function handlePdf(item: OrderItem, kind: OrderKind) {
-    setWorkingId(item.id);
-    setError(null);
-    try {
-      await downloadOrderPdf(accessToken, kind, item.id);
-    } catch (err) {
-      setError(hrErrorMessage(err));
-    } finally {
-      setWorkingId(null);
-    }
-  }
 
   if (error && !items) {
     return (
@@ -124,38 +112,27 @@ export function EmrlerView() {
                   <th>İşçi / namizəd</th>
                   <th>Yaradan</th>
                   <th>Tarix</th>
-                  <th></th>
                 </tr>
               </thead>
               <tbody>
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={6}>Nəticə tapılmadı.</td>
+                    <td colSpan={5}>Nəticə tapılmadı.</td>
                   </tr>
                 )}
                 {items.map((o) => {
                   const kind = orderKindFromValue(o.type);
                   return (
-                    <tr key={o.id}>
+                    <tr
+                      key={o.id}
+                      className="doc-row"
+                      onClick={() => kind && setDetail({ type: "order", kind, id: o.id })}
+                    >
                       <td>{o.orderNumber}</td>
                       <td>{kind ? ORDER_KINDS[kind].label : o.type}</td>
                       <td>{o.employee?.name ?? o.jobApplicant?.name ?? "Bütün işçilər"}</td>
                       <td>{o.createdBy?.name ?? "—"}</td>
                       <td>{formatDateTime(o.createdAt)}</td>
-                      <td>
-                        {kind && ORDER_KINDS[kind].pdf && (
-                          <div className="data-table-actions">
-                            <button
-                              type="button"
-                              className="panel-btn panel-btn-sm"
-                              disabled={workingId === o.id}
-                              onClick={() => handlePdf(o, kind)}
-                            >
-                              PDF
-                            </button>
-                          </div>
-                        )}
-                      </td>
                     </tr>
                   );
                 })}
@@ -164,6 +141,15 @@ export function EmrlerView() {
           </div>
           <Pagination page={pageNumber} pageCount={pageCount} totalCount={totalCount} onChange={setPageNumber} />
         </div>
+      )}
+
+      {detail && (
+        <DocumentDetailModal
+          accessToken={accessToken}
+          target={detail}
+          onClose={() => setDetail(null)}
+          onChanged={() => setReloadKey((k) => k + 1)}
+        />
       )}
 
       {showCreate && (

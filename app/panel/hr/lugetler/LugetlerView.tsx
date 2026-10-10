@@ -22,32 +22,7 @@ import { PAGE_SIZE, hrErrorMessage } from "../shared";
 
 type Section = "jobs" | "institutions";
 
-export function LugetlerView() {
-  const [section, setSection] = useState<Section>("jobs");
-  return (
-    <div>
-      <div className="panel-toolbar">
-        <button
-          type="button"
-          className={`panel-btn ${section === "jobs" ? "panel-btn-primary" : ""}`}
-          onClick={() => setSection("jobs")}
-        >
-          Vəzifələr
-        </button>
-        <button
-          type="button"
-          className={`panel-btn ${section === "institutions" ? "panel-btn-primary" : ""}`}
-          onClick={() => setSection("institutions")}
-        >
-          Təhsil ocaqları
-        </button>
-      </div>
-      {section === "jobs" ? <JobsSection /> : <InstitutionsSection />}
-    </div>
-  );
-}
-
-/** Ad (və istəyə görə növ) üzrə sadə lüğət siyahısı: axtarış, səhifələmə, əlavə/redaktə/silmə. */
+/** Ad üzrə axtarış, səhifələmə və yükləmə vəziyyəti olan sadə lüğət siyahısı. */
 function useCatalog<T extends { id: string }>(
   load: (token: string, params: { searchTerm?: string; page: number; pageSize: number }) => Promise<{
     data: T[];
@@ -57,7 +32,7 @@ function useCatalog<T extends { id: string }>(
 ) {
   const auth = useAuth();
   const [items, setItems] = useState<T[] | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
   const [pageCount, setPageCount] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -86,12 +61,11 @@ function useCatalog<T extends { id: string }>(
         setError(null);
       })
       .catch((err) => setError(hrErrorMessage(err)));
-    // `load` is a stable module-level function
+    // `load` modul səviyyəsində sabit funksiyadır
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth, searchTerm, pageNumber, reloadKey]);
 
   return {
-    auth,
     items,
     totalCount,
     pageCount,
@@ -99,6 +73,7 @@ function useCatalog<T extends { id: string }>(
     setError,
     searchInput,
     setSearchInput,
+    searchTerm,
     pageNumber,
     setPageNumber,
     reload: () => setReloadKey((k) => k + 1),
@@ -107,178 +82,165 @@ function useCatalog<T extends { id: string }>(
 
 const loadJobs = (token: string, p: { searchTerm?: string; page: number; pageSize: number }) =>
   searchJobs(token, { ...p, sortCriteria: { columnName: "Name", direction: 0 } });
-
-function JobsSection() {
-  const c = useCatalog<Job>(loadJobs);
-  const [editing, setEditing] = useState<Job | "new" | null>(null);
-
-  if (c.auth.status !== "authenticated") return null;
-  const accessToken = c.auth.accessToken;
-
-  async function handleDelete(job: Job) {
-    if (!window.confirm(`"${job.name}" vəzifəsi silinsin?`)) return;
-    try {
-      await deleteJob(accessToken, job.id);
-      c.reload();
-    } catch (err) {
-      c.setError(hrErrorMessage(err));
-    }
-  }
-
-  return (
-    <div>
-      <div className="panel-toolbar">
-        <input
-          className="panel-search"
-          placeholder="Vəzifə axtar…"
-          value={c.searchInput}
-          onChange={(e) => c.setSearchInput(e.target.value)}
-        />
-        <button type="button" className="panel-btn panel-btn-primary" style={{ marginLeft: "auto" }} onClick={() => setEditing("new")}>
-          + Yeni vəzifə
-        </button>
-      </div>
-      {c.error && <p className="ledger-alert" role="alert">{c.error}</p>}
-      {!c.items ? (
-        <p className="panel-page-lead">Yüklənir…</p>
-      ) : (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Vəzifə</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {c.items.length === 0 && (
-                <tr>
-                  <td colSpan={2}>Nəticə tapılmadı.</td>
-                </tr>
-              )}
-              {c.items.map((j) => (
-                <tr key={j.id}>
-                  <td>{j.name}</td>
-                  <td>
-                    <div className="data-table-actions">
-                      <button type="button" className="panel-btn panel-btn-sm" onClick={() => setEditing(j)}>
-                        Redaktə
-                      </button>
-                      <button type="button" className="panel-btn panel-btn-sm panel-btn-danger" onClick={() => handleDelete(j)}>
-                        Sil
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination page={c.pageNumber} pageCount={c.pageCount} totalCount={c.totalCount} onChange={c.setPageNumber} />
-        </div>
-      )}
-      {editing && (
-        <NameModal
-          title={editing === "new" ? "Yeni vəzifə" : "Vəzifəni redaktə et"}
-          initialName={editing === "new" ? "" : editing.name}
-          onClose={() => setEditing(null)}
-          onSave={async (name) => {
-            if (editing === "new") await createJob(accessToken, name);
-            else await updateJob(accessToken, editing.id, name);
-            setEditing(null);
-            c.reload();
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
 const loadInstitutions = (token: string, p: { searchTerm?: string; page: number; pageSize: number }) =>
   searchInstitutions(token, { ...p, sortCriteria: { columnName: "Name", direction: 0 } });
 
-function InstitutionsSection() {
-  const c = useCatalog<EducationalInstitution>(loadInstitutions);
-  const [editing, setEditing] = useState<EducationalInstitution | "new" | null>(null);
+const SECTIONS: { key: Section; title: string; hint: string; icon: string }[] = [
+  { key: "jobs", title: "Vəzifələr", hint: "İşçi kartı, ərizə və əmrlərdə seçilən vəzifələr", icon: "◈" },
+  { key: "institutions", title: "Təhsil ocaqları", hint: "Universitet və kolleclər — işçinin təhsil qeydləri üçün", icon: "◎" },
+];
 
-  if (c.auth.status !== "authenticated") return null;
-  const accessToken = c.auth.accessToken;
+export function LugetlerView() {
+  const auth = useAuth();
+  const [section, setSection] = useState<Section>("jobs");
+  const jobs = useCatalog<Job>(loadJobs);
+  const institutions = useCatalog<EducationalInstitution>(loadInstitutions);
+  const [editingJob, setEditingJob] = useState<Job | "new" | null>(null);
+  const [editingInst, setEditingInst] = useState<EducationalInstitution | "new" | null>(null);
 
-  async function handleDelete(item: EducationalInstitution) {
+  if (auth.status !== "authenticated") return null;
+  const accessToken = auth.accessToken;
+
+  const counts: Record<Section, number | null> = {
+    jobs: jobs.searchTerm ? null : jobs.totalCount,
+    institutions: institutions.searchTerm ? null : institutions.totalCount,
+  };
+  const active = SECTIONS.find((s) => s.key === section)!;
+  const c = section === "jobs" ? jobs : institutions;
+
+  async function handleDeleteJob(job: Job) {
+    if (!window.confirm(`"${job.name}" vəzifəsi silinsin?`)) return;
+    try {
+      await deleteJob(accessToken, job.id);
+      jobs.reload();
+    } catch (err) {
+      jobs.setError(hrErrorMessage(err));
+    }
+  }
+
+  async function handleDeleteInstitution(item: EducationalInstitution) {
     if (!window.confirm(`"${item.name}" silinsin?`)) return;
     try {
       await deleteInstitution(accessToken, item.id);
-      c.reload();
+      institutions.reload();
     } catch (err) {
-      c.setError(hrErrorMessage(err));
+      institutions.setError(hrErrorMessage(err));
     }
   }
 
   return (
-    <div>
-      <div className="panel-toolbar">
-        <input
-          className="panel-search"
-          placeholder="Təhsil ocağı axtar…"
-          value={c.searchInput}
-          onChange={(e) => c.setSearchInput(e.target.value)}
-        />
-        <button type="button" className="panel-btn panel-btn-primary" style={{ marginLeft: "auto" }} onClick={() => setEditing("new")}>
-          + Yeni təhsil ocağı
-        </button>
-      </div>
-      {c.error && <p className="ledger-alert" role="alert">{c.error}</p>}
-      {!c.items ? (
-        <p className="panel-page-lead">Yüklənir…</p>
-      ) : (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Ad</th>
-                <th>Növ</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {c.items.length === 0 && (
-                <tr>
-                  <td colSpan={3}>Nəticə tapılmadı.</td>
-                </tr>
-              )}
-              {c.items.map((i) => (
-                <tr key={i.id}>
-                  <td>{i.name}</td>
-                  <td>{optionLabel(INSTITUTION_TYPES, i.type)}</td>
-                  <td>
-                    <div className="data-table-actions">
-                      <button type="button" className="panel-btn panel-btn-sm" onClick={() => setEditing(i)}>
-                        Redaktə
-                      </button>
-                      <button type="button" className="panel-btn panel-btn-sm panel-btn-danger" onClick={() => handleDelete(i)}>
-                        Sil
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination page={c.pageNumber} pageCount={c.pageCount} totalCount={c.totalCount} onChange={c.setPageNumber} />
+    <div className="lg-layout">
+      <nav className="lg-nav" aria-label="Lüğətlər">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.key}
+            type="button"
+            className={`lg-nav-item ${section === s.key ? "active" : ""}`}
+            aria-current={section === s.key}
+            onClick={() => setSection(s.key)}
+          >
+            <span className="lg-nav-icon">{s.icon}</span>
+            <span className="lg-nav-text">
+              <strong>{s.title}</strong>
+              <small>{s.hint}</small>
+            </span>
+            {counts[s.key] !== null && <span className="lg-count">{counts[s.key]}</span>}
+          </button>
+        ))}
+      </nav>
+
+      <section className="lg-panel">
+        <header className="lg-panel-head">
+          <div>
+            <h2>{active.title}</h2>
+            <p>{active.hint}</p>
+          </div>
+          <button
+            type="button"
+            className="panel-btn panel-btn-primary"
+            onClick={() => (section === "jobs" ? setEditingJob("new") : setEditingInst("new"))}
+          >
+            + {section === "jobs" ? "Yeni vəzifə" : "Yeni təhsil ocağı"}
+          </button>
+        </header>
+
+        <div className="lg-search">
+          <input
+            type="search"
+            placeholder={section === "jobs" ? "Vəzifə axtar…" : "Təhsil ocağı axtar…"}
+            value={c.searchInput}
+            onChange={(e) => c.setSearchInput(e.target.value)}
+          />
+          {c.totalCount !== null && c.searchTerm && <span className="lg-found">{c.totalCount} nəticə</span>}
         </div>
+
+        {c.error && (
+          <p className="ledger-alert" role="alert">
+            {c.error}
+          </p>
+        )}
+
+        {!c.items ? (
+          <p className="panel-page-lead">Yüklənir…</p>
+        ) : c.items.length === 0 ? (
+          <div className="hr-empty">
+            <strong>{c.searchTerm ? "Nəticə tapılmadı" : `${active.title} siyahısı boşdur`}</strong>
+            <span>{c.searchTerm ? "Axtarış sözünü dəyişin." : "İlk qeydi əlavə etmək üçün yuxarıdakı düymədən istifadə edin."}</span>
+          </div>
+        ) : (
+          <ul className="lg-list">
+            {section === "jobs"
+              ? jobs.items!.map((j) => (
+                  <li key={j.id} className="lg-row">
+                    <span className="lg-avatar">{initial(j.name)}</span>
+                    <span className="lg-name">{j.name}</span>
+                    <RowActions onEdit={() => setEditingJob(j)} onDelete={() => handleDeleteJob(j)} />
+                  </li>
+                ))
+              : institutions.items!.map((i) => (
+                  <li key={i.id} className="lg-row">
+                    <span className="lg-avatar lg-avatar-alt">{initial(i.name)}</span>
+                    <span className="lg-name">{i.name}</span>
+                    <span className="panel-role-tag">{optionLabel(INSTITUTION_TYPES, i.type)}</span>
+                    <RowActions onEdit={() => setEditingInst(i)} onDelete={() => handleDeleteInstitution(i)} />
+                  </li>
+                ))}
+          </ul>
+        )}
+
+        {c.items && c.items.length > 0 && (
+          <Pagination page={c.pageNumber} pageCount={c.pageCount} totalCount={c.totalCount ?? 0} onChange={c.setPageNumber} />
+        )}
+      </section>
+
+      {editingJob && (
+        <CatalogModal
+          title={editingJob === "new" ? "Yeni vəzifə" : "Vəzifəni redaktə et"}
+          nameLabel="Vəzifənin adı"
+          initialName={editingJob === "new" ? "" : editingJob.name}
+          onClose={() => setEditingJob(null)}
+          onSave={async (name) => {
+            if (editingJob === "new") await createJob(accessToken, name);
+            else await updateJob(accessToken, editingJob.id, name);
+            setEditingJob(null);
+            jobs.reload();
+          }}
+        />
       )}
-      {editing && (
-        <NameModal
-          title={editing === "new" ? "Yeni təhsil ocağı" : "Təhsil ocağını redaktə et"}
-          initialName={editing === "new" ? "" : editing.name}
+      {editingInst && (
+        <CatalogModal
+          title={editingInst === "new" ? "Yeni təhsil ocağı" : "Təhsil ocağını redaktə et"}
+          nameLabel="Təhsil ocağının adı"
+          initialName={editingInst === "new" ? "" : editingInst.name}
           withType
-          initialType={editing === "new" ? 1 : editing.type}
-          onClose={() => setEditing(null)}
+          initialType={editingInst === "new" ? 1 : editingInst.type}
+          onClose={() => setEditingInst(null)}
           onSave={async (name, type) => {
             const body = { name, type: type ?? 1 };
-            if (editing === "new") await createInstitution(accessToken, body);
-            else await updateInstitution(accessToken, editing.id, body);
-            setEditing(null);
-            c.reload();
+            if (editingInst === "new") await createInstitution(accessToken, body);
+            else await updateInstitution(accessToken, editingInst.id, body);
+            setEditingInst(null);
+            institutions.reload();
           }}
         />
       )}
@@ -286,8 +248,24 @@ function InstitutionsSection() {
   );
 }
 
-function NameModal({
+const initial = (name: string) => (name.trim()[0] ?? "?").toLocaleUpperCase("az");
+
+function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  return (
+    <span className="lg-actions">
+      <button type="button" className="panel-btn panel-btn-sm" onClick={onEdit}>
+        Redaktə
+      </button>
+      <button type="button" className="panel-btn panel-btn-sm panel-btn-danger" onClick={onDelete}>
+        Sil
+      </button>
+    </span>
+  );
+}
+
+function CatalogModal({
   title,
+  nameLabel,
   initialName,
   withType,
   initialType,
@@ -295,6 +273,7 @@ function NameModal({
   onSave,
 }: {
   title: string;
+  nameLabel: string;
   initialName: string;
   withType?: boolean;
   initialType?: number;
@@ -322,19 +301,26 @@ function NameModal({
     <Modal title={title} onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <div className="form-field">
-          <label htmlFor="cat-name">Ad</label>
-          <input id="cat-name" required value={name} onChange={(e) => setName(e.target.value)} />
+          <label htmlFor="cat-name">{nameLabel}</label>
+          <input id="cat-name" required autoFocus value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         {withType && (
           <div className="form-field">
-            <label htmlFor="cat-type">Növ</label>
-            <select id="cat-type" value={type} onChange={(e) => setType(Number(e.target.value))}>
+            <span className="cal-label">Növ</span>
+            <div className="cal-sched" role="radiogroup" aria-label="Növ">
               {INSTITUTION_TYPES.map((o) => (
-                <option key={o.value} value={o.value}>
+                <button
+                  key={o.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={type === o.value}
+                  className={type === o.value ? "active" : ""}
+                  onClick={() => setType(o.value)}
+                >
                   {o.label}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         )}
         {error && <p className="form-error">{error}</p>}
@@ -342,7 +328,7 @@ function NameModal({
           <button type="button" className="panel-btn" onClick={onClose}>
             Ləğv et
           </button>
-          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
+          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving || !name.trim()}>
             {saving ? "Saxlanılır…" : "Yadda saxla"}
           </button>
         </div>
