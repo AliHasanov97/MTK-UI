@@ -1,99 +1,127 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Modal } from "../../Modal";
-import { DynamicFields } from "../DynamicFields";
+import { useAuth } from "../../../lib/auth/AuthContext";
+import { QueryComparisonType } from "../../../lib/api/buildings";
 import {
-  APPLICATION_FIELD_SPECS,
-  APPLICATION_TO_ORDER_TYPE,
-  APPLICATION_TYPES,
-  loadApplications,
-  loadOrders,
-  nextDocumentNumber,
-  saveApplications,
-  saveOrders,
-  type Application,
-  type ApplicationTypeValue,
-  type Order,
-} from "../mockData";
+  APPLICATION_KINDS,
+  applicationKindFromValue,
+  convertApplication,
+  createApplication,
+  deleteApplication,
+  downloadApplicationPdf,
+  searchApplications,
+  searchLaborCodeCases,
+  type ApplicationItem,
+  type ApplicationKind,
+  type LaborCodeCase,
+} from "../../../lib/api/hr";
+import { formatDateTime } from "../../../lib/format";
+import { Modal } from "../../Modal";
+import { DynamicForm, buildBody, missingRequired, type FormValues } from "../DynamicForm";
+import { APPLICATION_FIELDS } from "../documentConfig";
+import { Pagination } from "../Pagination";
+import { PAGE_SIZE, hrErrorMessage } from "../shared";
 
-const STATUS_LABELS: Record<Application["status"], string> = {
-  PendingApproval: "Gözləmədə",
-  ConvertedToOrder: "Əmrə çevrilib",
-};
+const KINDS = Object.keys(APPLICATION_KINDS) as ApplicationKind[];
 
 export function ErizelerView() {
-  const [applications, setApplications] = useState<Application[] | null>(null);
+  const auth = useAuth();
+  const [items, setItems] = useState<ApplicationItem[] | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [pageNumber, setPageNumber] = useState(1);
+  const [reloadKey, setReloadKey] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
+  const [converting, setConverting] = useState<ApplicationItem | null>(null);
+  const [workingId, setWorkingId] = useState<string | null>(null);
+
+  const filterSignature = JSON.stringify([filterType, filterStatus]);
+  const [prevFilterSignature, setPrevFilterSignature] = useState(filterSignature);
+  if (filterSignature !== prevFilterSignature) {
+    setPrevFilterSignature(filterSignature);
+    setPageNumber(1);
+  }
 
   useEffect(() => {
-    // localStorage doesn't exist during SSR, so this initial read must wait
-    // for the client-only effect phase.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setApplications(loadApplications());
-  }, []);
+    if (auth.status !== "authenticated") return;
+    const filters = [];
+    if (filterType) {
+      filters.push({ columnName: "Type", comparison: QueryComparisonType.Equals, value: Number(filterType) });
+    }
+    if (filterStatus) {
+      filters.push({ columnName: "Status", comparison: QueryComparisonType.Equals, value: Number(filterStatus) });
+    }
+    searchApplications(auth.accessToken, {
+      filters: filters.length > 0 ? filters : null,
+      sortCriteria: { columnName: "CreatedAt", direction: 1 },
+      page: pageNumber - 1,
+      pageSize: PAGE_SIZE,
+    })
+      .then((res) => {
+        setItems(res.data);
+        setTotalCount(res.totalCount);
+        setPageCount(res.pageCount);
+        setError(null);
+      })
+      .catch((err) => setError(hrErrorMessage(err)));
+  }, [auth, filterType, filterStatus, pageNumber, reloadKey]);
 
-  function persist(next: Application[]) {
-    setApplications(next);
-    saveApplications(next);
+  if (auth.status !== "authenticated") return null;
+  const accessToken = auth.accessToken;
+
+  async function run(id: string, action: () => Promise<unknown>, success?: string) {
+    setWorkingId(id);
+    setError(null);
+    setNotice(null);
+    try {
+      await action();
+      if (success) setNotice(success);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      setError(hrErrorMessage(err));
+    } finally {
+      setWorkingId(null);
+    }
   }
 
-  function handleConvert(application: Application) {
-    const orderType = APPLICATION_TO_ORDER_TYPE[application.type];
-    const orders = loadOrders();
-    const newOrder: Order = {
-      id: crypto.randomUUID(),
-      orderNumber: nextDocumentNumber("ƏMR", orders.length),
-      type: orderType as Order["type"],
-      employeeName:
-        application.type === "JobApplication"
-          ? application.fields.candidateName
-          : application.employeeName,
-      fields: application.fields,
-      createdAt: new Date().toISOString().slice(0, 10),
-      fromApplicationNumber: application.applicationNumber,
-    };
-    saveOrders([newOrder, ...orders]);
+  function handleConvert(item: ApplicationItem, kind: ApplicationKind) {
+    // Vakansiyaya müraciətin işə qəbul əmrinə çevrilməsi əlavə məlumat tələb edir
+    if (kind === "JobApplication") {
+      setConverting(item);
+      return;
+    }
+    run(item.id, () => convertApplication(accessToken, kind, item.id), `Ərizə №${item.applicationNumber} əmrə çevrildi.`);
+  }
 
-    if (!applications) return;
-    persist(
-      applications.map((a) =>
-        a.id === application.id ? { ...a, status: "ConvertedToOrder" as const } : a,
-      ),
+  if (error && !items) {
+    return (
+      <div className="panel-denied">
+        <h2>Məlumat alınmadı</h2>
+        <p>{error}</p>
+      </div>
     );
   }
-
-  if (!applications) return <p className="panel-page-lead">Yüklənir…</p>;
-
-  const visible = applications.filter(
-    (a) => (!filterType || a.type === filterType) && (!filterStatus || a.status === filterStatus),
-  );
 
   return (
     <div>
       <div className="panel-toolbar">
-        <select
-          className="panel-select"
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-        >
+        <select className="panel-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
           <option value="">Bütün növlər</option>
-          {APPLICATION_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
+          {KINDS.map((k) => (
+            <option key={k} value={APPLICATION_KINDS[k].value}>
+              {APPLICATION_KINDS[k].label}
             </option>
           ))}
         </select>
-        <select
-          className="panel-select"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-        >
+        <select className="panel-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
           <option value="">Bütün statuslar</option>
-          <option value="PendingApproval">Gözləmədə</option>
-          <option value="ConvertedToOrder">Əmrə çevrilib</option>
+          <option value="0">Gözləmədə</option>
+          <option value="1">Əmrə çevrilib</option>
         </select>
         <button
           type="button"
@@ -105,62 +133,120 @@ export function ErizelerView() {
         </button>
       </div>
 
-      <div className="data-table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Ərizə №</th>
-              <th>Növ</th>
-              <th>İşçi</th>
-              <th>Tarix</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {visible.length === 0 && (
-              <tr>
-                <td colSpan={6}>Nəticə tapılmadı.</td>
-              </tr>
-            )}
-            {visible.map((a) => (
-              <tr key={a.id}>
-                <td>{a.applicationNumber}</td>
-                <td>{APPLICATION_TYPES.find((t) => t.value === a.type)?.label}</td>
-                <td>
-                  {a.type === "JobApplication" ? a.fields.candidateName : (a.employeeName ?? "—")}
-                </td>
-                <td>{a.createdAt}</td>
-                <td>
-                  <span className="panel-role-tag">{STATUS_LABELS[a.status]}</span>
-                </td>
-                <td>
-                  {a.status === "PendingApproval" && (
-                    <div className="data-table-actions">
-                      <button
-                        type="button"
-                        className="panel-btn panel-btn-sm"
-                        onClick={() => handleConvert(a)}
-                      >
-                        Əmrə çevir
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {error && (
+        <p className="ledger-alert" role="alert">
+          {error}
+        </p>
+      )}
+      {notice && <p className="panel-page-lead">{notice}</p>}
+
+      {!items ? (
+        <p className="panel-page-lead">Yüklənir…</p>
+      ) : (
+        <div className="data-table-wrap">
+          <div className="owner-table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Ərizə №</th>
+                  <th>Növ</th>
+                  <th>İşçi / namizəd</th>
+                  <th>Yaradan</th>
+                  <th>Tarix</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan={7}>Nəticə tapılmadı.</td>
+                  </tr>
+                )}
+                {items.map((a) => {
+                  const kind = applicationKindFromValue(a.type);
+                  const pending = a.status === "PendingApproval";
+                  return (
+                    <tr key={a.id}>
+                      <td>{a.applicationNumber}</td>
+                      <td>{kind ? APPLICATION_KINDS[kind].label : a.type}</td>
+                      <td>{a.employee?.name ?? a.jobApplicant?.name ?? "—"}</td>
+                      <td>{a.createdBy?.name ?? "—"}</td>
+                      <td>{formatDateTime(a.createdAt)}</td>
+                      <td>
+                        <span className={`panel-role-tag ${pending ? "panel-role-tag-warn" : "panel-role-tag-good"}`}>
+                          {pending ? "Gözləmədə" : `Əmrə çevrilib${a.order ? ` (№${a.order.name})` : ""}`}
+                        </span>
+                      </td>
+                      <td>
+                        {kind && (
+                          <div className="data-table-actions">
+                            <button
+                              type="button"
+                              className="panel-btn panel-btn-sm"
+                              disabled={workingId === a.id}
+                              onClick={() => run(a.id, () => downloadApplicationPdf(accessToken, kind, a.id))}
+                            >
+                              PDF
+                            </button>
+                            {pending && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="panel-btn panel-btn-sm"
+                                  disabled={workingId === a.id}
+                                  onClick={() => handleConvert(a, kind)}
+                                >
+                                  Əmrə çevir
+                                </button>
+                                <button
+                                  type="button"
+                                  className="panel-btn panel-btn-sm panel-btn-danger"
+                                  disabled={workingId === a.id}
+                                  onClick={() => {
+                                    if (!window.confirm(`Ərizə №${a.applicationNumber} silinsin?`)) return;
+                                    run(a.id, () => deleteApplication(accessToken, kind, a.id));
+                                  }}
+                                >
+                                  Sil
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={pageNumber} pageCount={pageCount} totalCount={totalCount} onChange={setPageNumber} />
+        </div>
+      )}
 
       {showCreate && (
         <CreateApplicationModal
+          accessToken={accessToken}
           onClose={() => setShowCreate(false)}
-          onCreate={(application) => {
-            persist([application, ...applications]);
+          onCreated={() => {
             setShowCreate(false);
+            setReloadKey((k) => k + 1);
           }}
-          existingCount={applications.length}
+        />
+      )}
+      {converting && (
+        <ConvertJobApplicationModal
+          accessToken={accessToken}
+          application={converting}
+          onClose={() => setConverting(null)}
+          onConverted={() => {
+            setConverting(null);
+            setNotice(
+              "Ərizə işə qəbul əmrinə çevrildi. İşçi kartı bir neçə saniyə ərzində avtomatik yaradılacaq.",
+            );
+            setReloadKey((k) => k + 1);
+          }}
         />
       )}
     </div>
@@ -168,87 +254,156 @@ export function ErizelerView() {
 }
 
 function CreateApplicationModal({
+  accessToken,
   onClose,
-  onCreate,
-  existingCount,
+  onCreated,
 }: {
+  accessToken: string;
   onClose: () => void;
-  onCreate: (application: Application) => void;
-  existingCount: number;
+  onCreated: () => void;
 }) {
-  const [type, setType] = useState<ApplicationTypeValue>("Vacation");
-  const [employeeName, setEmployeeName] = useState("");
-  const [fields, setFields] = useState<Record<string, string>>({});
-  const [notes, setNotes] = useState("");
+  const [kind, setKind] = useState<ApplicationKind>("Vacation");
+  const [values, setValues] = useState<FormValues>({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const specs = APPLICATION_FIELD_SPECS[type];
-  const needsEmployee = type !== "JobApplication";
+  const specs = APPLICATION_FIELDS[kind];
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const application: Application = {
-      id: crypto.randomUUID(),
-      applicationNumber: nextDocumentNumber("ƏR", existingCount),
-      type,
-      employeeName: needsEmployee ? employeeName : undefined,
-      fields,
-      notes: notes || undefined,
-      status: "PendingApproval",
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
-    onCreate(application);
+    const missing = missingRequired(specs, values);
+    if (missing) {
+      setError(missing);
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await createApplication(accessToken, kind, buildBody(specs, values));
+      onCreated();
+    } catch (err) {
+      setError(hrErrorMessage(err));
+      setSaving(false);
+    }
   }
 
   return (
     <Modal title="Yeni ərizə" onClose={onClose}>
       <form onSubmit={handleSubmit}>
         <div className="form-field">
-          <label htmlFor="app-type">Ərizə növü</label>
+          <label htmlFor="app-kind">Ərizə növü</label>
           <select
-            id="app-type"
-            value={type}
+            id="app-kind"
+            value={kind}
             onChange={(e) => {
-              setType(e.target.value as ApplicationTypeValue);
-              setFields({});
+              setKind(e.target.value as ApplicationKind);
+              setValues({});
+              setError(null);
             }}
           >
-            {APPLICATION_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
+            {KINDS.map((k) => (
+              <option key={k} value={k}>
+                {APPLICATION_KINDS[k].label}
               </option>
             ))}
           </select>
         </div>
 
-        {needsEmployee && (
-          <div className="form-field">
-            <label htmlFor="app-employee">İşçinin adı</label>
-            <input
-              id="app-employee"
-              required
-              value={employeeName}
-              onChange={(e) => setEmployeeName(e.target.value)}
-            />
-          </div>
-        )}
-
-        <DynamicFields
+        <DynamicForm
           specs={specs}
-          values={fields}
-          onChange={(key, value) => setFields((prev) => ({ ...prev, [key]: value }))}
+          values={values}
+          onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))}
         />
 
-        <div className="form-field">
-          <label htmlFor="app-notes">Qeyd</label>
-          <input id="app-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </div>
-
+        {error && <p className="form-error">{error}</p>}
         <div className="form-actions">
           <button type="button" className="panel-btn" onClick={onClose}>
             Ləğv et
           </button>
-          <button type="submit" className="panel-btn panel-btn-primary">
-            Yarat
+          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
+            {saving ? "Saxlanılır…" : "Yarat"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function ConvertJobApplicationModal({
+  accessToken,
+  application,
+  onClose,
+  onConverted,
+}: {
+  accessToken: string;
+  application: ApplicationItem;
+  onClose: () => void;
+  onConverted: () => void;
+}) {
+  const [cases, setCases] = useState<LaborCodeCase[] | null>(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [caseId, setCaseId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    searchLaborCodeCases(accessToken, { pageSize: 100 })
+      .then((res) => setCases(res.data.filter((c) => c.parentId !== null)))
+      .catch((err) => setError(hrErrorMessage(err)));
+  }, [accessToken]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!caseId) {
+      setError("Müddətli müqavilənin əsası seçilməlidir.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await convertApplication(accessToken, "JobApplication", application.id, {
+        startDate,
+        endDate,
+        laborCodeCaseId: caseId,
+      });
+      onConverted();
+    } catch (err) {
+      setError(hrErrorMessage(err));
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title={`${application.jobApplicant?.name ?? "Namizəd"} — işə qəbul əmri`} wide onClose={onClose}>
+      <form onSubmit={handleSubmit}>
+        <div className="form-field">
+          <label htmlFor="conv-start">Müqavilənin başlanğıcı</label>
+          <input id="conv-start" type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </div>
+        <div className="form-field">
+          <label htmlFor="conv-end">Müqavilənin bitməsi</label>
+          <input id="conv-end" type="date" required value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </div>
+        <div className="form-field">
+          <label htmlFor="conv-case">Müddətli müqavilənin əsası (Əmək Məcəlləsi, maddə 47)</label>
+          <select id="conv-case" value={caseId} onChange={(e) => setCaseId(e.target.value)}>
+            <option value="">Seçin…</option>
+            {cases?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.parentName ? `m. ${c.parentName} — ` : ""}
+                {c.code}) {c.name.length > 110 ? `${c.name.slice(0, 110)}…` : c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        {error && <p className="form-error">{error}</p>}
+        <div className="form-actions">
+          <button type="button" className="panel-btn" onClick={onClose}>
+            Ləğv et
+          </button>
+          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
+            {saving ? "Saxlanılır…" : "Əmrə çevir"}
           </button>
         </div>
       </form>

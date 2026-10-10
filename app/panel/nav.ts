@@ -104,12 +104,14 @@ export const NAV_MODULES: NavModule[] = [
     href: "/panel/hr/isciler",
     label: "HR",
     icon: "◈",
-    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.EMPLOYEE],
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER],
     tabs: [
       { href: "/panel/hr/isciler", label: "İşçilər" },
       { href: "/panel/hr/erizeler", label: "Ərizələr" },
       { href: "/panel/hr/emrler", label: "Əmrlər" },
-      { href: "/panel/hr/davamiyyet", label: "Davamiyyət" },
+      { href: "/panel/hr/davamiyyet", label: "Tabel" },
+      { href: "/panel/hr/teqvim", label: "Təqvim" },
+      { href: "/panel/hr/lugetler", label: "Lüğətlər" },
     ],
   },
   {
