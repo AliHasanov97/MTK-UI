@@ -32,15 +32,17 @@ import { Modal } from "../../../Modal";
 import { InstitutionPicker } from "../../Pickers";
 import { formatDate, fullName, hrErrorMessage } from "../../shared";
 import { employeeToForm } from "../EmployeeForm";
+import { EmployeeDocumentsTab } from "./EmployeeDocumentsTab";
 import { EMPLOYEE_SECTIONS, type EmployeeSectionKey } from "../EmployeeSections";
 
-type Tab = "info" | "schedule" | "work" | "education";
+type Tab = "info" | "schedule" | "work" | "education" | "documents";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "info", label: "Məlumatlar" },
   { key: "schedule", label: "İş qrafiki" },
   { key: "work", label: "İş tarixçəsi" },
   { key: "education", label: "Təhsil" },
+  { key: "documents", label: "Ərizə və əmrlər" },
 ];
 
 const experienceText = (x: WorkExperience | null) => (x ? `${x.years} il, ${x.months} ay, ${x.days} gün` : "—");
@@ -129,6 +131,7 @@ export function EmployeeDetailView({ employeeId }: { employeeId: string }) {
       {tab === "schedule" && <ScheduleTab accessToken={accessToken} employeeId={employeeId} />}
       {tab === "work" && <WorkHistoryTab accessToken={accessToken} employeeId={employeeId} />}
       {tab === "education" && <EducationTab accessToken={accessToken} employeeId={employeeId} />}
+      {tab === "documents" && <EmployeeDocumentsTab accessToken={accessToken} employeeId={employeeId} />}
 
       {editing && (
         <EditSectionModal

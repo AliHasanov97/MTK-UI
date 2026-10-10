@@ -5,23 +5,18 @@ import { useAuth } from "../../../lib/auth/AuthContext";
 import { QueryComparisonType } from "../../../lib/api/buildings";
 import {
   ORDER_KINDS,
-  createDirectOrder,
   orderKindFromValue,
   searchOrders,
-  type DirectOrderKind,
   type OrderItem,
   type OrderKind,
 } from "../../../lib/api/hr";
 import { formatDateTime } from "../../../lib/format";
-import { Modal } from "../../Modal";
 import { DocumentDetailModal, type DocTarget } from "../DocumentDetailModal";
-import { DynamicForm, buildBody, missingRequired, type FormValues } from "../DynamicForm";
-import { DIRECT_ORDER_FIELDS } from "../documentConfig";
+import { CreateOrderModal } from "../CreateDocumentModals";
 import { Pagination } from "../Pagination";
 import { PAGE_SIZE, hrErrorMessage } from "../shared";
 
 const ORDER_KEYS = Object.keys(ORDER_KINDS) as OrderKind[];
-const DIRECT_KEYS = Object.keys(DIRECT_ORDER_FIELDS) as DirectOrderKind[];
 
 export function EmrlerView() {
   const auth = useAuth();
@@ -163,85 +158,5 @@ export function EmrlerView() {
         />
       )}
     </div>
-  );
-}
-
-function CreateOrderModal({
-  accessToken,
-  onClose,
-  onCreated,
-}: {
-  accessToken: string;
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const [kind, setKind] = useState<DirectOrderKind>("Bonus");
-  const [values, setValues] = useState<FormValues>({});
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const config = DIRECT_ORDER_FIELDS[kind];
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const missing = missingRequired(config.fields, values);
-    if (missing) {
-      setError(missing);
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      await createDirectOrder(accessToken, kind, buildBody(config.fields, values));
-      onCreated();
-    } catch (err) {
-      setError(hrErrorMessage(err));
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Modal title="Yeni əmr" onClose={onClose}>
-      <p className="panel-page-lead">
-        Yalnız ərizəsiz verilən əmrlər burada yaradılır. İşə qəbul, məzuniyyət, vəzifə və iş rejimi dəyişikliyi əmrləri
-        müvafiq ərizənin təsdiqi ilə avtomatik yaranır.
-      </p>
-      <form onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label htmlFor="order-kind">Əmr növü</label>
-          <select
-            id="order-kind"
-            value={kind}
-            onChange={(e) => {
-              setKind(e.target.value as DirectOrderKind);
-              setValues({});
-              setError(null);
-            }}
-          >
-            {DIRECT_KEYS.map((k) => (
-              <option key={k} value={k}>
-                {DIRECT_ORDER_FIELDS[k].label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <DynamicForm
-          specs={config.fields}
-          values={values}
-          onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))}
-        />
-
-        {error && <p className="form-error">{error}</p>}
-        <div className="form-actions">
-          <button type="button" className="panel-btn" onClick={onClose}>
-            Ləğv et
-          </button>
-          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
-            {saving ? "Saxlanılır…" : "Yarat"}
-          </button>
-        </div>
-      </form>
-    </Modal>
   );
 }

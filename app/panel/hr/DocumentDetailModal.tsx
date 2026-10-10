@@ -91,6 +91,10 @@ const ENUM_TEXT: Record<string, string> = {
   HalfTime: "Yarım ştat",
 };
 
+/** Ərizənin əlaqəli əmrini göstərən sahə (order, vacationOrder, orderForChangeOfPosition …); nəzarətçi əmr sahəsi deyil. */
+const isOrderRefKey = (k: string) => /order/i.test(k) && !/supervisor/i.test(k);
+const key_has_label = (k: string) => k in LABELS;
+
 const isRef = (v: unknown): v is { id: string; name: string } =>
   typeof v === "object" && v !== null && "id" in v && "name" in v;
 
@@ -231,7 +235,7 @@ export function DocumentDetailModal({
   const related: Related[] = [];
   if (detail) {
     if (current.type === "application") {
-      const orderRef = Object.entries(detail).find(([k, v]) => /order$/i.test(k) && isRef(v));
+      const orderRef = Object.entries(detail).find(([k, v]) => isOrderRefKey(k) && isRef(v));
       if (orderRef) {
         related.push({
           target: { type: "order", kind: ORDER_FOR_APPLICATION[current.kind], id: (orderRef[1] as { id: string }).id },
@@ -268,7 +272,9 @@ export function DocumentDetailModal({
           v !== undefined &&
           v !== "" &&
           !(typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v)) &&
-          !(isRef(v) && (/order$/i.test(k) || k === "application" || k === "jobApplication")),
+          !(isRef(v) && (isOrderRefKey(k) || k === "application" || k === "jobApplication")) &&
+          // Etiketi olmayan (texniki) sahələr istifadəçiyə göstərilmir
+          key_has_label(k),
       )
     : [];
 

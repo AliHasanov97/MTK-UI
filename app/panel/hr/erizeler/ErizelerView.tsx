@@ -7,16 +7,13 @@ import {
   APPLICATION_KINDS,
   ORDER_FOR_APPLICATION,
   applicationKindFromValue,
-  createApplication,
   searchApplications,
   type ApplicationItem,
   type ApplicationKind,
 } from "../../../lib/api/hr";
 import { formatDateTime } from "../../../lib/format";
-import { Modal } from "../../Modal";
 import { DocumentDetailModal, type DocTarget } from "../DocumentDetailModal";
-import { DynamicForm, buildBody, missingRequired, type FormValues } from "../DynamicForm";
-import { APPLICATION_FIELDS } from "../documentConfig";
+import { CreateApplicationModal } from "../CreateDocumentModals";
 import { Pagination } from "../Pagination";
 import { PAGE_SIZE, hrErrorMessage } from "../shared";
 
@@ -192,81 +189,5 @@ export function ErizelerView() {
         />
       )}
     </div>
-  );
-}
-
-function CreateApplicationModal({
-  accessToken,
-  onClose,
-  onCreated,
-}: {
-  accessToken: string;
-  onClose: () => void;
-  onCreated: () => void;
-}) {
-  const [kind, setKind] = useState<ApplicationKind>("Vacation");
-  const [values, setValues] = useState<FormValues>({});
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const specs = APPLICATION_FIELDS[kind];
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const missing = missingRequired(specs, values);
-    if (missing) {
-      setError(missing);
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      await createApplication(accessToken, kind, buildBody(specs, values));
-      onCreated();
-    } catch (err) {
-      setError(hrErrorMessage(err));
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Modal title="Yeni ərizə" onClose={onClose}>
-      <form onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label htmlFor="app-kind">Ərizə növü</label>
-          <select
-            id="app-kind"
-            value={kind}
-            onChange={(e) => {
-              setKind(e.target.value as ApplicationKind);
-              setValues({});
-              setError(null);
-            }}
-          >
-            {KINDS.map((k) => (
-              <option key={k} value={k}>
-                {APPLICATION_KINDS[k].label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <DynamicForm
-          specs={specs}
-          values={values}
-          onChange={(key, value) => setValues((prev) => ({ ...prev, [key]: value }))}
-        />
-
-        {error && <p className="form-error">{error}</p>}
-        <div className="form-actions">
-          <button type="button" className="panel-btn" onClick={onClose}>
-            Ləğv et
-          </button>
-          <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
-            {saving ? "Saxlanılır…" : "Yarat"}
-          </button>
-        </div>
-      </form>
-    </Modal>
   );
 }
