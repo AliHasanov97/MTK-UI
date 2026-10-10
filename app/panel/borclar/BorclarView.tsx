@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth/AuthContext";
-import { useCanDoEverything } from "../../lib/auth/roles";
+import { useCanDoEverything, useIsAdmin } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
 import { SortDirection } from "../../lib/api/buildings";
 import { formatDateTime } from "../../lib/format";
@@ -21,6 +21,7 @@ import {
 } from "../../lib/api/payments";
 import { Modal } from "../Modal";
 import { OwnerPicker } from "../binalar/OwnerPicker";
+import { GenerateChargesModal } from "./GenerateChargesModal";
 import { PayButton, useCreatedBy, useCreatedByMap } from "../binalar/finance";
 
 const PAGE_SIZE = 20;
@@ -58,12 +59,14 @@ function ChargeCreatedByLine({ accessToken, chargeId }: { accessToken: string; c
 export function BorclarView() {
   const auth = useAuth();
   const canManage = useCanDoEverything();
+  const isAdmin = useIsAdmin();
   const [charges, setCharges] = useState<ChargeResponse[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<Scope>("open");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [showAddCharge, setShowAddCharge] = useState(false);
+  const [showGenerate, setShowGenerate] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const allocationCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "PaymentAllocation");
 
@@ -112,7 +115,8 @@ export function BorclarView() {
   const term = search.trim().toLowerCase();
   const visible = (charges ?? []).filter((c) => {
     const status = chargeStatusFromOrdinal(c.status);
-    if (scope === "open" && status === "Paid") return false;
+    // Ləğv edilmiş borc açıq borc sayılmır (ləğvdən sonra eyni dövr üçün yenisi yaradıla bilir — ikiqat hesablanmasın)
+    if (scope === "open" && (status === "Paid" || status === "Cancelled")) return false;
     if (scope === "paid" && status !== "Paid") return false;
     if (term) {
       const owner = c.partyName ?? "";
@@ -123,7 +127,10 @@ export function BorclarView() {
     return true;
   });
 
-  const openCharges = (charges ?? []).filter((c) => chargeStatusFromOrdinal(c.status) !== "Paid");
+  const openCharges = (charges ?? []).filter((c) => {
+    const status = chargeStatusFromOrdinal(c.status);
+    return status !== "Paid" && status !== "Cancelled";
+  });
   const totalOpen = openCharges.reduce((sum, c) => sum + (c.amount - c.paidAmount), 0);
   const totalPaidAll = (charges ?? []).reduce((sum, c) => sum + c.paidAmount, 0);
   const ownerCount = new Set(openCharges.map((c) => c.ownerId)).size;
@@ -141,9 +148,16 @@ export function BorclarView() {
           <p className="panel-page-lead">Sakinlər üzrə açıq haqları, ödənişləri və qalıq borcları izləyin.</p>
         </div>
         {canManage && (
-          <button type="button" className="panel-btn panel-btn-primary" onClick={() => setShowAddCharge(true)}>
-            + Yeni haqq əlavə et
-          </button>
+          <div className="debt-head-actions">
+            {isAdmin && (
+              <button type="button" className="panel-btn" onClick={() => setShowGenerate(true)}>
+                Dövr üçün borcları yarat
+              </button>
+            )}
+            <button type="button" className="panel-btn panel-btn-primary" onClick={() => setShowAddCharge(true)}>
+              + Yeni haqq əlavə et
+            </button>
+          </div>
         )}
       </div>
 
@@ -343,6 +357,14 @@ export function BorclarView() {
             </section>
           </div>
         </Modal>
+      )}
+
+      {showGenerate && (
+        <GenerateChargesModal
+          accessToken={auth.accessToken}
+          onClose={() => setShowGenerate(false)}
+          onDone={() => setReloadKey((k) => k + 1)}
+        />
       )}
 
       {showAddCharge && (

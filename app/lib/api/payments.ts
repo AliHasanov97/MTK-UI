@@ -208,6 +208,22 @@ export function searchCharges(accessToken: string, params: SearchParams = {}) {
   }).then((e) => e.data);
 }
 
+export type GenerateChargesResult = {
+  period: string;
+  residentChargesCreated: number;
+  apartmentsSkippedNoRate: number;
+  garagesSkippedNoRate: number;
+  vendorChargesCreated: number;
+};
+
+/** Verilmiş dövr ("yyyy-MM") üçün borcları əl ilə yaradır (yalnız admin; idempotentdir). */
+export function generateChargesForPeriod(accessToken: string, period: string) {
+  return apiFetch<Envelope<GenerateChargesResult>>("api/payments/charges/generate", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ period }),
+  }).then((e) => e.data);
+}
+
 export type SearchPaymentsResult = { payments: PaymentResponse[]; totalCount: number; page: number; pageSize: number };
 
 export function searchPayments(accessToken: string, params: SearchParams = {}) {

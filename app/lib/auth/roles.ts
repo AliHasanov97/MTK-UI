@@ -15,6 +15,12 @@ export function useCanDoEverything() {
   return auth.status === "authenticated" && hasAnyRole(auth.user.roles, [ROLES.ADMIN, ROLES.BUILDING_MANAGER]);
 }
 
+/** Yalnız admin — məsələn, dövr üçün borcları əl ilə yaratmaq (komendant edə bilməz). */
+export function useIsAdmin() {
+  const auth = useAuth();
+  return auth.status === "authenticated" && hasAnyRole(auth.user.roles, [ROLES.ADMIN]);
+}
+
 /** admin, building-manager, accountant — yalnız sakin/tədarükçü ödənişi yaratmaq. */
 export function useCanPay() {
   const auth = useAuth();
