@@ -992,3 +992,14 @@ thead .tb-sticky{z-index:4;background:#f7f8f4}
 @media(max-width:640px){
   .tf-mobile{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
 }
+
+/* ---------- Telefonda əsas əməliyyat düyməsi ("+ Yeni …") və axtarış tam enlə (işçilər səhifəsindəki kimi) ---------- */
+@media(max-width:640px){
+  .panel-toolbar>.panel-btn-primary,
+  .tb-toolbar>.panel-btn-primary,
+  .panel-page-head .panel-btn-primary{flex:1 1 100%;width:100%;margin-left:0!important;text-align:center}
+  .panel-toolbar>.panel-search{flex:1 1 100%;width:100%;max-width:none}
+  .cal-actions{width:100%;margin-left:0}
+  .cal-actions .panel-btn{flex:1;text-align:center}
+}
+@media(max-width:640px){.panel-page-head{flex-wrap:wrap;gap:12px}}
