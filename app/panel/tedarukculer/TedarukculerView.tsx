@@ -406,6 +406,15 @@ function DebtsSegment() {
     return true;
   });
 
+  // Tədarükçüyə görə qruplaşdırma
+  const vendorGroupMap = new Map<string, { vendorId: string; name: string; charges: VendorChargeResponse[] }>();
+  for (const c of visible) {
+    const group = vendorGroupMap.get(c.vendorId);
+    if (group) group.charges.push(c);
+    else vendorGroupMap.set(c.vendorId, { vendorId: c.vendorId, name: vendorNames[c.vendorId] ?? "Tədarükçü", charges: [c] });
+  }
+  const vendorGroups = Array.from(vendorGroupMap.values());
+
   const openCharges = (charges ?? []).filter((c) => {
     const status = vendorChargeStatusFromOrdinal(c.status);
     return status !== "Paid" && status !== "Cancelled";
@@ -512,66 +521,99 @@ function DebtsSegment() {
         </div>
       ) : (
         <div className="debt-charge-list">
-          {visible.map((charge) => {
-            const status = vendorChargeStatusFromOrdinal(charge.status);
-            const canPay = status === "Unpaid" || status === "PartiallyPaid";
+          {vendorGroups.map((group) => {
+            const groupRemaining = group.charges.reduce(
+              (sum, c) => (vendorChargeStatusFromOrdinal(c.status) === "Cancelled" ? sum : sum + c.outstandingAmount),
+              0,
+            );
             return (
-              <article className="debt-charge-card" key={charge.id}>
-                <div className="debt-charge-top">
+              <article className="debt-charge-card debt-group-card" key={group.vendorId} aria-label={`${group.name} borcları`}>
+                <div className="debt-charge-top debt-group-head">
                   <div className="debt-resident">
-                    <Link className="owner-link" href={`/panel/tedarukculer/${charge.vendorId}`}>
-                      {vendorNames[charge.vendorId] ?? "Tədarükçü"}
+                    <Link className="owner-link" href={`/panel/tedarukculer/${group.vendorId}`}>
+                      {group.name}
                     </Link>
-                    <span>{charge.description ?? "Xidmət borcu"}</span>
-                    {charge.isOverdue && charge.dueDate && (
-                      <span className="debt-advance-note debt-overdue-note">Son tarix {dateOnly(charge.dueDate)} · gecikib</span>
-                    )}
+                    <span>{group.charges.length} haqq</span>
                   </div>
-                  <span className={`vendor-status vendor-status-${status.toLowerCase()}`}>
-                    {charge.isOverdue && canPay ? "Gecikib" : VENDOR_CHARGE_STATUS_LABELS[status]}
-                  </span>
-                </div>
-
-                <div className="debt-charge-details">
-                  <div><span>Dövr</span><strong>{charge.period ?? "—"}</strong></div>
-                  <div><span>Son ödəniş tarixi</span><strong>{charge.dueDate ? dateOnly(charge.dueDate) : "—"}</strong></div>
-                  <div><span>Ümumi məbləğ</span><strong>{formatMoney(charge.amount)}</strong></div>
-                  <div><span>Ödənilib</span><strong>{formatMoney(charge.paidAmount)}</strong></div>
-                </div>
-
-                <div className="debt-charge-footer">
-                  <div className="debt-remaining">
-                    <span>Qalıq borc</span>
-                    <strong className={charge.outstandingAmount > 0 ? "vendor-value-danger" : "vendor-value-ok"}>
-                      {formatMoney(charge.outstandingAmount)}
+                  <div className="debt-remaining debt-group-total">
+                    <span>Ümumi qalıq</span>
+                    <strong className={groupRemaining > 0 ? "vendor-value-danger" : "vendor-value-ok"}>
+                      {formatMoney(groupRemaining)}
                     </strong>
                   </div>
-                  <div className="debt-charge-actions">
-                    <button
-                      type="button"
-                      className="panel-btn panel-btn-sm"
-                      aria-haspopup="dialog"
-                      onClick={() => openAllocations(charge.id)}
-                    >
-                      {loadingAllocationsId === charge.id ? "Yüklənir…" : "Ödəniş bölgüsünə bax"}
-                    </button>
-                    {canMakePayments && canPay && (
-                      <button
-                        type="button"
-                        className="panel-btn panel-btn-sm panel-btn-primary"
-                        disabled={workingId === charge.id}
-                        onClick={() => setPayCharge(charge)}
-                      >Ödə</button>
-                    )}
-                    {canManage && canPay && (
-                      <button
-                        type="button"
-                        className="panel-btn panel-btn-sm panel-btn-danger"
-                        disabled={workingId === charge.id}
-                        onClick={() => handleCancel(charge)}
-                      >Ləğv et</button>
-                    )}
-                  </div>
+                </div>
+
+                <div className="owner-table-scroll">
+                  <table className="data-table debt-group-table">
+                    <thead>
+                      <tr>
+                        <th>Xidmət</th>
+                        <th>Dövr</th>
+                        <th>Son tarix</th>
+                        <th className="vendor-th-amount">Məbləğ</th>
+                        <th className="vendor-th-amount">Ödənilib</th>
+                        <th className="vendor-th-amount">Qalıq</th>
+                        <th>Status</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.charges.map((charge) => {
+                        const status = vendorChargeStatusFromOrdinal(charge.status);
+                        const canPay = status === "Unpaid" || status === "PartiallyPaid";
+                        return (
+                          <tr key={charge.id}>
+                            <td data-label="Xidmət">{charge.description ?? "Xidmət borcu"}</td>
+                            <td data-label="Dövr">{charge.period ?? "—"}</td>
+                            <td data-label="Son tarix">
+                              {charge.dueDate ? dateOnly(charge.dueDate) : "—"}
+                              {charge.isOverdue && charge.dueDate && (
+                                <div className="debt-advance-note debt-overdue-note">gecikib</div>
+                              )}
+                            </td>
+                            <td className="vendor-amount" data-label="Məbləğ">{formatMoney(charge.amount)}</td>
+                            <td className="vendor-amount" data-label="Ödənilib">{formatMoney(charge.paidAmount)}</td>
+                            <td data-label="Qalıq" className={`vendor-amount ${charge.outstandingAmount > 0 ? "vendor-value-danger" : "vendor-value-ok"}`}>
+                              {formatMoney(charge.outstandingAmount)}
+                            </td>
+                            <td data-label="Status">
+                              <span className={`vendor-status vendor-status-${status.toLowerCase()}`}>
+                                {charge.isOverdue && canPay ? "Gecikib" : VENDOR_CHARGE_STATUS_LABELS[status]}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="debt-charge-actions">
+                                <button
+                                  type="button"
+                                  className="panel-btn panel-btn-sm"
+                                  aria-haspopup="dialog"
+                                  onClick={() => openAllocations(charge.id)}
+                                >
+                                  {loadingAllocationsId === charge.id ? "Yüklənir…" : "Bölgü"}
+                                </button>
+                                {canMakePayments && canPay && (
+                                  <button
+                                    type="button"
+                                    className="panel-btn panel-btn-sm panel-btn-primary"
+                                    disabled={workingId === charge.id}
+                                    onClick={() => setPayCharge(charge)}
+                                  >Ödə</button>
+                                )}
+                                {canManage && canPay && (
+                                  <button
+                                    type="button"
+                                    className="panel-btn panel-btn-sm panel-btn-danger"
+                                    disabled={workingId === charge.id}
+                                    onClick={() => handleCancel(charge)}
+                                  >Ləğv et</button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               </article>
             );
