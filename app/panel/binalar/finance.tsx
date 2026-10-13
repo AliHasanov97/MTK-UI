@@ -120,12 +120,17 @@ export function PayButton({
   propertyType,
   balance,
   onPaid,
+  label = "Ödə",
+  alwaysEnabled = false,
 }: {
   ownerId: string;
   propertyId?: string;
   propertyType?: PropertyTypeKey;
   balance: number;
   onPaid: () => void;
+  label?: string;
+  /** Sahib səviyyəli (əmlaksız) ödəniş: borc olmasa da avans kimi qeyd oluna bilər. */
+  alwaysEnabled?: boolean;
 }) {
   const auth = useAuth();
   const canPay = useCanPay();
@@ -138,10 +143,10 @@ export function PayButton({
       <button
         type="button"
         className="panel-btn panel-btn-sm"
-        disabled={balance >= -0.005}
+        disabled={!alwaysEnabled && balance >= -0.005}
         onClick={() => setOpen(true)}
       >
-        Ödə
+        {label}
       </button>
       {open && auth.status === "authenticated" && (
         <PayModal

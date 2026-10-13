@@ -1006,3 +1006,9 @@ thead .tb-sticky{z-index:4;background:#f7f8f4}
 
 .debt-head-actions{display:flex;gap:8px;flex-wrap:wrap}
 @media(max-width:640px){.debt-head-actions{width:100%}.debt-head-actions .panel-btn{flex:1 1 100%}}
+.debt-group-head{padding-bottom:12px;margin-bottom:8px;border-bottom:1px solid var(--line);align-items:center}
+.debt-group-head .owner-link{font-size:17px;font-weight:700}
+.debt-group-total{text-align:right}
+.debt-group-table td{vertical-align:middle}
+.debt-group-table .debt-charge-actions{display:flex;gap:8px;justify-content:flex-end}
+.debt-group-head .debt-charge-actions{margin-left:auto;margin-right:24px}

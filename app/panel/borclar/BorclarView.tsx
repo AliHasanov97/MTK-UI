@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { useCanDoEverything, useIsAdmin } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
-import { SortDirection } from "../../lib/api/buildings";
+import { QueryComparisonType, SortDirection, type QueryFilter } from "../../lib/api/buildings";
 import { formatDateTime } from "../../lib/format";
 import { GARAGE_TYPE_LABELS, type GarageTypeKey } from "../../lib/api/garages";
 import { getOwnerById, type Owner, type OwnerListItem } from "../../lib/api/owners";
@@ -25,10 +25,6 @@ import { GenerateChargesModal } from "./GenerateChargesModal";
 import { PayButton, useCreatedBy, useCreatedByMap } from "../binalar/finance";
 
 const PAGE_SIZE = 20;
-// One bigger pull, status segmented client-side (the ledger pattern): the
-// server-side QueryFilter can only express one comparison, and the stats need
-// the whole picture anyway.
-const FETCH_SIZE = 500;
 
 const money = new Intl.NumberFormat("az-AZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const formatMoney = (n: number) => `${money.format(n)} ₼`;
@@ -61,6 +57,8 @@ export function BorclarView() {
   const canManage = useCanDoEverything();
   const isAdmin = useIsAdmin();
   const [charges, setCharges] = useState<ChargeResponse[] | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<Scope>("open");
   const [search, setSearch] = useState("");
@@ -76,18 +74,41 @@ export function BorclarView() {
   const [allocationsByCharge, setAllocationsByCharge] = useState<Record<string, ChargeAllocationResponse[]>>({});
   const [loadingId, setLoadingId] = useState<string | null>(null);
 
+  // Axtarış debounce olunur ki, hər düymə basışında sorğu getməsin.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchTerm(search.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Server tərəfli filtr + axtarış + səhifələmə. Status enum-u rəqəm kimi gedir:
+  // Unpaid=0, PartiallyPaid=1, Paid=2, Cancelled=3. Ləğv edilmiş borc açıq borc
+  // sayılmır. OwnerId üzrə sıralama eyni sahibin haqlarını yan-yana saxlayır.
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
+    const filters: QueryFilter[] = [];
+    if (scope === "open") {
+      filters.push({ columnName: "Status", comparison: QueryComparisonType.NotEquals, value: 2 });
+      filters.push({ columnName: "Status", comparison: QueryComparisonType.NotEquals, value: 3 });
+    } else if (scope === "paid") {
+      filters.push({ columnName: "Status", comparison: QueryComparisonType.Equals, value: 2 });
+    }
     searchCharges(auth.accessToken, {
-      sortCriteria: { columnName: "CreatedAt", direction: SortDirection.Descending },
-      pageSize: FETCH_SIZE,
+      filters,
+      searchTerm: searchTerm || undefined,
+      sortCriteria: { columnName: "OwnerId", direction: SortDirection.Ascending },
+      page: page - 1,
+      pageSize: PAGE_SIZE,
     })
       .then((res) => {
         setCharges(res.charges);
+        setTotalCount(res.totalCount);
         setError(null);
       })
       .catch((err) => setError(errorMessage(err)));
-  }, [auth]);
+  }, [auth, scope, searchTerm, page]);
 
   useEffect(() => {
     load();
@@ -112,31 +133,17 @@ export function BorclarView() {
     }
   };
 
-  const term = search.trim().toLowerCase();
-  const visible = (charges ?? []).filter((c) => {
-    const status = chargeStatusFromOrdinal(c.status);
-    // Ləğv edilmiş borc açıq borc sayılmır (ləğvdən sonra eyni dövr üçün yenisi yaradıla bilir — ikiqat hesablanmasın)
-    if (scope === "open" && (status === "Paid" || status === "Cancelled")) return false;
-    if (scope === "paid" && status !== "Paid") return false;
-    if (term) {
-      const owner = c.partyName ?? "";
-      const property = c.propertyLabel ?? "";
-      const haystack = `${owner} ${property} ${c.period ?? ""} ${c.description ?? ""}`.toLowerCase();
-      if (!haystack.includes(term)) return false;
-    }
-    return true;
-  });
+  const visible = charges ?? [];
 
-  const openCharges = (charges ?? []).filter((c) => {
-    const status = chargeStatusFromOrdinal(c.status);
-    return status !== "Paid" && status !== "Cancelled";
-  });
-  const totalOpen = openCharges.reduce((sum, c) => sum + (c.amount - c.paidAmount), 0);
-  const totalPaidAll = (charges ?? []).reduce((sum, c) => sum + c.paidAmount, 0);
-  const ownerCount = new Set(openCharges.map((c) => c.ownerId)).size;
-
-  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
-  const pageRows = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  // Sahibə görə qruplaşdırma (səhifədəki haqlar OwnerId ilə sıralanıb)
+  const groupMap = new Map<string, { ownerId: string; name: string; charges: ChargeResponse[] }>();
+  for (const c of visible) {
+    const group = groupMap.get(c.ownerId);
+    if (group) group.charges.push(c);
+    else groupMap.set(c.ownerId, { ownerId: c.ownerId, name: c.partyName ?? "Sakin", charges: [c] });
+  }
+  const pageGroups = Array.from(groupMap.values());
+  const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const selectedCharge = charges?.find((charge) => charge.id === expandedId) ?? null;
 
   return (
@@ -161,40 +168,19 @@ export function BorclarView() {
         )}
       </div>
 
-      <section className="debt-summary-grid" aria-label="Borc xülasəsi">
-        <article className="debt-summary-card debt-summary-open">
-          <span className="debt-summary-label">Açıq borc</span>
-          <strong>{formatMoney(totalOpen)}</strong>
-          <span>{openCharges.length} ödənilməmiş haqq</span>
-        </article>
-        <article className="debt-summary-card debt-summary-paid">
-          <span className="debt-summary-label">Ödənilmiş</span>
-          <strong>{formatMoney(totalPaidAll)}</strong>
-          <span>Bütün dövrlər üzrə</span>
-        </article>
-        <article className="debt-summary-card debt-summary-owners">
-          <span className="debt-summary-label">Borclu sakinlər</span>
-          <strong>{ownerCount}</strong>
-          <span>Açıq borcu olan sakinlər</span>
-        </article>
-      </section>
-
       {error && <p className="ledger-alert" role="alert">{error}</p>}
 
       <section className="debt-filter-card" aria-label="Borc axtarışı və filtrləri">
         <div className="debt-filter-title">
           <div>
             <h2>Borc siyahısı</h2>
-            <p>{visible.length} haqq göstərilir</p>
+            <p>{totalCount} haqq</p>
           </div>
           <input
             className="panel-search debt-search"
-            placeholder="Sakin, əmlak və ya dövr üzrə axtar"
+            placeholder="Sakin, mənzil/qaraj nömrəsi və ya dövr üzrə axtar"
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="debt-filter-options">
@@ -229,79 +215,122 @@ export function BorclarView() {
         </div>
       ) : (
         <div className="debt-charge-list">
-          {pageRows.map((c) => {
-            const status = chargeStatusFromOrdinal(c.status);
-            const remaining = c.amount - c.paidAmount;
-            const propertyType: PropertyTypeKey | undefined = c.apartmentId
-              ? "Apartment"
-              : c.garageId
-                ? "Garage"
-                : undefined;
-            const propertyId = c.apartmentId ?? c.garageId ?? undefined;
-            const allocations = allocationsByCharge[c.id];
-            const fromAdvance = (allocations ?? []).some(
-              (allocation) => new Date(allocation.paymentDate) < new Date(c.issuedOn),
-            );
-
+          {pageGroups.map((group) => {
+            const groupRemaining = group.charges.reduce((sum, c) => {
+              const s = chargeStatusFromOrdinal(c.status);
+              return s === "Cancelled" ? sum : sum + (c.amount - c.paidAmount);
+            }, 0);
             return (
-              <article className="debt-charge-card" key={c.id}>
-                <div className="debt-charge-top">
+              <article className="debt-charge-card debt-group-card" key={group.ownerId} aria-label={`${group.name} borcları`}>
+                <div className="debt-charge-top debt-group-head">
                   <div className="debt-resident">
-                    <Link className="owner-link" href={`/panel/binalar/sahibler/${c.ownerId}`}>
-                      {c.partyName ?? "Sakin"}
+                    <Link className="owner-link" href={`/panel/binalar/sahibler/${group.ownerId}`}>
+                      {group.name}
                     </Link>
-                    {c.description && <span>{c.description}</span>}
-                    {fromAdvance && <span className="debt-advance-note">Avansdan ödənilib</span>}
-                  </div>
-                  <span className={`vendor-status ${
-                    status === "Paid" ? "vendor-status-paid" : status === "PartiallyPaid" ? "vendor-status-partial" : "vendor-status-open"
-                  }`}>
-                    {CHARGE_STATUS_LABELS[status]}
-                  </span>
-                </div>
-
-                <div className="debt-charge-details">
-                  <div><span>Əmlak</span><strong>{c.propertyLabel ?? "—"}</strong></div>
-                  <div><span>Dövr</span><strong>{c.period || "—"}</strong><small>Yaranma tarixi: {formatDateTime(c.issuedOn)}</small></div>
-                  <div><span>Ümumi məbləğ</span><strong>{formatMoney(c.amount)}</strong></div>
-                  <div><span>Ödənilib</span><strong>{formatMoney(c.paidAmount)}</strong></div>
-                </div>
-
-                <div className="debt-charge-footer">
-                  <div className="debt-remaining">
-                    <span>Qalıq borc</span>
-                    <strong className={remaining > 0 ? "vendor-value-danger" : "vendor-value-ok"}>{formatMoney(remaining)}</strong>
+                    <span>{group.charges.length} haqq</span>
                   </div>
                   <div className="debt-charge-actions">
-                    <button
-                      type="button"
-                      className="panel-btn panel-btn-sm"
-                      aria-haspopup="dialog"
-                      onClick={() => toggleAllocations(c.id)}
-                    >
-                      {loadingId === c.id ? "Yüklənir…" : "Ödəniş bölgüsünə bax"}
-                    </button>
-                    {remaining > 0 && (
-                      <PayButton
-                        ownerId={c.ownerId}
-                        propertyId={propertyId}
-                        propertyType={propertyType}
-                        balance={-remaining}
-                        onPaid={load}
-                      />
-                    )}
+                    <PayButton
+                      ownerId={group.ownerId}
+                      balance={-groupRemaining}
+                      label="Hesaba ödəniş əlavə et"
+                      alwaysEnabled
+                      onPaid={load}
+                    />
+                  </div>
+                  <div className="debt-remaining debt-group-total">
+                    <span>Səhifədə qalıq</span>
+                    <strong className={groupRemaining > 0 ? "vendor-value-danger" : "vendor-value-ok"}>
+                      {formatMoney(groupRemaining)}
+                    </strong>
                   </div>
                 </div>
 
+                <div className="owner-table-scroll">
+                  <table className="data-table debt-group-table">
+                    <thead>
+                      <tr>
+                        <th>Əmlak</th>
+                        <th>Dövr</th>
+                        <th className="vendor-th-amount">Məbləğ</th>
+                        <th className="vendor-th-amount">Ödənilib</th>
+                        <th className="vendor-th-amount">Qalıq</th>
+                        <th>Status</th>
+                        <th />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.charges.map((c) => {
+                        const status = chargeStatusFromOrdinal(c.status);
+                        const remaining = c.amount - c.paidAmount;
+                        const propertyType: PropertyTypeKey | undefined = c.apartmentId
+                          ? "Apartment"
+                          : c.garageId
+                            ? "Garage"
+                            : undefined;
+                        const propertyId = c.apartmentId ?? c.garageId ?? undefined;
+                        const fromAdvance = (allocationsByCharge[c.id] ?? []).some(
+                          (allocation) => new Date(allocation.paymentDate) < new Date(c.issuedOn),
+                        );
+                        return (
+                          <tr key={c.id}>
+                            <td>
+                              {c.propertyLabel ?? "—"}
+                              {c.description && <div className="vendor-note">{c.description}</div>}
+                              {fromAdvance && <div className="debt-advance-note">Avansdan ödənilib</div>}
+                            </td>
+                            <td>
+                              {c.period || "—"}
+                              <div className="vendor-note">{formatDateTime(c.issuedOn)}</div>
+                            </td>
+                            <td className="vendor-amount">{formatMoney(c.amount)}</td>
+                            <td className="vendor-amount">{formatMoney(c.paidAmount)}</td>
+                            <td className={`vendor-amount ${remaining > 0 ? "vendor-value-danger" : "vendor-value-ok"}`}>
+                              {formatMoney(remaining)}
+                            </td>
+                            <td>
+                              <span className={`vendor-status ${
+                                status === "Paid" ? "vendor-status-paid" : status === "PartiallyPaid" ? "vendor-status-partial" : "vendor-status-open"
+                              }`}>
+                                {CHARGE_STATUS_LABELS[status]}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="debt-charge-actions">
+                                <button
+                                  type="button"
+                                  className="panel-btn panel-btn-sm"
+                                  aria-haspopup="dialog"
+                                  onClick={() => toggleAllocations(c.id)}
+                                >
+                                  {loadingId === c.id ? "Yüklənir…" : "Bölgü"}
+                                </button>
+                                {remaining > 0 && (
+                                  <PayButton
+                                    ownerId={c.ownerId}
+                                    propertyId={propertyId}
+                                    propertyType={propertyType}
+                                    balance={-remaining}
+                                    onPaid={load}
+                                  />
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </article>
             );
           })}
         </div>
       )}
 
-      {visible.length > PAGE_SIZE && (
+      {totalCount > PAGE_SIZE && (
         <div className="debt-pagination">
-          <span>{visible.length} haqq · Səhifə {page}/{pageCount}</span>
+          <span>{totalCount} haqq · Səhifə {page}/{pageCount}</span>
           <div>
             <button type="button" className="panel-btn panel-btn-sm" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Əvvəlki</button>
             <button type="button" className="panel-btn panel-btn-sm" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}>Növbəti</button>
