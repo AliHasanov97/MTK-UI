@@ -64,8 +64,8 @@
   .purchase-list-table tbody td::before{font-size:10px;font-weight:700;letter-spacing:.35px;color:#849087;text-transform:uppercase}
   .purchase-list-table .data-table-actions{flex-wrap:wrap}
   .purchase-list-table~.panel-pagination{gap:10px;flex-wrap:wrap;padding:12px}
-  .modal-backdrop:has(.purchase-entry-table){padding:8px;align-items:center}
-  .modal-card:has(.purchase-entry-table){width:100%;max-height:calc(100dvh - 16px);padding:16px}
+  .modal-backdrop:has(.purchase-entry-table){padding:8px}
+  .modal-card:has(.purchase-entry-table){width:100%;padding:16px}
 }
 
 /* Keycloak callback screen */
@@ -108,7 +108,7 @@
 .panel-user-dropdown-item{display:block;width:100%;text-align:left;font:inherit;font-size:13px;font-weight:600;color:#3c463f;background:none;border:none;padding:10px 12px;border-radius:7px;cursor:pointer}
 .panel-user-dropdown-item:hover{background:#f2f4ee}
 .panel-user-dropdown-danger{color:#a24a4a}
-.panel-tabs{flex-shrink:0;display:flex;gap:4px;padding-inline:32px;border-bottom:1px solid var(--line);background:#fff;overflow-x:auto}
+.panel-tabs{flex-shrink:0;display:flex;gap:4px;padding-inline:32px;border-bottom:1px solid var(--line);background:#fff;overflow-x:auto;overflow-y:hidden}
 .panel-tab{flex-shrink:0;padding:13px 14px;font-size:13px;font-weight:600;color:#6d7973;border-bottom:2px solid transparent;margin-bottom:-1px}
 .panel-tab:hover{color:#3c463f}
 .panel-tab.active{color:var(--green);border-bottom-color:var(--green)}
@@ -235,8 +235,8 @@ strong.owner-balance-tag-debt{background:none;padding:0;color:#a24a4a}
 strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
 @media(max-width:640px){.owner-hero-top{flex-wrap:wrap}.owner-hero-stats{flex-direction:column}.owner-hero-stat:not(:last-child){border-right:none;border-bottom:1px solid var(--line)}}
 .panel-pagination{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;font-size:12px;color:#6d7973}
-.modal-backdrop{position:fixed;inset:0;background:rgba(18,28,22,.4);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
-.modal-card{background:#fff;border-radius:12px;padding:28px;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 30px 70px #1d35253a}
+.modal-backdrop{position:fixed;inset:0;background:rgba(18,28,22,.4);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;overscroll-behavior:contain}
+.modal-card{background:#fff;border-radius:12px;padding:28px;max-width:480px;width:100%;margin:auto;box-shadow:0 30px 70px #1d35253a}
 .modal-card-wide{max-width:720px}
 .modal-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 18px}
 .modal-card h2{font-size:18px;margin:0;letter-spacing:-.3px}
@@ -274,8 +274,8 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
   .data-table-mobile-cards .ledger-month-row td{display:block}
 }
 @media(max-width:640px){
-  .modal-backdrop:has(.transaction-document-modal){padding:8px;align-items:center}
-  .modal-card:has(.transaction-document-modal){width:100%;max-height:calc(100dvh - 16px);padding:16px;overflow-y:auto}
+  .modal-backdrop:has(.transaction-document-modal){padding:8px}
+  .modal-card:has(.transaction-document-modal){width:100%;padding:16px}
   .transaction-document-modal,.transaction-document-modal>section,.signed-documents{min-width:0}
   .transaction-document-modal .purchase-meta{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 12px}
   .transaction-document-modal .purchase-meta dd{overflow-wrap:anywhere}
@@ -649,7 +649,7 @@ strong.owner-balance-tag-credit{background:none;padding:0;color:#4c7a38}
 .hr-stat{display:flex;flex-direction:column;gap:2px}
 .hr-stat strong{font-size:15px}
 .hr-stat span{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#8a938c}
-.hr-tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--line);overflow-x:auto}
+.hr-tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden}
 .hr-tab{border:none;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--muted);padding:10px 16px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
 .hr-tab:hover{color:var(--ink)}
 .hr-tab-active{color:var(--green);border-bottom-color:var(--green)}
@@ -1028,3 +1028,12 @@ thead .tb-sticky{z-index:4;background:#f7f8f4}
   .debt-group-table td:last-child::before{display:none}
   .debt-group-table .debt-charge-actions{justify-content:flex-start}
 }
+
+/* Bütün səhifə üçün dizayna uyğun nazik scrollbar */
+*{scrollbar-width:thin;scrollbar-color:#c5cfc0 transparent}
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:#c5cfc0;border:3px solid transparent;border-radius:999px;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:#a9b8a3;background-clip:content-box;border:3px solid transparent}
+*::-webkit-scrollbar-button{display:none;width:0;height:0}
+*::-webkit-scrollbar-corner{background:transparent}

@@ -29,6 +29,8 @@ import {
 } from "../../../../lib/api/payments";
 import { useCreatedBy } from "../../auditHooks";
 
+type Tab = "apartments" | "garages" | "charges" | "payments";
+
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
     if (err.status === 401 || err.status === 403) {
@@ -56,6 +58,7 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
   const [owner, setOwner] = useState<Owner | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showLink, setShowLink] = useState(false);
+  const [tab, setTab] = useState<Tab>("apartments");
   const [charges, setCharges] = useState<ChargeResponse[]>([]);
   const [payments, setPayments] = useState<Awaited<ReturnType<typeof getPaymentsByOwner>>>([]);
   const [ownerBalance, setOwnerBalance] = useState(0);
@@ -149,6 +152,12 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
   }
 
   const lastPayment = lastPaymentDate(payments);
+  const tabs: { key: Tab; label: string; count: number }[] = [
+    { key: "apartments", label: "Mənzillər", count: owner.apartments.length },
+    { key: "garages", label: "Qarajlar", count: owner.garages.length },
+    { key: "charges", label: "Haqlar", count: charges.length },
+    { key: "payments", label: "Ödənişlər", count: payments.length },
+  ];
 
   return (
     <div className="owner-dashboard">
@@ -200,6 +209,22 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
         </div>
       </div>
 
+      <div className="hr-tabs" role="tablist">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            className={`hr-tab ${tab === t.key ? "hr-tab-active" : ""}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label} ({t.count})
+          </button>
+        ))}
+      </div>
+
+      {tab === "apartments" && (
       <section className="panel-card owner-section-card">
         <h4>
           <span className="panel-card-icon owner-section-icon">⌂</span>
@@ -256,7 +281,9 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
           </div>
         )}
       </section>
+      )}
 
+      {tab === "garages" && (
       <div className="owner-fluid-row">
         <section className="panel-card owner-section-card">
           <h4>
@@ -308,10 +335,11 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
         </section>
 
       </div>
+      )}
 
-      <ChargesTable accessToken={auth.accessToken} charges={charges} />
+      {tab === "charges" && <ChargesTable accessToken={auth.accessToken} charges={charges} />}
 
-      <PaymentsTable accessToken={auth.accessToken} payments={payments} />
+      {tab === "payments" && <PaymentsTable accessToken={auth.accessToken} payments={payments} />}
 
       {showLink && (
         <LinkToUserModal

@@ -12,6 +12,8 @@ import { BalanceTag, OwnerChargesPanel, OwnerPaymentsPanel, formatSigned, useCre
 import { getOwnerBalance, getPropertyBalance, searchPayments } from "../../lib/api/payments";
 import { QueryComparisonType, SortDirection } from "../../lib/api/buildings";
 
+type Tab = "apartments" | "garages" | "charges" | "payments";
+
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
     if (err.status === 401 || err.status === 403) return "Bu əməliyyat üçün icazəniz yoxdur.";
@@ -42,6 +44,7 @@ export function ProfilView() {
   const auth = useAuth();
   const [owner, setOwner] = useState<Owner | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("apartments");
   const [ownerBalance, setOwnerBalance] = useState(0);
   const [ownerBalanceId, setOwnerBalanceId] = useState("");
   const [lastPaymentDate, setLastPaymentDate] = useState<string | null>(null);
@@ -130,6 +133,13 @@ export function ProfilView() {
     return <p className="panel-page-lead">Yüklənir…</p>;
   }
 
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: "apartments", label: "Mənzillərim", count: owner.apartments.length },
+    { key: "garages", label: "Qarajlarım", count: owner.garages.length },
+    { key: "charges", label: "Haqlar" },
+    { key: "payments", label: "Ödənişlər" },
+  ];
+
   return (
     <div className="owner-dashboard">
       <div className="owner-hero">
@@ -165,7 +175,23 @@ export function ProfilView() {
         </div>
       </div>
 
-      <div className="owner-split-row-8-4">
+      <div className="hr-tabs" role="tablist">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            className={`hr-tab ${tab === t.key ? "hr-tab-active" : ""}`}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+            {t.count !== undefined && ` (${t.count})`}
+          </button>
+        ))}
+      </div>
+
+      {tab === "apartments" && (
         <section className="panel-card owner-section-card">
           <h4>
             <span className="panel-card-icon owner-section-icon">⌂</span>
@@ -212,7 +238,9 @@ export function ProfilView() {
             </div>
           )}
         </section>
+      )}
 
+      {tab === "garages" && (
         <section className="panel-card owner-section-card">
           <h4>
             <span className="panel-card-icon owner-section-icon">▭</span>
@@ -251,12 +279,10 @@ export function ProfilView() {
             </div>
           )}
         </section>
-      </div>
+      )}
 
-      <div className="owner-split-row-8-4">
-        <OwnerChargesPanel accessToken={auth.accessToken} ownerId={owner.id} />
-        <OwnerPaymentsPanel accessToken={auth.accessToken} ownerId={owner.id} />
-      </div>
+      {tab === "charges" && <OwnerChargesPanel accessToken={auth.accessToken} ownerId={owner.id} />}
+      {tab === "payments" && <OwnerPaymentsPanel accessToken={auth.accessToken} ownerId={owner.id} />}
     </div>
   );
 }
