@@ -1012,3 +1012,19 @@ thead .tb-sticky{z-index:4;background:#f7f8f4}
 .debt-group-table td{vertical-align:middle}
 .debt-group-table .debt-charge-actions{display:flex;gap:8px;justify-content:flex-end}
 .debt-group-head .debt-charge-actions{margin-left:auto;margin-right:24px}
+.debt-group-head{flex-wrap:wrap}
+@media(max-width:720px){
+  .debt-group-card{padding:14px 12px}
+  .debt-group-head .debt-charge-actions{order:3;flex:1 1 100%;margin:0;justify-content:stretch}
+  .debt-group-head .debt-charge-actions .panel-btn{flex:1}
+  .debt-group-total{text-align:right}
+  .debt-group-card .owner-table-scroll{overflow:visible}
+  .debt-group-table,.debt-group-table tbody{display:block}
+  .debt-group-table thead{display:none}
+  .debt-group-table tr{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;padding:12px;margin-bottom:10px;border:1px solid var(--line);border-radius:10px;background:#fafbf8}
+  .debt-group-table td{display:block;padding:0;border:0;white-space:normal;text-align:left}
+  .debt-group-table td::before{content:attr(data-label);display:block;margin-bottom:2px;font-size:10px;font-weight:700;letter-spacing:.35px;text-transform:uppercase;color:#879188}
+  .debt-group-table td:last-child{grid-column:1/-1}
+  .debt-group-table td:last-child::before{display:none}
+  .debt-group-table .debt-charge-actions{justify-content:flex-start}
+}

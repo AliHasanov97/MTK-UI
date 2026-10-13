@@ -274,21 +274,21 @@ export function BorclarView() {
                         );
                         return (
                           <tr key={c.id}>
-                            <td>
+                            <td data-label="Əmlak">
                               {c.propertyLabel ?? "—"}
                               {c.description && <div className="vendor-note">{c.description}</div>}
                               {fromAdvance && <div className="debt-advance-note">Avansdan ödənilib</div>}
                             </td>
-                            <td>
+                            <td data-label="Dövr">
                               {c.period || "—"}
                               <div className="vendor-note">{formatDateTime(c.issuedOn)}</div>
                             </td>
-                            <td className="vendor-amount">{formatMoney(c.amount)}</td>
-                            <td className="vendor-amount">{formatMoney(c.paidAmount)}</td>
-                            <td className={`vendor-amount ${remaining > 0 ? "vendor-value-danger" : "vendor-value-ok"}`}>
+                            <td className="vendor-amount" data-label="Məbləğ">{formatMoney(c.amount)}</td>
+                            <td className="vendor-amount" data-label="Ödənilib">{formatMoney(c.paidAmount)}</td>
+                            <td data-label="Qalıq" className={`vendor-amount ${remaining > 0 ? "vendor-value-danger" : "vendor-value-ok"}`}>
                               {formatMoney(remaining)}
                             </td>
-                            <td>
+                            <td data-label="Status">
                               <span className={`vendor-status ${
                                 status === "Paid" ? "vendor-status-paid" : status === "PartiallyPaid" ? "vendor-status-partial" : "vendor-status-open"
                               }`}>
