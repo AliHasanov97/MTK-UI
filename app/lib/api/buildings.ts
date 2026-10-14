@@ -4,9 +4,6 @@ export type Building = {
   id: string;
   name: string;
   fullAddress: string;
-  totalFloors: number;
-  apartmentsPerFloor: number;
-  totalApartments: number;
   status: string;
   description?: string | null;
 };
@@ -40,8 +37,6 @@ export type CreateBuildingRequest = {
   street: string;
   city: string;
   district?: string | null;
-  totalFloors: number;
-  apartmentsPerFloor: number;
   description?: string | null;
 };
 
@@ -56,9 +51,31 @@ export type CreateApartmentRequest = {
   buildingId: string;
   apartmentNumber: string;
   floor: number;
-  areaSquareMeters: number;
-  roomCount: number;
+  apartmentTypeId: string;
 };
+
+export type ApartmentType = {
+  id: string;
+  buildingId: string;
+  roomCount: number;
+  areaSquareMeters: number;
+};
+
+export function listApartmentTypes(accessToken: string, buildingId: string) {
+  return apiFetch<ApartmentType[]>(`api/buildings/buildings/${buildingId}/apartment-types`, accessToken);
+}
+
+export type CreateApartmentTypeRequest = {
+  roomCount: number;
+  areaSquareMeters: number;
+};
+
+export function createApartmentType(accessToken: string, buildingId: string, request: CreateApartmentTypeRequest) {
+  return apiFetch<string>(`api/buildings/buildings/${buildingId}/apartment-types`, accessToken, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
 
 export function createApartment(accessToken: string, request: CreateApartmentRequest) {
   return apiFetch<string>("api/buildings/apartments", accessToken, {

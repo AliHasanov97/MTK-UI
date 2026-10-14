@@ -10,10 +10,10 @@ import {
   createRate,
   getCurrentRates,
   rateTypeFromOrdinal,
-  updateRate,
   type RateResponse,
   type RateTypeKey,
 } from "../../../lib/api/payments";
+import { Modal } from "../../Modal";
 import { useCreatedByMap } from "../../binalar/finance";
 
 // Manual is a snapshot-only marker used for one-off charges (see Charge.RateType) —
@@ -34,12 +34,110 @@ function garageTypeLabel(rate: RateResponse): string {
   return GARAGE_TYPE_LABELS[GARAGE_TYPES[rate.garageType]] ?? "—";
 }
 
+type RateGroup = {
+  key: string;
+  current: RateResponse | null;
+  upcoming: RateResponse[];
+  // Older rates, newest first.
+  history: RateResponse[];
+};
+
+function rateKey(rate: RateResponse): string {
+  return `${rateTypeFromOrdinal(rate.rateType)}:${rate.garageType ?? ""}`;
+}
+
+function rateLabel(rate: RateResponse): string {
+  return rateTypeFromOrdinal(rate.rateType) === "FixedGarage"
+    ? `Qaraj — ${garageTypeLabel(rate)}`
+    : "Mənzil — m² üzrə";
+}
+
+function rateUnit(rate: RateResponse): string {
+  return rateTypeFromOrdinal(rate.rateType) === "FixedGarage" ? "qaraj" : "m²";
+}
+
+function groupRates(rates: RateResponse[]): RateGroup[] {
+  const now = new Date().toISOString();
+  const byKey = new Map<string, RateResponse[]>();
+  for (const r of rates) {
+    const list = byKey.get(rateKey(r));
+    if (list) list.push(r);
+    else byKey.set(rateKey(r), [r]);
+  }
+  return Array.from(byKey.entries())
+    .map(([key, list]) => {
+      const sorted = [...list].sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom));
+      const upcoming = sorted.filter((r) => r.effectiveFrom > now);
+      const past = sorted.filter((r) => r.effectiveFrom <= now);
+      return { key, current: past[0] ?? null, upcoming, history: past.slice(1) };
+    })
+    .sort((a, b) => a.key.localeCompare(b.key));
+}
+
+function RateCard({ group, createdBy }: { group: RateGroup; createdBy: Record<string, string> }) {
+  const head = group.current ?? group.upcoming[group.upcoming.length - 1];
+  if (!head) return null;
+  const unit = rateUnit(head);
+
+  // A rate is in force until the next-newer rate starts.
+  const timeline = [...group.upcoming, ...(group.current ? [group.current] : []), ...group.history];
+
+  return (
+    <div className="panel-card">
+      <h3>{rateLabel(head)}</h3>
+      {group.current ? (
+        <>
+          <p style={{ fontSize: 26, fontWeight: 700, color: "#2f3b32", margin: "4px 0 2px" }}>
+            {group.current.amount.toFixed(2)} ₼ <span style={{ fontSize: 13, fontWeight: 500 }}>/ {unit}</span>
+          </p>
+          <p>{group.current.effectiveFrom.slice(0, 10)} tarixindən tətbiq olunur</p>
+          {group.current.description && <p>{group.current.description}</p>}
+        </>
+      ) : (
+        <p>Hələ qüvvədə olan tarif yoxdur.</p>
+      )}
+
+      {group.upcoming.map((r) => (
+        <p key={r.id} style={{ marginTop: 10 }}>
+          <span className="panel-role-tag panel-role-tag-warn">Gələcəkdə</span>{" "}
+          {r.effectiveFrom.slice(0, 10)} tarixindən: <b>{r.amount.toFixed(2)} ₼ / {unit}</b>
+        </p>
+      ))}
+
+      {group.history.length > 0 && (
+        <details style={{ marginTop: 14 }}>
+          <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#6d7973" }}>
+            Tarixçə ({group.history.length})
+          </summary>
+          <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, fontSize: 12, color: "#5a655d" }}>
+            {timeline.slice(timeline.length - group.history.length).map((r) => {
+              const idx = timeline.indexOf(r);
+              const newer = idx > 0 ? timeline[idx - 1] : null;
+              return (
+                <li key={r.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "4px 0" }}>
+                  <span>
+                    {r.effectiveFrom.slice(0, 10)} — {newer ? newer.effectiveFrom.slice(0, 10) : "…"}
+                  </span>
+                  <span>
+                    {r.amount.toFixed(2)} ₼ / {unit}
+                    {createdBy[r.id] ? ` · ${createdBy[r.id]}` : ""}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
 export function TariflarView() {
   const auth = useAuth();
   const canManage = useCanDoEverything();
   const [rates, setRates] = useState<RateResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const createdBy = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Rate");
 
   const load = useCallback(() => {
@@ -58,83 +156,63 @@ export function TariflarView() {
 
   if (auth.status !== "authenticated") return null;
 
+  const groups = groupRates(rates);
+
   return (
     <div className="panel-page">
-      <h1>Tariflər</h1>
-      <p className="panel-page-lead">
-        Aylıq haqq generasiyası bu tariflərə əsaslanır: mənzillər üçün m² üzrə, qarajlar üçün sabit (istəyə görə
-        qaraj növünə xüsusi).
-      </p>
+      <div className="panel-toolbar">
+        <div style={{ flex: 1 }}>
+          <h1>Tariflər</h1>
+          <p className="panel-page-lead">
+            Aylıq haqq generasiyası bu tariflərə əsaslanır: mənzillər üçün m² üzrə, qarajlar üçün sabit (istəyə görə
+            qaraj növünə xüsusi).
+          </p>
+        </div>
+        {canManage && (
+          <button type="button" className="panel-btn panel-btn-primary" onClick={() => setShowCreate(true)}>
+            + Yeni tarif
+          </button>
+        )}
+      </div>
 
       {error && <p className="form-error">{error}</p>}
 
-      {canManage && (
-        <section className="panel-card owner-section-card">
-          <h4>Yeni tarif</h4>
-          <CreateRateForm accessToken={auth.accessToken} onSaved={load} />
-        </section>
+      {showCreate && (
+        <Modal title="Yeni tarif" onClose={() => setShowCreate(false)}>
+          <CreateRateForm
+            accessToken={auth.accessToken}
+            onCancel={() => setShowCreate(false)}
+            onSaved={() => {
+              setShowCreate(false);
+              load();
+            }}
+          />
+        </Modal>
       )}
 
-      <section className="panel-card owner-section-card">
-        <h4>Aktiv tariflər</h4>
-        {rates.length === 0 ? (
-          <p className="panel-page-lead">Hələ heç bir tarif təyin edilməyib.</p>
-        ) : (
-          <div className="owner-table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Tip</th>
-                  <th>Qaraj növü</th>
-                  <th>Məbləğ (₼)</th>
-                  <th>Qüvvəyə minib</th>
-                  <th>Təsvir</th>
-                  <th>Yaradan</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rates.map((r) =>
-                  canManage && editingId === r.id ? (
-                    <EditRateRow
-                      key={r.id}
-                      accessToken={auth.accessToken}
-                      rate={r}
-                      createdBy={createdBy[r.id] ?? null}
-                      onCancel={() => setEditingId(null)}
-                      onSaved={() => {
-                        setEditingId(null);
-                        load();
-                      }}
-                    />
-                  ) : (
-                    <tr key={r.id}>
-                      <td>{RATE_TYPE_LABELS[rateTypeFromOrdinal(r.rateType)]}</td>
-                      <td>{rateTypeFromOrdinal(r.rateType) === "FixedGarage" ? garageTypeLabel(r) : "—"}</td>
-                      <td>{r.amount.toFixed(2)}</td>
-                      <td>{r.effectiveFrom.slice(0, 10)}</td>
-                      <td>{r.description ?? "—"}</td>
-                      <td>{createdBy[r.id] ?? "—"}</td>
-                      <td>
-                        {canManage && (
-                          <button type="button" className="panel-btn panel-btn-sm" onClick={() => setEditingId(r.id)}>
-                            Redaktə et
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ),
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <h4 style={{ margin: "0 0 12px" }}>Hazırkı tariflər</h4>
+      {groups.length === 0 ? (
+        <p className="panel-page-lead">Hələ heç bir tarif təyin edilməyib.</p>
+      ) : (
+        <div className="panel-card-grid">
+          {groups.map((g) => (
+            <RateCard key={g.key} group={g} createdBy={createdBy} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function CreateRateForm({ accessToken, onSaved }: { accessToken: string; onSaved: () => void }) {
+function CreateRateForm({
+  accessToken,
+  onSaved,
+  onCancel,
+}: {
+  accessToken: string;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
   const [rateType, setRateType] = useState<RateTypeKey>("PerSquareMeter");
   const [garageType, setGarageType] = useState<GarageTypeKey | "">("");
   const [amount, setAmount] = useState("");
@@ -160,8 +238,6 @@ function CreateRateForm({ accessToken, onSaved }: { accessToken: string; onSaved
         description: description || null,
         garageType: rateType === "FixedGarage" && garageType ? garageType : null,
       });
-      setAmount("");
-      setDescription("");
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -234,78 +310,13 @@ function CreateRateForm({ accessToken, onSaved }: { accessToken: string; onSaved
         <input id="rate-description" value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
       <div className="form-actions">
+        <button type="button" className="panel-btn" onClick={onCancel}>
+          Ləğv et
+        </button>
         <button type="submit" className="panel-btn panel-btn-primary" disabled={saving}>
           {saving ? "Saxlanılır…" : "Tarif yarat"}
         </button>
       </div>
     </form>
-  );
-}
-
-function EditRateRow({
-  accessToken,
-  rate,
-  createdBy,
-  onCancel,
-  onSaved,
-}: {
-  accessToken: string;
-  rate: RateResponse;
-  createdBy: string | null;
-  onCancel: () => void;
-  onSaved: () => void;
-}) {
-  const [amount, setAmount] = useState(String(rate.amount));
-  const [description, setDescription] = useState(rate.description ?? "");
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  async function handleSave() {
-    const numericAmount = Number(amount);
-    if (!numericAmount || numericAmount <= 0) {
-      setError("Məbləğ 0-dan böyük olmalıdır.");
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      await updateRate(accessToken, rate.id, { amount: numericAmount, description: description || null });
-      onSaved();
-    } catch (err) {
-      setError(err instanceof ApiError ? `Xəta (${err.status})` : "Backend-ə qoşulmaq mümkün olmadı.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <tr>
-      <td>{RATE_TYPE_LABELS[rateTypeFromOrdinal(rate.rateType)]}</td>
-      <td>{rateTypeFromOrdinal(rate.rateType) === "FixedGarage" ? garageTypeLabel(rate) : "—"}</td>
-      <td>
-        <input
-          type="number"
-          min={0.01}
-          step="0.01"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          style={{ width: 100 }}
-        />
-      </td>
-      <td>{rate.effectiveFrom.slice(0, 10)}</td>
-      <td>
-        <input value={description} onChange={(e) => setDescription(e.target.value)} />
-        {error && <p className="form-error">{error}</p>}
-      </td>
-      <td>{createdBy ?? "—"}</td>
-      <td style={{ display: "flex", gap: 6 }}>
-        <button type="button" className="panel-btn panel-btn-sm" onClick={onCancel}>
-          Ləğv et
-        </button>
-        <button type="button" className="panel-btn panel-btn-sm panel-btn-primary" disabled={saving} onClick={handleSave}>
-          {saving ? "…" : "Saxla"}
-        </button>
-      </td>
-    </tr>
   );
 }
