@@ -498,6 +498,7 @@ export type AuditableEntityType =
   | "Charge"
   | "Payment"
   | "Vendor"
+  | "Customer"
   | "Contract"
   | "Rate"
   | "Transaction"

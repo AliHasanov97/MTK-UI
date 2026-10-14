@@ -37,8 +37,10 @@ type MessageOnly = { message: string };
 export type ContractListItem = {
   id: string;
   number: string;
-  vendorId: string;
+  vendorId: string | null;
   vendorName: string | null;
+  customerId: string | null;
+  customerName: string | null;
   startDate: string;
   endDate: string;
   status: number;
@@ -63,8 +65,10 @@ export type ContractServiceResponse = {
 export type ContractResponse = {
   id: string;
   number: string;
-  vendorId: string;
+  vendorId: string | null;
   vendorName: string | null;
+  customerId: string | null;
+  customerName: string | null;
   createdByUserId: string | null;
   startDate: string;
   endDate: string;
@@ -103,9 +107,11 @@ export function exportContract(accessToken: string, contractId: string) {
   return apiFetchFile(`api/payments/contracts/${contractId}/export`, accessToken);
 }
 
+// Exactly one of vendorId (we owe the vendor) / customerId (the customer owes us).
 export type CreateContractRequest = {
   number: string;
-  vendorId: string;
+  vendorId?: string | null;
+  customerId?: string | null;
   startDate: string;
   endDate: string;
   createdByUserId?: string | null;

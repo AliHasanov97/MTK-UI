@@ -54,6 +54,7 @@ export const NAV_MODULES: NavModule[] = [
     tabs: [
       { href: "/panel/muqavileler", label: "Müqavilələr" },
       { href: "/panel/tedarukculer", label: "Tədarükçülər" },
+      { href: "/panel/musteriler", label: "Müştərilər" },
       { href: "/panel/borclar", label: "Borclar" },
       { href: "/panel/maliyye-emeliyyatlari", label: "Maliyyə əməliyyatları" },
     ],

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { useCanDoEverything } from "../../lib/auth/roles";
 import { ApiError } from "../../lib/api/client";
+import { QueryComparisonType, type QueryFilter } from "../../lib/api/buildings";
 import {
   CONTRACT_STATUS_LABELS,
   contractStatusFromOrdinal,
@@ -13,6 +14,7 @@ import {
   searchContracts,
   type ContractListItem,
 } from "../../lib/api/contracts";
+import { searchCustomers, type CustomerListResult } from "../../lib/api/customers";
 import { searchVendors, type VendorListResult } from "../../lib/api/vendors";
 import { Modal } from "../Modal";
 import { SearchableSelect } from "../SearchableSelect";
@@ -44,6 +46,7 @@ export function MuqavilelerView() {
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [partyFilter, setPartyFilter] = useState<"all" | "vendor" | "customer">("all");
   const [pageNumber, setPageNumber] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
@@ -54,7 +57,7 @@ export function MuqavilelerView() {
   }, [searchInput]);
 
   // A new search term restarts pagination from the first page.
-  const filterSignature = JSON.stringify(searchTerm);
+  const filterSignature = JSON.stringify([searchTerm, partyFilter]);
   const [prevFilterSignature, setPrevFilterSignature] = useState(filterSignature);
   if (filterSignature !== prevFilterSignature) {
     setPrevFilterSignature(filterSignature);
@@ -64,8 +67,20 @@ export function MuqavilelerView() {
   useEffect(() => {
     if (auth.status !== "authenticated") return;
 
+    // Tərəf filtri: tədarükçü müqavilələrində vendorId, müştəri müqavilələrində customerId dolu olur.
+    const filters: QueryFilter[] | undefined =
+      partyFilter === "all"
+        ? undefined
+        : [
+            {
+              columnName: partyFilter === "vendor" ? "vendorId" : "customerId",
+              comparison: QueryComparisonType.IsNotNull,
+            },
+          ];
+
     searchContracts(auth.accessToken, {
       searchTerm: searchTerm || undefined,
+      filters,
       page: pageNumber - 1,
       pageSize: PAGE_SIZE,
     })
@@ -75,7 +90,7 @@ export function MuqavilelerView() {
         setError(null);
       })
       .catch((err) => setError(errorMessage(err)));
-  }, [auth, searchTerm, pageNumber, reloadKey]);
+  }, [auth, searchTerm, partyFilter, pageNumber, reloadKey]);
 
   if (auth.status !== "authenticated") return null;
 
@@ -99,6 +114,25 @@ export function MuqavilelerView() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
+        <div className="vendor-segments" role="group" aria-label="Müqavilə tərəfi">
+          {(
+            [
+              ["all", "Hamısı"],
+              ["vendor", "Tədarükçü"],
+              ["customer", "Müştəri"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={partyFilter === value ? "active" : ""}
+              aria-pressed={partyFilter === value}
+              onClick={() => setPartyFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         {canManage && (
           <button type="button" className="panel-btn panel-btn-primary" onClick={() => setCreateOpen(true)}>
             + Yeni müqavilə
@@ -116,7 +150,7 @@ export function MuqavilelerView() {
             <thead>
               <tr>
                 <th>Nömrə</th>
-                <th>Tədarükçü</th>
+                <th>Tərəf</th>
                 <th>Müddət</th>
                 <th>Status</th>
                 <th></th>
@@ -137,7 +171,10 @@ export function MuqavilelerView() {
                         {c.number}
                       </Link>
                     </td>
-                    <td>{c.vendorName ?? "—"}</td>
+                    <td>
+                      {c.vendorName ?? c.customerName ?? "—"}
+                      <span className="vendor-cell-sub">{c.customerId ? "Müştəri" : "Tədarükçü"}</span>
+                    </td>
                     <td>
                       {dateOnly(c.startDate)} — {dateOnly(c.endDate)}
                     </td>
@@ -218,8 +255,11 @@ function CreateContractModal({
   onSaved: (contractId: string) => void;
 }) {
   const auth = useAuth();
+  const [partyKind, setPartyKind] = useState<"vendor" | "customer">("vendor");
   const [vendors, setVendors] = useState<VendorListResult[] | null>(null);
   const [vendorId, setVendorId] = useState("");
+  const [customers, setCustomers] = useState<CustomerListResult[] | null>(null);
+  const [customerId, setCustomerId] = useState("");
   const [number, setNumber] = useState("");
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState(nextYear);
@@ -232,6 +272,9 @@ function CreateContractModal({
     searchVendors(auth.accessToken, { pageSize: 200 })
       .then((res) => setVendors(res.vendors.filter((v) => v.isActive)))
       .catch((err) => setError(errorMessage(err)));
+    searchCustomers(auth.accessToken, { pageSize: 200 })
+      .then((res) => setCustomers(res.customers.filter((c) => c.isActive)))
+      .catch((err) => setError(errorMessage(err)));
   }, [auth]);
 
   if (auth.status !== "authenticated") return null;
@@ -239,8 +282,12 @@ function CreateContractModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!vendorId) {
+    if (partyKind === "vendor" && !vendorId) {
       setError("Tədarükçü seçin.");
+      return;
+    }
+    if (partyKind === "customer" && !customerId) {
+      setError("Müştəri seçin.");
       return;
     }
 
@@ -249,7 +296,8 @@ function CreateContractModal({
     try {
       const contractId = await createContract(accessToken, {
         number,
-        vendorId,
+        vendorId: partyKind === "vendor" ? vendorId : null,
+        customerId: partyKind === "customer" ? customerId : null,
         startDate,
         endDate,
         note: note || null,
@@ -277,6 +325,50 @@ function CreateContractModal({
           />
         </div>
         <div className="form-field">
+          <label>Müqavilə tərəfi</label>
+          <div className="vendor-segments" role="group" aria-label="Müqavilə tərəfi">
+            <button
+              type="button"
+              className={partyKind === "vendor" ? "active" : ""}
+              aria-pressed={partyKind === "vendor"}
+              onClick={() => setPartyKind("vendor")}
+            >
+              Tədarükçü
+            </button>
+            <button
+              type="button"
+              className={partyKind === "customer" ? "active" : ""}
+              aria-pressed={partyKind === "customer"}
+              onClick={() => setPartyKind("customer")}
+            >
+              Müştəri
+            </button>
+          </div>
+        </div>
+        {partyKind === "customer" ? (
+          <div className="form-field">
+            <label htmlFor="contract-customer">Müştəri</label>
+            {customers === null ? (
+              <p className="panel-page-lead">Müştərilər yüklənir…</p>
+            ) : customers.length === 0 ? (
+              <p className="panel-page-lead">
+                Aktiv müştəri yoxdur — əvvəlcə «Müştərilər» bölməsindən biri əlavə edin.
+              </p>
+            ) : (
+              <SearchableSelect
+                options={customers.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  sublabel: c.voen ?? undefined,
+                }))}
+                value={customerId}
+                onChange={setCustomerId}
+                placeholder="Müştəri seçin…"
+              />
+            )}
+          </div>
+        ) : (
+        <div className="form-field">
           <label htmlFor="contract-vendor">Tədarükçü</label>
           {vendors === null ? (
             <p className="panel-page-lead">Tədarükçülər yüklənir…</p>
@@ -297,6 +389,7 @@ function CreateContractModal({
             />
           )}
         </div>
+        )}
         <div className="form-row">
           <div className="form-field">
             <label htmlFor="contract-start">Başlanğıc tarixi</label>
@@ -330,7 +423,10 @@ function CreateContractModal({
           <button
             type="submit"
             className="panel-btn panel-btn-primary"
-            disabled={saving || !vendors || vendors.length === 0}
+            disabled={
+              saving ||
+              (partyKind === "vendor" ? !vendors || vendors.length === 0 : !customers || customers.length === 0)
+            }
           >
             {saving ? "Saxlanılır…" : "Yarat"}
           </button>

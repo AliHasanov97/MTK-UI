@@ -99,6 +99,7 @@ export type PaymentResponse = {
   // ownerId/vendorId is set.
   ownerId: string | null;
   vendorId: string | null;
+  customerId: string | null;
   amount: number;
   paymentMethod: number;
   paymentDate: string;

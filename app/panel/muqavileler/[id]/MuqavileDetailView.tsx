@@ -35,6 +35,12 @@ import {
   vendorChargeStatusFromOrdinal,
   type VendorChargeResponse,
 } from "../../../lib/api/vendorCharges";
+import {
+  cancelCustomerCharge,
+  createCustomerPayment,
+  customerChargeAsRow,
+  searchCustomerCharges,
+} from "../../../lib/api/customerCharges";
 import { QueryComparisonType, type QueryFilter } from "../../../lib/api/buildings";
 import { useCreatedBy, useCreatedByMap } from "../../binalar/finance";
 import { Modal } from "../../Modal";
@@ -69,19 +75,27 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
   const createdBy = useCreatedBy(auth.status === "authenticated" ? auth.accessToken : "", "Contract", contractId);
   const serviceCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "ContractService");
 
+  // A contract is either a vendor's (we owe) or a customer's (they owe us); the charges
+  // list, cancel and pay calls follow that. Wait until the contract is known.
+  const contractLoaded = contract !== null;
+  const customerPartyId = contract?.customerId ?? null;
+
   const loadCharges = useCallback(() => {
-    if (auth.status !== "authenticated") return;
+    if (auth.status !== "authenticated" || !contractLoaded) return;
     // Borclar müqavilə üzrə filtrlənir — QueryFilter "contractId equals" (ordinal 0).
     const filters: QueryFilter[] = [
       { columnName: "contractId", comparison: QueryComparisonType.Equals, value: contractId },
     ];
-    searchVendorCharges(auth.accessToken, { filters, pageSize: 50 })
-      .then((res) => {
-        setCharges(res.items);
+    const request = customerPartyId
+      ? searchCustomerCharges(auth.accessToken, { filters, pageSize: 50 }).then((res) => res.items.map(customerChargeAsRow))
+      : searchVendorCharges(auth.accessToken, { filters, pageSize: 50 }).then((res) => res.items);
+    request
+      .then((items) => {
+        setCharges(items);
         setChargesError(null);
       })
       .catch((err) => setChargesError(errorMessage(err)));
-  }, [auth, contractId]);
+  }, [auth, contractId, contractLoaded, customerPartyId]);
 
   const load = useCallback(() => {
     if (auth.status !== "authenticated") return;
@@ -223,7 +237,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
           <h2>Ümumi məlumat</h2>
           <dl className="purchase-meta">
             <div><dt>Nömrə</dt><dd>{contract.number}</dd></div>
-            <div><dt>Tədarükçü</dt><dd>{contract.vendorName ?? "Tədarükçü tapılmadı"}</dd></div>
+            <div><dt>{contract.customerId ? "Müştəri" : "Tədarükçü"}</dt><dd>{contract.vendorName ?? contract.customerName ?? "Tərəf tapılmadı"}</dd></div>
             <div><dt>Müddət</dt><dd>{dateOnly(contract.startDate)} — {dateOnly(contract.endDate)}</dd></div>
             <div>
               <dt>Status</dt>
@@ -441,7 +455,11 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                               disabled={busy}
                               onClick={() => {
                                 if (!window.confirm(`"${c.description}" borcu ləğv edilsin?`)) return;
-                                void run(() => cancelVendorCharge(accessToken, c.id));
+                                void run(() =>
+                                  contract.customerId
+                                    ? cancelCustomerCharge(accessToken, c.id)
+                                    : cancelVendorCharge(accessToken, c.id),
+                                );
                               }}
                             >
                               Ləğv et
@@ -500,6 +518,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
       {payForm && (
         <PayChargeModal
           charge={payForm}
+          customer={Boolean(contract.customerId)}
           onClose={() => setPayForm(null)}
           onSaved={() => {
             setPayForm(null);
@@ -524,10 +543,13 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
 
 function PayChargeModal({
   charge,
+  customer,
   onClose,
   onSaved,
 }: {
   charge: VendorChargeResponse;
+  /** true → müştəridən ödəniş qəbulu (gəlir), false → tədarükçüyə ödəniş (xərc). */
+  customer: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -549,11 +571,19 @@ function PayChargeModal({
     setSaving(true);
     setError(null);
     try {
-      await createVendorPayment(accessToken, {
-        vendorId: charge.vendorId,
-        amount: value,
-        paymentMethod: "Cash",
-      });
+      if (customer) {
+        await createCustomerPayment(accessToken, {
+          customerId: charge.vendorId,
+          amount: value,
+          paymentMethod: "Cash",
+        });
+      } else {
+        await createVendorPayment(accessToken, {
+          vendorId: charge.vendorId,
+          amount: value,
+          paymentMethod: "Cash",
+        });
+      }
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -563,7 +593,7 @@ function PayChargeModal({
   }
 
   return (
-    <Modal title="Tədarükçüyə ödəniş" onClose={onClose}>
+    <Modal title={customer ? "Müştəridən ödəniş" : "Tədarükçüyə ödəniş"} onClose={onClose}>
       <p className="panel-page-lead">
         {charge.description} · qalıq borc <strong>{charge.outstandingAmount.toFixed(2)} ₼</strong>
       </p>
@@ -582,7 +612,9 @@ function PayChargeModal({
           />
         </div>
         <p className="panel-page-lead" style={{ margin: "0 0 14px" }}>
-          Ödəniş qeydə alınan kimi tranzaksiyalar jurnalına xərc kimi düşür.
+          {customer
+            ? "Ödəniş qeydə alınan kimi tranzaksiyalar jurnalına gəlir kimi düşür."
+            : "Ödəniş qeydə alınan kimi tranzaksiyalar jurnalına xərc kimi düşür."}
         </p>
         <div className="form-actions">
           <button type="button" className="panel-btn" onClick={onClose}>
