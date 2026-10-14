@@ -23,7 +23,7 @@ export type NavModule = {
 export const NAV_MODULES: NavModule[] = [
   { href: "/panel", label: "Ümumi baxış", icon: "◎" },
   {
-    href: "/panel/binalar",
+    href: "/panel/binalar/bina-siyahisi",
     label: "Binalar",
     icon: "⌂",
     roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER],
