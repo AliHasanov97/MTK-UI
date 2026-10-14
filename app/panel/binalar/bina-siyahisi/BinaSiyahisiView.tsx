@@ -15,6 +15,7 @@ import {
 } from "../../../lib/api/buildings";
 import { Modal } from "../../Modal";
 import { useCreatedByMap } from "../auditHooks";
+import { BinaSxemiModal } from "./BinaSxemiModal";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -34,6 +35,7 @@ export function BinaSiyahisiView() {
   const [showCreate, setShowCreate] = useState(false);
   const [apartmentBuilding, setApartmentBuilding] = useState<Building | null>(null);
   const [typesBuilding, setTypesBuilding] = useState<Building | null>(null);
+  const [schemeBuilding, setSchemeBuilding] = useState<Building | null>(null);
   const createdBy = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Building");
 
   const load = useCallback(() => {
@@ -102,6 +104,13 @@ export function BinaSiyahisiView() {
                 </td>
                 <td>{createdBy[b.id] ?? "—"}</td>
                 <td>
+                  <button
+                    type="button"
+                    className="panel-btn panel-btn-sm"
+                    onClick={() => setSchemeBuilding(b)}
+                  >
+                    Sxem
+                  </button>{" "}
                   {canManage && (
                     <>
                       <button
@@ -141,6 +150,10 @@ export function BinaSiyahisiView() {
 
       {apartmentBuilding && (
         <CreateApartmentModal building={apartmentBuilding} onClose={() => setApartmentBuilding(null)} />
+      )}
+
+      {schemeBuilding && (
+        <BinaSxemiModal building={schemeBuilding} onClose={() => setSchemeBuilding(null)} />
       )}
     </div>
   );
