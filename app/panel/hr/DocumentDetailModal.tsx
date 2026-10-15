@@ -46,6 +46,7 @@ const LABELS: Record<string, string> = {
   setDate: "Tarix",
   returnDate: "İşə qayıtma tarixi",
   returnToWorkDate: "İşə çıxma tarixi",
+  unusedDaysReturned: "Balansa qaytarılan gün",
   requestedDays: "Gün sayı",
   totalRequestedDays: "Gün sayı",
   vacationDays: "Məzuniyyət günləri",
