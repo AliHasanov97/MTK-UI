@@ -556,6 +556,8 @@ export type PayslipResponse = {
   employerUnemployment: number;
   employerMedicalInsurance: number;
   totalEmployerCost: number;
+  paidAt: string | null;
+  paymentMethod: number | null;
 };
 
 // PayrollRunStatus enum ordinal (Draft=1..Paid=4; no [JsonStringEnumConverter] in Payments).
@@ -603,6 +605,39 @@ export function exportPayrollRun(accessToken: string, payrollRunId: string) {
 
 export function exportPayslip(accessToken: string, payrollRunId: string, employeeId: string) {
   return apiFetchFile(`api/payments/payrollruns/${payrollRunId}/payslips/${employeeId}/export`, accessToken);
+}
+
+/** Hesablamanın rəqəmlərini təsdiqləyir — ödəniş yalnız bundan sonra mümkündür. */
+export function approvePayrollRun(accessToken: string, payrollRunId: string) {
+  return apiFetch<Envelope<PayrollRunResponse>>(`api/payments/payrollruns/${payrollRunId}/approve`, accessToken, {
+    method: "POST",
+  }).then((e) => e.data);
+}
+
+/** Bir işçinin qəbzini ödənilmiş qeyd edir və uyğun Transaction (xərc) yaradır. */
+export function payPayslip(
+  accessToken: string,
+  payrollRunId: string,
+  employeeId: string,
+  paymentMethod: PaymentMethodKey = "BankTransfer",
+) {
+  return apiFetch<Envelope<PayrollRunResponse>>(
+    `api/payments/payrollruns/${payrollRunId}/payslips/${employeeId}/pay`,
+    accessToken,
+    { method: "POST", body: JSON.stringify({ paymentMethod: paymentMethodToOrdinal(paymentMethod) }) },
+  ).then((e) => e.data);
+}
+
+/** Hələ ödənilməmiş bütün qəbzləri ödənilmiş qeyd edir — hər biri üçün ayrıca Transaction yaradır. */
+export function payPayrollRun(
+  accessToken: string,
+  payrollRunId: string,
+  paymentMethod: PaymentMethodKey = "BankTransfer",
+) {
+  return apiFetch<Envelope<PayrollRunResponse>>(`api/payments/payrollruns/${payrollRunId}/pay`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ paymentMethod: paymentMethodToOrdinal(paymentMethod) }),
+  }).then((e) => e.data);
 }
 
 /* ------------------------------------------------------------------ */

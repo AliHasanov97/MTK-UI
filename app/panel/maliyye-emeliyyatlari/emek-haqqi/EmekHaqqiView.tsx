@@ -4,13 +4,18 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { ApiError, saveBlobAsFile } from "../../../lib/api/client";
 import {
+  approvePayrollRun,
   calculatePayrollRun,
   exportPayrollRun,
   exportPayslip,
   getPayrollRunByPeriod,
+  payPayrollRun,
+  payPayslip,
   payrollRunStatusLabel,
   type PayrollRunResponse,
 } from "../../../lib/api/payments";
+
+const PAYROLL_STATUS = { DRAFT: 1, CALCULATED: 2, APPROVED: 3, PAID: 4 } as const;
 
 const MONTHS = [
   "Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr",
@@ -47,8 +52,10 @@ export function EmekHaqqiView() {
   const [run, setRun] = useState<PayrollRunResponse | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
+  const [paying, setPaying] = useState<string | null>(null);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -115,6 +122,46 @@ export function EmekHaqqiView() {
       setError(parseApiError(err).message);
     } finally {
       setExporting(null);
+    }
+  }
+
+  async function handleApprove() {
+    if (!run) return;
+    setApproving(true);
+    setError(null);
+    try {
+      setRun(await approvePayrollRun(accessToken, run.id));
+    } catch (err) {
+      setError(parseApiError(err).message);
+    } finally {
+      setApproving(false);
+    }
+  }
+
+  async function handlePayOne(employeeId: string) {
+    if (!run) return;
+    setPaying(employeeId);
+    setError(null);
+    try {
+      setRun(await payPayslip(accessToken, run.id, employeeId));
+    } catch (err) {
+      setError(parseApiError(err).message);
+    } finally {
+      setPaying(null);
+    }
+  }
+
+  async function handlePayAll() {
+    if (!run) return;
+    if (!window.confirm(`${periodLabel} üçün hələ ödənilməmiş bütün əmək haqları ödənilsin?`)) return;
+    setPaying("all");
+    setError(null);
+    try {
+      setRun(await payPayrollRun(accessToken, run.id));
+    } catch (err) {
+      setError(parseApiError(err).message);
+    } finally {
+      setPaying(null);
     }
   }
 
@@ -201,12 +248,30 @@ export function EmekHaqqiView() {
               <strong>{money(run.totalEmployerCost)}</strong>
               <span>İşəgötürənin ümumi xərci</span>
             </div>
+            {run.status === PAYROLL_STATUS.CALCULATED && (
+              <div className="hr-stat">
+                <button type="button" className="panel-btn panel-btn-primary" disabled={approving} onClick={handleApprove}>
+                  {approving ? "Təsdiqlənir…" : "Hesablamayı təsdiqlə"}
+                </button>
+                <span>Ödəniş üçün lazımdır</span>
+              </div>
+            )}
           </div>
 
           <div className="panel-toolbar" style={{ marginTop: 16 }}>
             <div style={{ flex: 1 }}>
               <h3 style={{ margin: 0 }}>Qəbzlər ({run.payslips.length} işçi)</h3>
             </div>
+            {run.status === PAYROLL_STATUS.APPROVED && run.payslips.some((p) => !p.paidAt) && (
+              <button
+                type="button"
+                className="panel-btn panel-btn-primary"
+                disabled={paying === "all"}
+                onClick={handlePayAll}
+              >
+                {paying === "all" ? "Ödənilir…" : "Hamısını ödə"}
+              </button>
+            )}
             <button
               type="button"
               className="panel-btn panel-btn-primary"
@@ -229,6 +294,7 @@ export function EmekHaqqiView() {
                     <th>Tutulmalar</th>
                     <th>Məhkəmə tutumu</th>
                     <th>Yekun net</th>
+                    <th>Ödəniş</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -245,6 +311,24 @@ export function EmekHaqqiView() {
                         <td>{p.courtDeductionAmount > 0 ? money(p.courtDeductionAmount) : "—"}</td>
                         <td>
                           <strong>{money(p.finalNetSalary)}</strong>
+                        </td>
+                        <td>
+                          {p.paidAt ? (
+                            <span className="panel-role-tag panel-role-tag-good">
+                              Ödənilib · {p.paidAt.slice(0, 10)}
+                            </span>
+                          ) : run.status === PAYROLL_STATUS.APPROVED ? (
+                            <button
+                              type="button"
+                              className="panel-btn panel-btn-sm panel-btn-primary"
+                              disabled={paying === p.employeeId || paying === "all"}
+                              onClick={() => handlePayOne(p.employeeId)}
+                            >
+                              {paying === p.employeeId ? "…" : "Ödə"}
+                            </button>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td>
                           <button
