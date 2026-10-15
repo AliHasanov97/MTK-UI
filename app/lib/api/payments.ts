@@ -605,6 +605,71 @@ export function exportPayslip(accessToken: string, payrollRunId: string, employe
   return apiFetchFile(`api/payments/payrollruns/${payrollRunId}/payslips/${employeeId}/export`, accessToken);
 }
 
+/* ------------------------------------------------------------------ */
+/* Əmək haqqı vergi/sığorta dərəcə pillələri                           */
+/* ------------------------------------------------------------------ */
+
+// PayrollRateType/PayrollParty enum ordinal (1-başlayır; no [JsonStringEnumConverter] in Payments).
+export function payrollRateTypeLabel(rateType: number): string {
+  switch (rateType) {
+    case 1: return "DSMF";
+    case 2: return "İşsizlikdən sığorta";
+    case 3: return "İcbari tibbi sığorta";
+    case 4: return "Gəlir vergisi";
+    default: return String(rateType);
+  }
+}
+
+export function payrollPartyLabel(party: number): string {
+  switch (party) {
+    case 1: return "İşçi payı";
+    case 2: return "İşəgötürən payı";
+    default: return String(party);
+  }
+}
+
+export type PayrollTaxBracketResponse = {
+  id: string;
+  rateType: number;
+  party: number;
+  lowerBound: number;
+  upperBound: number | null;
+  rate: number;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  description: string | null;
+};
+
+export function getPayrollTaxBrackets(accessToken: string) {
+  return apiFetch<Envelope<PayrollTaxBracketResponse[]>>("api/payments/payrolltaxbrackets", accessToken).then(
+    (e) => e.data,
+  );
+}
+
+export type CreatePayrollTaxBracketRequest = {
+  rateType: number;
+  party: number;
+  lowerBound: number;
+  upperBound: number | null;
+  rate: number;
+  effectiveFrom: string;
+  description?: string | null;
+};
+
+export function createPayrollTaxBracket(accessToken: string, request: CreatePayrollTaxBracketRequest) {
+  return apiFetch<Envelope<PayrollTaxBracketResponse>>("api/payments/payrolltaxbrackets", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ ...request, effectiveFrom: dateOnlyToUtcIso(request.effectiveFrom) }),
+  }).then((e) => e.data);
+}
+
+export function deactivatePayrollTaxBracket(accessToken: string, id: string, effectiveTo: string) {
+  return apiFetch<MessageOnly>(`api/payments/payrolltaxbrackets/${id}/deactivate`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ effectiveTo: dateOnlyToUtcIso(effectiveTo) }),
+  });
+}
+
 export function getAnnualPaymentReport(accessToken: string, year: number, propertyType?: PropertyTypeKey | null) {
   const params = new URLSearchParams({ year: String(year) });
   if (propertyType) params.set("propertyType", String(propertyTypeToOrdinal(propertyType)));

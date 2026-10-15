@@ -12,6 +12,7 @@ const links = [
     label: "Əlavə gəlirlərin daxil edilməsi",
   },
   { href: "/panel/maliyye-emeliyyatlari/emek-haqqi", label: "Əmək haqqı" },
+  { href: "/panel/maliyye-emeliyyatlari/vergi-dereceleri", label: "Vergi və sığorta dərəcələri" },
 ];
 
 export default function MaliyyeEmeliyyatlariPage() {
