@@ -20,6 +20,7 @@ import {
   getWorkHistories,
   getWorkSchedule,
   optionLabel,
+  recalculateVacationBalance,
   setWorkSchedule,
   updateEmployeeSection,
   type EducationHistory,
@@ -822,6 +823,8 @@ function AddEducationModal({
 function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; employeeId: string }) {
   const [balance, setBalance] = useState<VacationBalance | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recalculating, setRecalculating] = useState(false);
+  const [recalculated, setRecalculated] = useState(false);
 
   useEffect(() => {
     getVacationBalance(accessToken, employeeId)
@@ -831,6 +834,20 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
       })
       .catch((err) => setError(hrErrorMessage(err)));
   }, [accessToken, employeeId]);
+
+  async function handleRecalculate() {
+    setRecalculating(true);
+    setError(null);
+    setRecalculated(false);
+    try {
+      setBalance(await recalculateVacationBalance(accessToken, employeeId));
+      setRecalculated(true);
+    } catch (err) {
+      setError(hrErrorMessage(err));
+    } finally {
+      setRecalculating(false);
+    }
+  }
 
   if (error) return <p className="form-error">{error}</p>;
   if (!balance) return <p className="panel-page-lead">Yüklənir…</p>;
@@ -845,11 +862,23 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
 
   return (
     <section className="hr-section">
-      <h3 className="hr-section-title">Məzuniyyət balansı</h3>
+      <h3 className="hr-section-title">
+        Məzuniyyət balansı
+        <button
+          type="button"
+          className="panel-btn panel-btn-sm hr-section-edit"
+          disabled={recalculating}
+          onClick={handleRecalculate}
+        >
+          {recalculating ? "Hesablanır…" : "Yenidən hesabla"}
+        </button>
+      </h3>
       <p className="hr-note">
         İş ili {formatDate(balance.workYearStart)} – {formatDate(balance.workYearEnd)} (işə başlama tarixinin
-        ildönümünə əsasən hesablanır). İstifadə olunmayan günlər limitsiz keçir.
+        ildönümünə əsasən hesablanır). İstifadə olunmayan günlər limitsiz keçir. İş tarixçəsi dəyişəndə staj
+        bonusu bir neçə saniyə içində avtomatik yenilənir — &ldquo;Yenidən hesabla&rdquo; bunu dərhal etmək üçündür.
       </p>
+      {recalculated && <p className="hr-note">Balans yenidən hesablandı ✓</p>}
 
       <div className="hr-profile-stats">
         <div className="hr-stat">

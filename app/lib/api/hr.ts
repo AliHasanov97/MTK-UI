@@ -461,6 +461,9 @@ export type VacationBalance = {
 export const getVacationBalance = (token: string, employeeId: string) =>
   get<VacationBalance>(token, `api/hr/vacationbalances/${employeeId}`);
 
+export const recalculateVacationBalance = (token: string, employeeId: string) =>
+  send<VacationBalance>(token, "POST", `api/hr/vacationbalances/${employeeId}/recalculate`);
+
 /* ------------------------------------------------------------------ */
 /* Ərizələr                                                            */
 /* ------------------------------------------------------------------ */
