@@ -11,6 +11,7 @@ const links = [
     href: "/panel/maliyye-emeliyyatlari/elave-gelirler",
     label: "Əlavə gəlirlərin daxil edilməsi",
   },
+  { href: "/panel/maliyye-emeliyyatlari/emek-haqqi", label: "Əmək haqqı" },
 ];
 
 export default function MaliyyeEmeliyyatlariPage() {

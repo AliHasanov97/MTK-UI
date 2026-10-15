@@ -200,6 +200,7 @@ function BankFields(props: FieldsProps) {
   return (
     <div className="hr-grid">
       {input("contractNumber", "Əmək müqaviləsinin nömrəsi")}
+      {input("baseSalary", "Əsas əmək haqqı (₼)", { type: "number", min: 0, step: "0.01" })}
       {input("salaryBankName", "Maaş bankı")}
       {input("employeeBankAccountNumber", "Bank hesabı")}
     </div>
@@ -238,7 +239,7 @@ export const EMPLOYEE_SECTIONS: Record<
   },
   bank: {
     title: "Müqavilə və bank",
-    keys: ["contractNumber", "salaryBankName", "employeeBankAccountNumber"],
+    keys: ["contractNumber", "baseSalary", "salaryBankName", "employeeBankAccountNumber"],
     render: (p) => <BankFields {...p} />,
   },
 };

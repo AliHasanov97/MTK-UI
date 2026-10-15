@@ -16,6 +16,7 @@ import {
   deleteWorkHistory,
   getEducationHistories,
   getEmployee,
+  getVacationBalance,
   getWorkHistories,
   getWorkSchedule,
   optionLabel,
@@ -24,6 +25,7 @@ import {
   type EducationHistory,
   type EmployeeDetail,
   type EmployeeForm,
+  type VacationBalance,
   type WorkExperience,
   type WorkHistory,
   type WorkSchedule,
@@ -35,15 +37,19 @@ import { employeeToForm } from "../EmployeeForm";
 import { EmployeeDocumentsTab } from "./EmployeeDocumentsTab";
 import { EMPLOYEE_SECTIONS, type EmployeeSectionKey } from "../EmployeeSections";
 
-type Tab = "info" | "schedule" | "work" | "education" | "documents";
+type Tab = "info" | "schedule" | "work" | "education" | "vacation" | "documents";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "info", label: "Məlumatlar" },
   { key: "schedule", label: "İş qrafiki" },
   { key: "work", label: "İş tarixçəsi" },
   { key: "education", label: "Təhsil" },
+  { key: "vacation", label: "Məzuniyyət balansı" },
   { key: "documents", label: "Ərizə və əmrlər" },
 ];
+
+const money = (amount: number) =>
+  `${amount.toLocaleString("az-AZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₼`;
 
 const experienceText = (x: WorkExperience | null) => (x ? `${x.years} il, ${x.months} ay, ${x.days} gün` : "—");
 const yesNo = (v: boolean) => (v ? "Bəli" : "Xeyr");
@@ -131,6 +137,7 @@ export function EmployeeDetailView({ employeeId }: { employeeId: string }) {
       {tab === "schedule" && <ScheduleTab accessToken={accessToken} employeeId={employeeId} />}
       {tab === "work" && <WorkHistoryTab accessToken={accessToken} employeeId={employeeId} />}
       {tab === "education" && <EducationTab accessToken={accessToken} employeeId={employeeId} />}
+      {tab === "vacation" && <VacationBalanceTab accessToken={accessToken} employeeId={employeeId} />}
       {tab === "documents" && <EmployeeDocumentsTab accessToken={accessToken} employeeId={employeeId} />}
 
       {editing && (
@@ -226,6 +233,7 @@ function InfoTab({ employee: e, onEdit }: { employee: EmployeeDetail; onEdit: (s
 
       <InfoSection title="Müqavilə və bank" section="bank" onEdit={onEdit}>
         <KV label="Əmək müqaviləsi №" value={e.contractNumber} />
+        <KV label="Əsas əmək haqqı" value={money(e.baseSalary)} />
         <KV label="Maaş bankı" value={e.salaryBankName} />
         <KV label="Bank hesabı" value={e.employeeBankAccountNumber} />
         <KV label="Qeydə alan" value={e.createdBy?.name} />
@@ -806,5 +814,69 @@ function AddEducationModal({
         </div>
       </form>
     </Modal>
+  );
+}
+
+/* ----------------------------- Məzuniyyət balansı ----------------------------- */
+
+function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; employeeId: string }) {
+  const [balance, setBalance] = useState<VacationBalance | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getVacationBalance(accessToken, employeeId)
+      .then((b) => {
+        setBalance(b);
+        setError(null);
+      })
+      .catch((err) => setError(hrErrorMessage(err)));
+  }, [accessToken, employeeId]);
+
+  if (error) return <p className="form-error">{error}</p>;
+  if (!balance) return <p className="panel-page-lead">Yüklənir…</p>;
+
+  const bonusRows = [
+    { label: "İş stajına görə (5/10/15 il)", value: balance.experienceBonusDays },
+    { label: "Qarabağ və azad olunmuş ərazilərdə iş", value: balance.karabakhWorkerDays },
+    { label: "14 yaşadək uşaqlara görə", value: balance.childrenUnder14Days },
+    { label: "Əlil uşağa görə", value: balance.disabledChildDays },
+    { label: "Digər əlavə günlər", value: balance.additionalDays },
+  ].filter((r) => r.value > 0);
+
+  return (
+    <section className="hr-section">
+      <h3 className="hr-section-title">Məzuniyyət balansı</h3>
+      <p className="hr-note">
+        İş ili {formatDate(balance.workYearStart)} – {formatDate(balance.workYearEnd)} (işə başlama tarixinin
+        ildönümünə əsasən hesablanır). İstifadə olunmayan günlər limitsiz keçir.
+      </p>
+
+      <div className="hr-profile-stats">
+        <div className="hr-stat">
+          <strong>{balance.totalEntitledDays}</strong>
+          <span>Cəmi hüquq (gün)</span>
+        </div>
+        <div className="hr-stat">
+          <strong>{balance.usedDays}</strong>
+          <span>İstifadə olunub</span>
+        </div>
+        <div className="hr-stat">
+          <strong>{balance.compensatedDays}</strong>
+          <span>Əvəzi ödənilib</span>
+        </div>
+        <div className="hr-stat">
+          <strong>{balance.remainingDays}</strong>
+          <span>Qalıq</span>
+        </div>
+      </div>
+
+      <div className="hr-kv" style={{ marginTop: 16 }}>
+        <KV label="Əsas məzuniyyət (Maddə 113)" value={`${balance.baseEntitledDays} gün`} />
+        {bonusRows.map((r) => (
+          <KV key={r.label} label={r.label} value={`+${r.value} gün`} />
+        ))}
+        <KV label="Əvvəlki iş ilindən keçən" value={`${balance.carriedOverDays} gün`} />
+      </div>
+    </section>
   );
 }

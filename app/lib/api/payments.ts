@@ -514,6 +514,97 @@ export type AnnualPaymentReportResponse = {
   properties: PropertyAnnualReportRow[];
 };
 
+/* ------------------------------------------------------------------ */
+/* Şirkət profili                                                      */
+/* ------------------------------------------------------------------ */
+
+export type CompanyResponse = { id: string; name: string; director: string | null; address: string };
+
+export function getCompany(accessToken: string) {
+  return apiFetch<Envelope<CompanyResponse>>("api/payments/companies", accessToken).then((e) => e.data);
+}
+
+export type UpsertCompanyRequest = { name: string; director?: string | null; address: string };
+
+export function upsertCompany(accessToken: string, request: UpsertCompanyRequest) {
+  return apiFetch<Envelope<CompanyResponse>>("api/payments/companies", accessToken, {
+    method: "PUT",
+    body: JSON.stringify(request),
+  }).then((e) => e.data);
+}
+
+/* ------------------------------------------------------------------ */
+/* Əmək haqqı (Payroll)                                                */
+/* ------------------------------------------------------------------ */
+
+export type PayslipResponse = {
+  employeeId: string;
+  employeeFullName: string;
+  baseSalary: number;
+  bonusAmount: number;
+  grossSalary: number;
+  employeeDsmf: number;
+  employeeUnemployment: number;
+  employeeMedicalInsurance: number;
+  taxableIncome: number;
+  incomeTax: number;
+  netSalary: number;
+  courtDeductionPercentage: number;
+  courtDeductionAmount: number;
+  finalNetSalary: number;
+  employerDsmf: number;
+  employerUnemployment: number;
+  employerMedicalInsurance: number;
+  totalEmployerCost: number;
+};
+
+// PayrollRunStatus enum ordinal (Draft=1..Paid=4; no [JsonStringEnumConverter] in Payments).
+export function payrollRunStatusLabel(status: number): string {
+  switch (status) {
+    case 1: return "Qaralama";
+    case 2: return "Hesablanıb";
+    case 3: return "Təsdiqlənib";
+    case 4: return "Ödənilib";
+    default: return String(status);
+  }
+}
+
+export type PayrollRunResponse = {
+  id: string;
+  year: number;
+  month: number;
+  status: number;
+  calculatedAt: string | null;
+  approvedAt: string | null;
+  paidAt: string | null;
+  totalGross: number;
+  totalNet: number;
+  totalEmployerCost: number;
+  payslips: PayslipResponse[];
+};
+
+export function calculatePayrollRun(accessToken: string, year: number, month: number) {
+  return apiFetch<Envelope<PayrollRunResponse>>("api/payments/payrollruns/calculate", accessToken, {
+    method: "POST",
+    body: JSON.stringify({ year, month }),
+  }).then((e) => e.data);
+}
+
+export function getPayrollRunByPeriod(accessToken: string, year: number, month: number) {
+  return apiFetch<Envelope<PayrollRunResponse>>(
+    `api/payments/payrollruns/by-period?year=${year}&month=${month}`,
+    accessToken,
+  ).then((e) => e.data);
+}
+
+export function exportPayrollRun(accessToken: string, payrollRunId: string) {
+  return apiFetchFile(`api/payments/payrollruns/${payrollRunId}/export`, accessToken);
+}
+
+export function exportPayslip(accessToken: string, payrollRunId: string, employeeId: string) {
+  return apiFetchFile(`api/payments/payrollruns/${payrollRunId}/payslips/${employeeId}/export`, accessToken);
+}
+
 export function getAnnualPaymentReport(accessToken: string, year: number, propertyType?: PropertyTypeKey | null) {
   const params = new URLSearchParams({ year: String(year) });
   if (propertyType) params.set("propertyType", String(propertyTypeToOrdinal(propertyType)));

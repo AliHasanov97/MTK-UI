@@ -212,6 +212,7 @@ export type EmployeeDetail = {
   contractNumber: string | null;
   salaryBankName: string | null;
   employeeBankAccountNumber: string | null;
+  baseSalary: number;
   maritalStatus: number | null;
   numberOfChildren: number | null;
   childrenUnder14Count: number | null;
@@ -256,6 +257,7 @@ export type EmployeeForm = {
   contractNumber: string;
   salaryBankName: string;
   employeeBankAccountNumber: string;
+  baseSalary: string;
   maritalStatus: string;
   numberOfChildren: string;
   childrenUnder14Count: string;
@@ -294,6 +296,7 @@ function employeeBody(f: EmployeeForm) {
     contractNumber: str(f.contractNumber),
     salaryBankName: str(f.salaryBankName),
     employeeBankAccountNumber: str(f.employeeBankAccountNumber),
+    baseSalary: num(f.baseSalary) ?? 0,
     maritalStatus: num(f.maritalStatus),
     numberOfChildren: num(f.numberOfChildren),
     childrenUnder14Count: num(f.childrenUnder14Count),
@@ -332,6 +335,7 @@ export const updateEmployeeSection = (token: string, id: string, f: EmployeeForm
   const dateKeys: (keyof EmployeeForm)[] = ["birthDate", "startWorkDate"];
   const numberKeys: (keyof EmployeeForm)[] = [
     "maritalStatus", "numberOfChildren", "childrenUnder14Count", "militaryService", "education", "workingDays", "vacationDays",
+    "baseSalary",
   ];
   const body: Record<string, unknown> = { id };
   for (const key of keys) {
@@ -432,6 +436,30 @@ export const getWorkSchedule = (token: string, employeeId: string) =>
   get<WorkSchedule>(token, `api/hr/employeeworkschedules/employee/${employeeId}`);
 export const setWorkSchedule = (token: string, employeeId: string, hours: Omit<WorkSchedule, "id" | "effectiveFrom">) =>
   send<unknown>(token, "PATCH", `api/hr/employeeworkschedules/employee/${employeeId}`, hours);
+
+/* ------------------------------------------------------------------ */
+/* Məzuniyyət balansı                                                  */
+/* ------------------------------------------------------------------ */
+
+export type VacationBalance = {
+  employeeId: string;
+  workYearStart: string;
+  workYearEnd: string;
+  baseEntitledDays: number;
+  experienceBonusDays: number;
+  karabakhWorkerDays: number;
+  childrenUnder14Days: number;
+  disabledChildDays: number;
+  additionalDays: number;
+  carriedOverDays: number;
+  totalEntitledDays: number;
+  usedDays: number;
+  compensatedDays: number;
+  remainingDays: number;
+};
+
+export const getVacationBalance = (token: string, employeeId: string) =>
+  get<VacationBalance>(token, `api/hr/vacationbalances/${employeeId}`);
 
 /* ------------------------------------------------------------------ */
 /* Ərizələr                                                            */
