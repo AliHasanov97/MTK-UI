@@ -52,7 +52,14 @@ export function CreateApplicationModal({
     setSaving(true);
     setError(null);
     try {
-      await createApplication(accessToken, kind, { ...buildBody(specs, values), ...(employeeId ? { employeeId } : {}) });
+      await createApplication(accessToken, kind, {
+        ...buildBody(specs, values),
+        ...(employeeId ? { employeeId } : {}),
+        ...(kind === 'Vacation' || kind === 'VacationCompensation' ?
+          { vacationBalanceId: '00000000-0000-0000-0000-000000000000' } :
+          {}
+        )
+      });
       onCreated();
     } catch (err) {
       setError(hrErrorMessage(err));

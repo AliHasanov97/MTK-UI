@@ -23,13 +23,6 @@ export const APPLICATION_FIELDS: Record<ApplicationKind, FieldSpec[]> = {
   VacationCompensation: [
     { key: "employeeId", label: "İşçi", kind: "employee", required: true },
     { key: "requestedDays", label: "Kompensasiya ediləcək gün sayı", kind: "number", required: true, min: 1 },
-    {
-      key: "workYearStart",
-      label: "İş ilinin başlanğıcı",
-      kind: "date",
-      hint: "Hansı iş ili üçün kompensasiya ödənilir (sənəddə yazılır). Hər iki tarixi doldurun və ya boş saxlayın.",
-    },
-    { key: "workYearEnd", label: "İş ilinin sonu", kind: "date" },
     { key: "notes", label: "Qeyd", kind: "text" },
   ],
   UnpaidLeave: [
