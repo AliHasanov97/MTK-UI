@@ -16,7 +16,7 @@ import {
   deleteWorkHistory,
   getEducationHistories,
   getEmployee,
-  getVacationBalance,
+  getAllVacationBalances,
   getWorkHistories,
   getWorkSchedule,
   optionLabel,
@@ -821,15 +821,15 @@ function AddEducationModal({
 /* ----------------------------- Məzuniyyət balansı ----------------------------- */
 
 function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; employeeId: string }) {
-  const [balance, setBalance] = useState<VacationBalance | null>(null);
+  const [balances, setBalances] = useState<VacationBalance[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recalculating, setRecalculating] = useState(false);
   const [recalculated, setRecalculated] = useState(false);
 
   useEffect(() => {
-    getVacationBalance(accessToken, employeeId)
-      .then((b) => {
-        setBalance(b);
+    getAllVacationBalances(accessToken, employeeId)
+      .then((list) => {
+        setBalances(list);
         setError(null);
       })
       .catch((err) => setError(hrErrorMessage(err)));
@@ -840,7 +840,10 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
     setError(null);
     setRecalculated(false);
     try {
-      setBalance(await recalculateVacationBalance(accessToken, employeeId));
+      await recalculateVacationBalance(accessToken, employeeId);
+      // Reload all balances after recalculation
+      const updatedBalances = await getAllVacationBalances(accessToken, employeeId);
+      setBalances(updatedBalances);
       setRecalculated(true);
     } catch (err) {
       setError(hrErrorMessage(err));
@@ -850,15 +853,90 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
   }
 
   if (error) return <p className="form-error">{error}</p>;
-  if (!balance) return <p className="panel-page-lead">Yüklənir…</p>;
+  if (!balances) return <p className="panel-page-lead">Yüklənir…</p>;
 
-  const bonusRows = [
-    { label: "İş stajına görə (5/10/15 il)", value: balance.experienceBonusDays },
-    { label: "Qarabağ və azad olunmuş ərazilərdə iş", value: balance.karabakhWorkerDays },
-    { label: "14 yaşadək uşaqlara görə", value: balance.childrenUnder14Days },
-    { label: "Əlil uşağa görə", value: balance.disabledChildDays },
-    { label: "Digər əlavə günlər", value: balance.additionalDays },
-  ].filter((r) => r.value > 0);
+  if (balances.length === 0) {
+    return (
+      <section className="hr-section">
+        <h3 className="hr-section-title">Məzuniyyət balansı</h3>
+        <div className="hr-empty">
+          <strong>Məzuniyyət balansı yoxdur</strong>
+          <span>İşçi üçün hələ məzuniyyət balansı yaradılmayıb.</span>
+        </div>
+      </section>
+    );
+  }
+
+  // Cari iş ilini tap (bu gün hansı iş ilinin daxilindədir)
+  const now = new Date();
+  const currentBalanceIndex = balances.findIndex(b => {
+    const start = new Date(b.workYearStart);
+    const end = new Date(b.workYearEnd);
+    return now >= start && now <= end;
+  });
+
+  const currentBalance = currentBalanceIndex !== -1 ? balances[currentBalanceIndex] : balances[balances.length - 1];
+  const oldBalances = balances.filter((_, idx) => idx !== (currentBalanceIndex !== -1 ? currentBalanceIndex : balances.length - 1));
+
+  // Helper function: balans card-ı render et
+  const renderBalanceCard = (balance: VacationBalance, isCurrentYear: boolean) => {
+    const bonusRows = [
+      { label: "İş stajına görə", value: balance.experienceBonusDays },
+      { label: "Qarabağ ərazisi", value: balance.karabakhWorkerDays },
+      { label: "14 yaşadək uşaq", value: balance.childrenUnder14Days },
+      { label: "Əlil uşaq", value: balance.disabledChildDays },
+      { label: "Digər əlavə", value: balance.additionalDays },
+    ].filter((r) => r.value > 0);
+
+    return (
+      <div
+        style={{
+          border: isCurrentYear ? "2px solid #28a745" : "1px solid #ddd",
+          borderRadius: 8,
+          padding: isCurrentYear ? 20 : 12,
+          backgroundColor: isCurrentYear ? "#f9fff9" : "transparent",
+        }}
+      >
+        <h4 style={{ margin: "0 0 12px 0", fontSize: isCurrentYear ? 18 : 14, fontWeight: 600 }}>
+          {isCurrentYear && "✓ Cari iş ili: "}
+          {formatDate(balance.workYearStart)} – {formatDate(balance.workYearEnd)}
+        </h4>
+
+        <div className="hr-profile-stats" style={{ gap: isCurrentYear ? 16 : 8 }}>
+          <div className="hr-stat">
+            <strong style={{ fontSize: isCurrentYear ? 24 : 18 }}>{balance.totalEntitledDays}</strong>
+            <span>Ümumi</span>
+          </div>
+          <div className="hr-stat">
+            <strong style={{ fontSize: isCurrentYear ? 24 : 18 }}>{balance.usedDays}</strong>
+            <span>İstifadə</span>
+          </div>
+          <div className="hr-stat">
+            <strong style={{ fontSize: isCurrentYear ? 24 : 18 }}>{balance.compensatedDays}</strong>
+            <span>Əvəz</span>
+          </div>
+          <div className="hr-stat">
+            <strong style={{ fontSize: isCurrentYear ? 24 : 18, color: balance.remainingDays > 0 ? "#28a745" : "#999" }}>
+              {balance.remainingDays}
+            </strong>
+            <span>Qalıq</span>
+          </div>
+        </div>
+
+        {isCurrentYear && (
+          <div className="hr-kv" style={{ marginTop: 16 }}>
+            <KV label="Əsas məzuniyyət" value={`${balance.baseEntitledDays} gün`} />
+            {bonusRows.map((r) => (
+              <KV key={r.label} label={r.label} value={`+${r.value} gün`} />
+            ))}
+            {balance.carriedOverDays > 0 && (
+              <KV label="Keçmiş ildən" value={`${balance.carriedOverDays} gün`} />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <section className="hr-section">
@@ -874,37 +952,28 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
         </button>
       </h3>
       <p className="hr-note">
-        İş ili {formatDate(balance.workYearStart)} – {formatDate(balance.workYearEnd)} (işə başlama tarixinin
-        ildönümünə əsasən hesablanır). İstifadə olunmayan günlər limitsiz keçir. İş tarixçəsi dəyişəndə staj
-        bonusu bir neçə saniyə içində avtomatik yenilənir — &ldquo;Yenidən hesabla&rdquo; bunu dərhal etmək üçündür.
+        İşçinin məzuniyyət balansı işə başlama tarixinin ildönümünə əsasən hesablanır.
+        İstifadə olunmayan günlər növbəti ilə keçir.
       </p>
-      {recalculated && <p className="hr-note">Balans yenidən hesablandı ✓</p>}
+      {recalculated && <p className="hr-note" style={{ color: "#28a745" }}>✓ Balans yenidən hesablandı</p>}
 
-      <div className="hr-profile-stats">
-        <div className="hr-stat">
-          <strong>{balance.totalEntitledDays}</strong>
-          <span>Cəmi hüquq (gün)</span>
-        </div>
-        <div className="hr-stat">
-          <strong>{balance.usedDays}</strong>
-          <span>İstifadə olunub</span>
-        </div>
-        <div className="hr-stat">
-          <strong>{balance.compensatedDays}</strong>
-          <span>Əvəzi ödənilib</span>
-        </div>
-        <div className="hr-stat">
-          <strong>{balance.remainingDays}</strong>
-          <span>Qalıq</span>
-        </div>
-      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {/* CARİ İŞ İLİ - BÖYÜK CARD */}
+        {renderBalanceCard(currentBalance, true)}
 
-      <div className="hr-kv" style={{ marginTop: 16 }}>
-        <KV label="Əsas məzuniyyət (Maddə 113)" value={`${balance.baseEntitledDays} gün`} />
-        {bonusRows.map((r) => (
-          <KV key={r.label} label={r.label} value={`+${r.value} gün`} />
-        ))}
-        <KV label="Əvvəlki iş ilindən keçən" value={`${balance.carriedOverDays} gün`} />
+        {/* KÖHNƏ İŞ İLLƏRİ - COLLAPSIBLE */}
+        {oldBalances.length > 0 && (
+          <details style={{ marginTop: 8 }}>
+            <summary style={{ cursor: "pointer", fontWeight: 500, padding: "8px 0", color: "#666" }}>
+              Əvvəlki iş illəri ({oldBalances.length})
+            </summary>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+              {oldBalances.reverse().map((balance, idx) => (
+                <div key={idx}>{renderBalanceCard(balance, false)}</div>
+              ))}
+            </div>
+          </details>
+        )}
       </div>
     </section>
   );
