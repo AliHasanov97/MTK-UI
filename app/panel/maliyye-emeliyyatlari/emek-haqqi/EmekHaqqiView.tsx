@@ -76,10 +76,19 @@ export function EmekHaqqiView() {
   useEffect(() => {
     if (auth.status !== "authenticated") return;
     setLoadingEmployees(true);
-    fetch("/api/hr/employees", { headers: { Authorization: `Bearer ${auth.accessToken}` } })
+    fetch("/api/hr/employees/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${auth.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ pageSize: 1000 }),
+    })
       .then((res) => res.json())
-      .then((data: { data: Array<{ id: string; fullName: string; baseSalary: number }> }) => {
-        setEmployees(data.data.filter((e) => e.baseSalary > 0));
+      .then((
+        data: { data: { employees: Array<{ id: string; fullName: string; baseSalary: number }> } },
+      ) => {
+        setEmployees(data.data.employees.filter((e) => e.baseSalary > 0));
         setLoadingEmployees(false);
       })
       .catch(() => {
