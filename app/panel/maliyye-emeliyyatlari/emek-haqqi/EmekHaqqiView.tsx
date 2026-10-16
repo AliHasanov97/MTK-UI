@@ -290,9 +290,8 @@ export function EmekHaqqiView() {
                     <th>İşçi</th>
                     <th>Əsas maaş</th>
                     <th>Bonus</th>
+                    <th>Düzəliş</th>
                     <th>Brutto</th>
-                    <th>Tutulmalar</th>
-                    <th>Məhkəmə tutumu</th>
                     <th>Yekun net</th>
                     <th>Ödəniş</th>
                     <th></th>
@@ -300,15 +299,13 @@ export function EmekHaqqiView() {
                 </thead>
                 <tbody>
                   {run.payslips.map((p) => {
-                    const deductions = p.employeeDsmf + p.employeeUnemployment + p.employeeMedicalInsurance + p.incomeTax;
                     return (
                       <tr key={p.employeeId}>
                         <td>{p.employeeFullName}</td>
                         <td>{money(p.baseSalary)}</td>
                         <td>{money(p.bonusAmount)}</td>
+                        <td>{money(p.adjustmentAmount)}</td>
                         <td>{money(p.grossSalary)}</td>
-                        <td>{money(deductions)}</td>
-                        <td>{p.courtDeductionAmount > 0 ? money(p.courtDeductionAmount) : "—"}</td>
                         <td>
                           <strong>{money(p.finalNetSalary)}</strong>
                         </td>
