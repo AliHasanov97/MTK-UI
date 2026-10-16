@@ -709,3 +709,136 @@ export function exportAnnualPaymentReport(accessToken: string, year: number, pro
   if (propertyType) params.set("propertyType", String(propertyTypeToOrdinal(propertyType)));
   return apiFetchFile(`api/payments/charges/reports/annual/export?${params.toString()}`, accessToken);
 }
+
+/* ------------------------------------------------------------------ */
+/* Maaş Ödənişləri (Manual SalaryPayment)                             */
+/* ------------------------------------------------------------------ */
+
+// SalaryPaymentLineType enum: BaseSalary=1, Bonus=2, Adjustment=3
+export function salaryPaymentLineTypeLabel(lineType: number): string {
+  switch (lineType) {
+    case 1: return "Əsas maaş";
+    case 2: return "Bonus";
+    case 3: return "Düzəliş";
+    default: return String(lineType);
+  }
+}
+
+// SalaryPaymentStatus enum: Draft=1, Paid=2
+export function salaryPaymentStatusLabel(status: number): string {
+  switch (status) {
+    case 1: return "Qaralama";
+    case 2: return "Ödənilib";
+    default: return String(status);
+  }
+}
+
+export type SalaryPaymentLineResponse = {
+  id: string;
+  lineType: number;
+  description: string;
+  amount: number;
+  sourceBonusId: string | null;
+  sourceAdjustmentId: string | null;
+};
+
+export type SalaryPaymentResponse = {
+  id: string;
+  employeeId: string;
+  employeeFullName: string;
+  salaryMonth: number;
+  salaryYear: number;
+  baseSalary: number;
+  totalBonuses: number;
+  totalAdjustments: number;
+  grossSalary: number;
+  paymentMethod: number;
+  paymentDate: string;
+  status: number;
+  notes: string | null;
+  lines: SalaryPaymentLineResponse[];
+};
+
+export type SalaryCalculationPreviewResponse = {
+  employeeId: string;
+  employeeFullName: string;
+  baseSalary: number;
+  bonuses: Array<{ description: string; amount: number; sourceId: string }>;
+  adjustments: Array<{ description: string; amount: number; sourceId: string }>;
+  totalGross: number;
+};
+
+export type CreateSalaryPaymentRequest = {
+  employeeId: string;
+  salaryMonth: number;
+  salaryYear: number;
+  paymentMethod: PaymentMethodKey;
+  paymentDate: string;
+  notes?: string | null;
+};
+
+/** Preview-də görə bilərsən ki, bonus və adjustmentlər necə hesablanır. */
+export function getSalaryCalculationPreview(
+  accessToken: string,
+  employeeId: string,
+  salaryYear: number,
+  salaryMonth: number
+) {
+  return apiFetch<Envelope<SalaryCalculationPreviewResponse>>(
+    `api/salary-payments/preview?employeeId=${employeeId}&year=${salaryYear}&month=${salaryMonth}`,
+    accessToken
+  ).then((e) => e.data);
+}
+
+/** Draft statusunda maaş ödənişi yarat. */
+export function createSalaryPayment(accessToken: string, request: CreateSalaryPaymentRequest) {
+  return apiFetch<Envelope<SalaryPaymentResponse>>("api/salary-payments", accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      ...request,
+      paymentMethod: paymentMethodToOrdinal(request.paymentMethod),
+      paymentDate: dateOnlyToUtcIso(request.paymentDate),
+    }),
+  }).then((e) => e.data);
+}
+
+/** Draft statusundakı ödənişi ödənilmiş qeyd et və Transaction yaradır. */
+export function paySalaryPayment(accessToken: string, salaryPaymentId: string) {
+  return apiFetch<Envelope<SalaryPaymentResponse>>(`api/salary-payments/${salaryPaymentId}/pay`, accessToken, {
+    method: "POST",
+  }).then((e) => e.data);
+}
+
+/** Ödənişi tam detalla gətir (lines ilə birlikdə). */
+export function getSalaryPaymentById(accessToken: string, salaryPaymentId: string) {
+  return apiFetch<Envelope<SalaryPaymentResponse>>(`api/salary-payments/${salaryPaymentId}`, accessToken).then(
+    (e) => e.data
+  );
+}
+
+/** Maaş ödənişlərini axtar (filter/sort/pagination). */
+export type SearchSalaryPaymentsResult = {
+  salaryPayments: SalaryPaymentResponse[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+};
+
+export function searchSalaryPayments(accessToken: string, params: SearchParams = {}) {
+  return apiFetch<Envelope<SearchSalaryPaymentsResult>>("api/salary-payments/search", accessToken, {
+    method: "POST",
+    body: searchBody(params),
+  }).then((e) => e.data);
+}
+
+/** PDF qəbz çıxarışı. */
+export function exportSalaryPaymentPdf(accessToken: string, salaryPaymentId: string) {
+  return apiFetchFile(`api/salary-payments/${salaryPaymentId}/export-pdf`, accessToken);
+}
+
+/** Draft statusundakı ödənişi sil (yalnız Draft). */
+export function deleteSalaryPayment(accessToken: string, salaryPaymentId: string) {
+  return apiFetch<MessageOnly>(`api/salary-payments/${salaryPaymentId}`, accessToken, {
+    method: "DELETE",
+  });
+}
