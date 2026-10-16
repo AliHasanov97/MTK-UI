@@ -451,7 +451,6 @@ export type VacationBalance = {
   childrenUnder14Days: number;
   disabledChildDays: number;
   additionalDays: number;
-  carriedOverDays: number;
   totalEntitledDays: number;
   usedDays: number;
   compensatedDays: number;

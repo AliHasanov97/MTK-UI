@@ -828,8 +828,22 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
 
   useEffect(() => {
     getAllVacationBalances(accessToken, employeeId)
-      .then((list) => {
-        setBalances(list);
+      .then(async (list) => {
+        // Əgər balans yoxdursa, avtomatik yarat
+        if (list.length === 0) {
+          setRecalculating(true);
+          try {
+            await recalculateVacationBalance(accessToken, employeeId);
+            const updatedBalances = await getAllVacationBalances(accessToken, employeeId);
+            setBalances(updatedBalances);
+          } catch (err) {
+            setError(hrErrorMessage(err));
+          } finally {
+            setRecalculating(false);
+          }
+        } else {
+          setBalances(list);
+        }
         setError(null);
       })
       .catch((err) => setError(hrErrorMessage(err)));
@@ -867,75 +881,12 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
     );
   }
 
-  // Cari iş ilini tap (bu gün hansı iş ilinin daxilindədir)
-  const now = new Date();
-  const currentBalanceIndex = balances.findIndex(b => {
-    const start = new Date(b.workYearStart);
-    const end = new Date(b.workYearEnd);
-    return now >= start && now <= end;
-  });
-
-  const currentBalance = currentBalanceIndex !== -1 ? balances[currentBalanceIndex] : balances[balances.length - 1];
-  const oldBalances = balances.filter((_, idx) => idx !== (currentBalanceIndex !== -1 ? currentBalanceIndex : balances.length - 1));
-
-  // Helper function: balans card-ı render et
-  const renderBalanceCard = (balance: VacationBalance, isCurrentYear: boolean) => {
-    const bonusRows = [
-      { label: "İş stajına görə", value: balance.experienceBonusDays },
-      { label: "Qarabağ ərazisi", value: balance.karabakhWorkerDays },
-      { label: "14 yaşadək uşaq", value: balance.childrenUnder14Days },
-      { label: "Əlil uşaq", value: balance.disabledChildDays },
-      { label: "Digər əlavə", value: balance.additionalDays },
-    ].filter((r) => r.value > 0);
-
-    return (
-      <div
-        style={{
-          border: isCurrentYear ? "2px solid #28a745" : "1px solid #ddd",
-          borderRadius: 8,
-          padding: isCurrentYear ? 20 : 12,
-          backgroundColor: isCurrentYear ? "#f9fff9" : "transparent",
-        }}
-      >
-        <h4 style={{ margin: "0 0 12px 0", fontSize: isCurrentYear ? 18 : 14, fontWeight: 600 }}>
-          {isCurrentYear && "✓ Cari iş ili: "}
-          {formatDate(balance.workYearStart)} – {formatDate(balance.workYearEnd)}
-        </h4>
-
-        <div className="hr-profile-stats" style={{ gap: isCurrentYear ? 16 : 8 }}>
-          <div className="hr-stat">
-            <strong style={{ fontSize: isCurrentYear ? 24 : 18 }}>{balance.totalEntitledDays}</strong>
-            <span>Ümumi</span>
-          </div>
-          <div className="hr-stat">
-            <strong style={{ fontSize: isCurrentYear ? 24 : 18 }}>{balance.usedDays}</strong>
-            <span>İstifadə</span>
-          </div>
-          <div className="hr-stat">
-            <strong style={{ fontSize: isCurrentYear ? 24 : 18 }}>{balance.compensatedDays}</strong>
-            <span>Əvəz</span>
-          </div>
-          <div className="hr-stat">
-            <strong style={{ fontSize: isCurrentYear ? 24 : 18, color: balance.remainingDays > 0 ? "#28a745" : "#999" }}>
-              {balance.remainingDays}
-            </strong>
-            <span>Qalıq</span>
-          </div>
-        </div>
-
-        {isCurrentYear && (
-          <div className="hr-kv" style={{ marginTop: 16 }}>
-            <KV label="Əsas məzuniyyət" value={`${balance.baseEntitledDays} gün`} />
-            {bonusRows.map((r) => (
-              <KV key={r.label} label={r.label} value={`+${r.value} gün`} />
-            ))}
-            {balance.carriedOverDays > 0 && (
-              <KV label="Keçmiş ildən" value={`${balance.carriedOverDays} gün`} />
-            )}
-          </div>
-        )}
-      </div>
-    );
+  // ÜMUMİ VƏZIYYƏT - bütün iş illərindən cəmi
+  const totalStats = {
+    totalDays: balances.reduce((sum, b) => sum + b.totalEntitledDays, 0),
+    usedDays: balances.reduce((sum, b) => sum + b.usedDays, 0),
+    compensatedDays: balances.reduce((sum, b) => sum + b.compensatedDays, 0),
+    remainingDays: balances.reduce((sum, b) => sum + b.remainingDays, 0),
   };
 
   return (
@@ -951,30 +902,126 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
           {recalculating ? "Hesablanır…" : "Yenidən hesabla"}
         </button>
       </h3>
-      <p className="hr-note">
-        İşçinin məzuniyyət balansı işə başlama tarixinin ildönümünə əsasən hesablanır.
-        İstifadə olunmayan günlər növbəti ilə keçir.
-      </p>
-      {recalculated && <p className="hr-note" style={{ color: "#28a745" }}>✓ Balans yenidən hesablandı</p>}
+      {recalculated && <p className="hr-note" style={{ color: "#28a745", marginBottom: 16 }}>✓ Balans yenidən hesablandı</p>}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        {/* CARİ İŞ İLİ - BÖYÜK CARD */}
-        {renderBalanceCard(currentBalance, true)}
-
-        {/* KÖHNƏ İŞ İLLƏRİ - COLLAPSIBLE */}
-        {oldBalances.length > 0 && (
-          <details style={{ marginTop: 8 }}>
-            <summary style={{ cursor: "pointer", fontWeight: 500, padding: "8px 0", color: "#666" }}>
-              Əvvəlki iş illəri ({oldBalances.length})
-            </summary>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
-              {oldBalances.reverse().map((balance, idx) => (
-                <div key={idx}>{renderBalanceCard(balance, false)}</div>
-              ))}
-            </div>
-          </details>
-        )}
+      {/* ÜMUMİ VƏZİYYƏT */}
+      <div style={{
+        backgroundColor: "#f8f9fa",
+        borderRadius: 8,
+        padding: "16px 20px",
+        marginBottom: 24
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h4 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#666" }}>
+            Bütün illər üzrə cəmi
+          </h4>
+          <span style={{ fontSize: 13, color: "#999" }}>
+            {balances.length} iş ili
+          </span>
+        </div>
+        <div className="hr-profile-stats">
+          <div className="hr-stat">
+            <strong style={{ fontSize: 32, color: "#333" }}>{totalStats.totalDays}</strong>
+            <span>Ümumi hüquq</span>
+          </div>
+          <div className="hr-stat">
+            <strong style={{ fontSize: 32, color: "#dc3545" }}>{totalStats.usedDays}</strong>
+            <span>İstifadə</span>
+          </div>
+          <div className="hr-stat">
+            <strong style={{ fontSize: 32, color: "#ffc107" }}>{totalStats.compensatedDays}</strong>
+            <span>Kompensasiya</span>
+          </div>
+          <div className="hr-stat">
+            <strong style={{ fontSize: 32, color: totalStats.remainingDays > 0 ? "#28a745" : "#999" }}>
+              {totalStats.remainingDays}
+            </strong>
+            <span>Qalıq</span>
+          </div>
+        </div>
       </div>
+
+      {/* HƏR İŞ İLİNİN VƏZİYYƏTİ */}
+      <div>
+        <h4 style={{ margin: "0 0 12px 0", fontSize: 15, fontWeight: 600, color: "#666" }}>
+          İş illəri üzrə ({balances.length} il)
+        </h4>
+        <div className="data-table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>İş ili</th>
+                <th style={{ textAlign: "center" }}>Əsas</th>
+                <th style={{ textAlign: "center" }}>Staj</th>
+                <th style={{ textAlign: "center" }}>Qarabağ</th>
+                <th style={{ textAlign: "center" }}>Uşaq</th>
+                <th style={{ textAlign: "center" }}>Əlil</th>
+                <th style={{ textAlign: "center", backgroundColor: "#e3f2fd" }}>İl üzrə cəmi</th>
+                <th style={{ textAlign: "center" }}>İstifadə</th>
+                <th style={{ textAlign: "center" }}>Komp.</th>
+                <th style={{ textAlign: "center", backgroundColor: "#f1f8e9" }}>Qalıq</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...balances].reverse().map((balance, idx) => {
+                const now = new Date();
+                const start = new Date(balance.workYearStart);
+                const end = new Date(balance.workYearEnd);
+                const isCurrent = now >= start && now <= end;
+
+                return (
+                  <tr
+                    key={idx}
+                    style={{ backgroundColor: isCurrent ? "#e8f5e9" : "transparent" }}
+                  >
+                    <td style={{ fontWeight: isCurrent ? 600 : 400 }}>
+                      {isCurrent && <span style={{ color: "#28a745", marginRight: 6 }}>●</span>}
+                      {formatDate(balance.workYearStart)} – {formatDate(balance.workYearEnd)}
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      {balance.baseEntitledDays}
+                    </td>
+                    <td style={{ textAlign: "center", color: balance.experienceBonusDays > 0 ? "#2196f3" : "#999" }}>
+                      {balance.experienceBonusDays || "—"}
+                    </td>
+                    <td style={{ textAlign: "center", color: balance.karabakhWorkerDays > 0 ? "#2196f3" : "#999" }}>
+                      {balance.karabakhWorkerDays || "—"}
+                    </td>
+                    <td style={{ textAlign: "center", color: balance.childrenUnder14Days > 0 ? "#2196f3" : "#999" }}>
+                      {balance.childrenUnder14Days || "—"}
+                    </td>
+                    <td style={{ textAlign: "center", color: balance.disabledChildDays > 0 ? "#2196f3" : "#999" }}>
+                      {balance.disabledChildDays || "—"}
+                    </td>
+                    <td style={{ textAlign: "center", fontWeight: 600, backgroundColor: "#e3f2fd" }}>
+                      {balance.totalEntitledDays}
+                    </td>
+                    <td style={{ textAlign: "center", color: "#dc3545" }}>
+                      {balance.usedDays || "—"}
+                    </td>
+                    <td style={{ textAlign: "center", color: "#ffc107" }}>
+                      {balance.compensatedDays || "—"}
+                    </td>
+                    <td style={{
+                      textAlign: "center",
+                      fontWeight: 600,
+                      backgroundColor: "#f1f8e9",
+                      color: balance.remainingDays > 0 ? "#28a745" : "#999"
+                    }}>
+                      {balance.remainingDays}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p className="hr-note" style={{ marginTop: 16 }}>
+        İşçinin məzuniyyət balansı işə başlama tarixinin ildönümünə əsasən hesablanır.
+        İstifadə olunmayan günlər növbəti ilə keçir. Yaşıl nöqtə cari iş ilini göstərir.
+      </p>
     </section>
   );
 }
