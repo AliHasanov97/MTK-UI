@@ -664,10 +664,17 @@ export type SearchSalaryPaymentsResult = {
 };
 
 export function searchSalaryPayments(accessToken: string, params: SearchParams = {}) {
-  return apiFetch<Envelope<SearchSalaryPaymentsResult>>("api/salary-payments/search", accessToken, {
-    method: "POST",
-    body: searchBody(params),
-  }).then((e) => e.data);
+  const queryParams = new URLSearchParams();
+  if (params.pageSize) queryParams.set("pageSize", String(params.pageSize));
+  if (params.page) queryParams.set("page", String(params.page));
+  if (params.searchTerm) queryParams.set("searchTerm", params.searchTerm);
+  if (params.sortCriteria?.ColumnName) queryParams.set("sortField", params.sortCriteria.ColumnName);
+  if (params.sortCriteria?.Direction !== undefined) {
+    queryParams.set("sortDirection", params.sortCriteria.Direction === 1 ? "desc" : "asc");
+  }
+
+  const url = queryParams.toString() ? `api/salary-payments?${queryParams.toString()}` : "api/salary-payments";
+  return apiFetch<Envelope<SearchSalaryPaymentsResult>>(url, accessToken).then((e) => e.data);
 }
 
 /** PDF qəbz çıxarışı. */
