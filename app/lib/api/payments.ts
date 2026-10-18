@@ -817,9 +817,9 @@ export function searchSalaryPayments(accessToken: string, params: SearchParams =
   if (params.pageSize) queryParams.set("pageSize", String(params.pageSize));
   if (params.page) queryParams.set("page", String(params.page));
   if (params.searchTerm) queryParams.set("searchTerm", params.searchTerm);
-  if (params.sortCriteria?.ColumnName) queryParams.set("sortField", params.sortCriteria.ColumnName);
-  if (params.sortCriteria?.Direction !== undefined) {
-    queryParams.set("sortDirection", params.sortCriteria.Direction === 1 ? "desc" : "asc");
+  if (params.sortCriteria?.columnName) queryParams.set("sortField", params.sortCriteria.columnName);
+  if (params.sortCriteria?.direction !== undefined) {
+    queryParams.set("sortDirection", params.sortCriteria.direction === 1 ? "desc" : "asc");
   }
 
   const url = queryParams.toString() ? `api/salary-payments?${queryParams.toString()}` : "api/salary-payments";
@@ -829,7 +829,7 @@ export function searchSalaryPayments(accessToken: string, params: SearchParams =
 /** İşçinin bütün manual maaş ödənişlərini gətir. */
 export function getSalaryPaymentsByEmployee(accessToken: string, employeeId: string) {
   return searchSalaryPayments(accessToken, {
-    filters: [{ columnName: "EmployeeId", value: employeeId, operator: "equals" }],
+    filters: [{ columnName: "EmployeeId", value: employeeId, comparison: 0 }],
     pageSize: 1000, // Get all payments for the employee
   }).then((result) => result.salaryPayments);
 }
