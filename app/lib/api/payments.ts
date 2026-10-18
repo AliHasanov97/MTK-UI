@@ -696,25 +696,6 @@ export function getPayslipsByEmployee(accessToken: string, employeeId: string) {
   ).then((e) => e.data);
 }
 
-export type PayrollRunListItem = {
-  id: string;
-  year: number;
-  month: number;
-  status: number;
-  calculatedAt: string | null;
-  approvedAt: string | null;
-  paidAt: string | null;
-  totalGross: number;
-  totalNet: number;
-  totalEmployerCost: number;
-  employeeCount: number;
-};
-
-/** Bütün PayrollRun-ları gətir (list - yenidən köhnəyə). */
-export function listPayrollRuns(accessToken: string) {
-  return apiFetch<Envelope<PayrollRunListItem[]>>("api/payroll-runs", accessToken).then((e) => e.data);
-}
-
 /* ------------------------------------------------------------------ */
 /* Maaş Ödənişləri (Manual SalaryPayment) - DEPRECATED               */
 /* ------------------------------------------------------------------ */
