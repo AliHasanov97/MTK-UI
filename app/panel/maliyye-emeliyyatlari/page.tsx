@@ -12,6 +12,8 @@ const links = [
     label: "Əlavə gəlirlərin daxil edilməsi",
   },
   { href: "/panel/maliyye-emeliyyatlari/emek-haqqi", label: "Əmək haqqı" },
+  { href: "/panel/maliyye-emeliyyatlari/vacation-pays", label: "Məzuniyyət ödənişləri" },
+  { href: "/panel/maliyye-emeliyyatlari/payroll-history", label: "Əmək haqqı tarixçəsi" },
 ];
 
 export default function MaliyyeEmeliyyatlariPage() {
