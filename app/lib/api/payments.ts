@@ -550,7 +550,154 @@ export function exportAnnualPaymentReport(accessToken: string, year: number, pro
 }
 
 /* ------------------------------------------------------------------ */
-/* Maaş Ödənişləri (Manual SalaryPayment)                             */
+/* Maaş Ödənişləri (PayrollRun/Payslip - Aylıq toplu hesablama)      */
+/* ------------------------------------------------------------------ */
+
+// PayrollRunStatus enum: Draft=1, Calculated=2, Approved=3, Paid=4
+export function payrollRunStatusLabel(status: number): string {
+  switch (status) {
+    case 1: return "Qaralama";
+    case 2: return "Hesablanıb";
+    case 3: return "Təsdiqlənib";
+    case 4: return "Ödənilib";
+    default: return String(status);
+  }
+}
+
+export type PayslipResponse = {
+  employeeId: string;
+  employeeFullName: string;
+  baseSalary: number;
+  bonusAmount: number;
+  adjustmentAmount: number;
+  grossSalary: number;
+  finalNetSalary: number;
+  totalEmployerCost: number;
+  paidAt: string | null;
+  paymentMethod: number | null;
+};
+
+export type PayrollRunResponse = {
+  id: string;
+  year: number;
+  month: number;
+  status: number;
+  calculatedAt: string | null;
+  approvedAt: string | null;
+  paidAt: string | null;
+  totalGross: number;
+  totalNet: number;
+  totalEmployerCost: number;
+  payslips: PayslipResponse[];
+};
+
+export type CalculatePayrollRunRequest = {
+  year: number;
+  month: number;
+};
+
+/** Ay üçün PayrollRun hesabla (bütün işçilər üçün). */
+export function calculatePayrollRun(accessToken: string, request: CalculatePayrollRunRequest) {
+  return apiFetch<Envelope<PayrollRunResponse>>("api/payroll-runs/calculate", accessToken, {
+    method: "POST",
+    body: JSON.stringify(request),
+  }).then((e) => e.data);
+}
+
+/** Seçilmiş dövr üçün PayrollRun gətir. */
+export function getPayrollRunByPeriod(accessToken: string, year: number, month: number) {
+  return apiFetch<Envelope<PayrollRunResponse>>(
+    `api/payroll-runs/by-period?year=${year}&month=${month}`,
+    accessToken
+  ).then((e) => e.data);
+}
+
+/** ID ilə PayrollRun gətir. */
+export function getPayrollRunById(accessToken: string, payrollRunId: string) {
+  return apiFetch<Envelope<PayrollRunResponse>>(`api/payroll-runs/${payrollRunId}`, accessToken).then(
+    (e) => e.data
+  );
+}
+
+/**
+ * Mövcud hesablamanı yenidən qur (sonradan gələn bonus/düzəlişləri də daxil etmək üçün).
+ * Backend yalnız heç bir qəbz ödənilməmişsə icazə verir; nəticədə run yenidən "Hesablanıb" olur.
+ */
+export function recalculatePayrollRun(accessToken: string, payrollRunId: string) {
+  return apiFetch<Envelope<PayrollRunResponse>>(`api/payroll-runs/${payrollRunId}/recalculate`, accessToken, {
+    method: "POST",
+  }).then((e) => e.data);
+}
+
+/** PayrollRun-u təsdiqlə. */
+export function approvePayrollRun(accessToken: string, payrollRunId: string) {
+  return apiFetch<Envelope<PayrollRunResponse>>(`api/payroll-runs/${payrollRunId}/approve`, accessToken, {
+    method: "POST",
+  }).then((e) => e.data);
+}
+
+/** Bir işçinin qəbzini ödə. */
+export function payPayslip(
+  accessToken: string,
+  payrollRunId: string,
+  employeeId: string,
+  paymentMethod: PaymentMethodKey
+) {
+  return apiFetch<Envelope<PayrollRunResponse>>(
+    `api/payroll-runs/${payrollRunId}/payslips/${employeeId}/pay`,
+    accessToken,
+    {
+      method: "POST",
+      body: JSON.stringify({ paymentMethod: paymentMethodToOrdinal(paymentMethod) }),
+    }
+  ).then((e) => e.data);
+}
+
+/** Bütün qəbzləri ödə. */
+export function payAllPayslips(accessToken: string, payrollRunId: string, paymentMethod: PaymentMethodKey) {
+  return apiFetch<Envelope<PayrollRunResponse>>(`api/payroll-runs/${payrollRunId}/pay`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({ paymentMethod: paymentMethodToOrdinal(paymentMethod) }),
+  }).then((e) => e.data);
+}
+
+/** Bütün run-u PDF-ə export et. */
+export function exportPayrollRunPdf(accessToken: string, payrollRunId: string) {
+  return apiFetchFile(`api/payroll-runs/${payrollRunId}/export`, accessToken);
+}
+
+/** Bir işçinin qəbzini PDF-ə export et. */
+export function exportPayslipPdf(accessToken: string, payrollRunId: string, employeeId: string) {
+  return apiFetchFile(`api/payroll-runs/${payrollRunId}/payslips/${employeeId}/export`, accessToken);
+}
+
+// Bütün PayrollRun-ların içindən yalnız bu işçinin payslip-ləri — dövr üzrə yenidən köhnəyə.
+// Response-da PayrollRunStatus da gəlir (Draft=1, Calculated=2, Approved=3, Paid=4).
+export type EmployeePayslipResponse = {
+  payrollRunId: string;
+  year: number;
+  month: number;
+  payrollRunStatus: number;
+  baseSalary: number;
+  bonusAmount: number;
+  adjustmentAmount: number;
+  grossSalary: number;
+  finalNetSalary: number;
+  totalEmployerCost: number;
+  paidAt: string | null;
+  paymentMethod: number | null;
+};
+
+/** İşçinin bütün payslip-lərini gətir (bütün PayrollRun-lardan). */
+export function getPayslipsByEmployee(accessToken: string, employeeId: string) {
+  return apiFetch<Envelope<EmployeePayslipResponse[]>>(
+    `api/payroll-runs/payslips/employee/${employeeId}`,
+    accessToken
+  ).then((e) => e.data);
+}
+
+/* ------------------------------------------------------------------ */
+/* Maaş Ödənişləri (Manual SalaryPayment) - DEPRECATED               */
 /* ------------------------------------------------------------------ */
 
 // SalaryPaymentLineType enum: BaseSalary=1, Bonus=2, Adjustment=3
@@ -596,6 +743,8 @@ export type SalaryPaymentResponse = {
   status: number;
   notes: string | null;
   lines: SalaryPaymentLineResponse[];
+  createdAt: string;
+  updatedAt: string | null;
 };
 
 export type SalaryCalculationPreviewResponse = {
@@ -677,6 +826,20 @@ export function searchSalaryPayments(accessToken: string, params: SearchParams =
   return apiFetch<Envelope<SearchSalaryPaymentsResult>>(url, accessToken).then((e) => e.data);
 }
 
+/** İşçinin bütün manual maaş ödənişlərini gətir. */
+export function getSalaryPaymentsByEmployee(accessToken: string, employeeId: string) {
+  return searchSalaryPayments(accessToken, {
+    filters: [{ columnName: "EmployeeId", value: employeeId, operator: "equals" }],
+    pageSize: 1000, // Get all payments for the employee
+  }).then((result) => result.salaryPayments);
+}
+
+/** PaymentMethod enum-u Azərbaycan dilində göstər. */
+export function paymentMethodLabel(paymentMethod: number): string {
+  const key = paymentMethodFromOrdinal(paymentMethod);
+  return PAYMENT_METHOD_LABELS[key] || String(paymentMethod);
+}
+
 /** PDF qəbz çıxarışı. */
 export function exportSalaryPaymentPdf(accessToken: string, salaryPaymentId: string) {
   return apiFetchFile(`api/salary-payments/${salaryPaymentId}/export-pdf`, accessToken);
@@ -687,4 +850,75 @@ export function deleteSalaryPayment(accessToken: string, salaryPaymentId: string
   return apiFetch<MessageOnly>(`api/salary-payments/${salaryPaymentId}`, accessToken, {
     method: "DELETE",
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Məzuniyyət Ödənişləri (VacationPay)                               */
+/* ------------------------------------------------------------------ */
+
+// VacationPayStatus enum: Pending=1, Paid=2
+export function vacationPayStatusLabel(status: number): string {
+  switch (status) {
+    case 1: return "Gözləyir";
+    case 2: return "Ödənilib";
+    default: return String(status);
+  }
+}
+
+export type VacationPayResponse = {
+  id: string;
+  vacationOrderId: string;
+  employeeId: string;
+  employeeFullName: string;
+  averageMonthlyWage: number;
+  averageDailyWage: number;
+  vacationDays: number;
+  totalAmount: number;
+  vacationStartDate: string;
+  vacationEndDate: string;
+  status: number;
+  dueDate: string;
+  paidAt: string | null;
+  paymentMethod: number | null;
+  createdAt: string;
+};
+
+/** İşçinin bütün məzuniyyət ödənişlərini gətir. */
+export function getVacationPaysByEmployee(accessToken: string, employeeId: string) {
+  return apiFetch<Envelope<VacationPayResponse[]>>(
+    `api/vacation-pays/employee/${employeeId}`,
+    accessToken
+  ).then((e) => e.data);
+}
+
+/** Yaxınlaşan məzuniyyət ödənişlərini gətir (due date 7 gün içində). */
+export function getUpcomingVacationPays(accessToken: string) {
+  return apiFetch<Envelope<VacationPayResponse[]>>(
+    `api/vacation-pays/upcoming`,
+    accessToken
+  ).then((e) => e.data);
+}
+
+/** ID ilə məzuniyyət ödənişini gətir. */
+export function getVacationPayById(accessToken: string, vacationPayId: string) {
+  return apiFetch<Envelope<VacationPayResponse>>(
+    `api/vacation-pays/${vacationPayId}`,
+    accessToken
+  ).then((e) => e.data);
+}
+
+export type PayVacationPayRequest = {
+  paymentMethod: PaymentMethodKey;
+};
+
+/** Məzuniyyət ödənişini ödə. */
+export function payVacationPay(accessToken: string, vacationPayId: string, paymentMethod: PaymentMethodKey) {
+  return apiFetch<Envelope<VacationPayResponse>>(
+    `api/vacation-pays/${vacationPayId}/pay`,
+    accessToken,
+    {
+      method: "POST",
+      body: JSON.stringify({ paymentMethod: paymentMethodToOrdinal(paymentMethod) }),
+    }
+  ).then((e) => e.data);
 }

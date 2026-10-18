@@ -132,7 +132,6 @@ export const ORDER_KINDS = {
   Reprimand: { value: 9, route: "warnings", label: "Töhmət", pdf: true },
   SevereReprimand: { value: 10, route: "warnings", label: "Ciddi töhmət", pdf: true },
   Bonus: { value: 11, route: "bonusorders", label: "Mükafat", pdf: true },
-  SalaryDeduction: { value: 12, route: "salarydeductions", label: "Maaşdan tutulma", pdf: true },
   WorkOnNonWorkday: { value: 13, route: "workonnonworkdayorders", label: "İstirahət/bayram günü işi", pdf: true },
   EmploymentStatusChange: { value: 14, route: "employmentstatuschangeorders", label: "İş rejimi dəyişikliyi", pdf: true },
   VacationReturn: { value: 15, route: "vacationreturnorders", label: "Məzuniyyətdən geri çağırma", pdf: true },
@@ -527,7 +526,7 @@ export type OrderItem = {
 export const searchOrders = (token: string, params?: SearchParams) =>
   search<OrderItem>(token, "api/hr/orders/search", params);
 
-export type DirectOrderKind = "Bonus" | "SalaryDeduction" | "UnexcusedAbsence" | "Warning" | "WorkOnNonWorkday";
+export type DirectOrderKind = "Bonus" | "UnexcusedAbsence" | "Warning" | "WorkOnNonWorkday";
 
 export function createDirectOrder(token: string, kind: DirectOrderKind, body: Record<string, unknown>) {
   return send<unknown>(token, "POST", `api/hr/${ORDER_KINDS[kind].route}`, body);
@@ -557,7 +556,7 @@ export const ORDER_FOR_APPLICATION: Record<ApplicationKind, OrderKind> = {
 /** Backend-də silmə endpoint-i olan əmr növləri. */
 export const DELETABLE_ORDERS: OrderKind[] = [
   "Employment", "ChangeOfPosition", "UnexcusedAbsence", "Warning", "Reprimand", "SevereReprimand",
-  "VacationCompensation", "UnpaidLeave", "EducationLeave", "Bonus", "SalaryDeduction", "WorkOnNonWorkday",
+  "VacationCompensation", "UnpaidLeave", "EducationLeave", "Bonus", "WorkOnNonWorkday",
   "EmploymentStatusChange",
 ];
 
@@ -700,7 +699,6 @@ export const ORDER_ATTACHMENT_FK: Record<OrderKind, string> = {
   Vacation: "VacationOrderId",
   EducationLeave: "EducationLeaveOrderId",
   Bonus: "BonusOrderId",
-  SalaryDeduction: "SalaryDeductionId",
   WorkOnNonWorkday: "WorkOnNonWorkdayOrderId",
   EmploymentStatusChange: "EmploymentStatusChangeOrderId",
   VacationReturn: "VacationReturnOrderId",

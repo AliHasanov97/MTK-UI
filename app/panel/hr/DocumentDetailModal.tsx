@@ -385,19 +385,6 @@ export function DocumentDetailModal({
               {fields.length === 0 && <p className="panel-page-lead">Əlavə məlumat yoxdur.</p>}
             </div>
 
-            {current.type === "order" && current.kind === "SalaryDeduction" && detail && typeof detail.remainingDebt === "number" && (
-              <div style={{ marginTop: 16, marginBottom: 16 }}>
-                {detail.remainingDebt === 0 ? (
-                  <p className="cal-notice" style={{ background: "#d4edda", color: "#155724", border: "1px solid #c3e6cb" }}>
-                    ✓ Borc tam ödənilib. Tutmanı dayandırmaq üçün əmri silin.
-                  </p>
-                ) : detail.remainingDebt > 0 && typeof detail.debt === "number" && detail.remainingDebt <= detail.debt * 0.25 ? (
-                  <p className="cal-notice" style={{ background: "#fff3cd", color: "#856404", border: "1px solid #ffeaa7" }}>
-                    ⚠ Qalan borc azalır ({detail.remainingDebt} ₼). Növbəti ödənişdə borc tamamlana bilər.
-                  </p>
-                ) : null}
-              </div>
-            )}
 
             {related.length > 0 && (
               <div className="doc-related">

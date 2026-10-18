@@ -4,26 +4,44 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { ApiError, saveBlobAsFile } from "../../../lib/api/client";
 import {
-  createSalaryPayment,
-  deleteSalaryPayment,
-  exportSalaryPaymentPdf,
-  getSalaryCalculationPreview,
+  calculatePayrollRun,
+  getPayrollRunByPeriod,
+  approvePayrollRun,
+  recalculatePayrollRun,
+  payPayslip,
+  payAllPayslips,
+  exportPayrollRunPdf,
+  exportPayslipPdf,
   PAYMENT_METHOD_LABELS,
-  paySalaryPayment,
-  salaryPaymentStatusLabel,
-  searchSalaryPayments,
-  type CreateSalaryPaymentRequest,
+  payrollRunStatusLabel,
   type PaymentMethodKey,
-  type SalaryCalculationPreviewResponse,
-  type SalaryPaymentResponse,
+  type PayrollRunResponse,
 } from "../../../lib/api/payments";
 
 const MONTHS = [
-  "Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun", "İyul", "Avqust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr",
+  "Yanvar",
+  "Fevral",
+  "Mart",
+  "Aprel",
+  "May",
+  "İyun",
+  "İyul",
+  "Avqust",
+  "Sentyabr",
+  "Oktyabr",
+  "Noyabr",
+  "Dekabr",
 ];
 
 const money = (amount: number) =>
   `${amount.toLocaleString("az-AZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₼`;
+
+// Gələn ayın əmək haqqı hələ hesablanmır — ay bitdikdən sonra hesablanır. Ona görə hesablama
+// üçün icazəli (və səhifənin default) dövr keçmiş təqvim ayıdır (backend də eyni qaydaya tabedir).
+function previousCalendarMonth(now: Date) {
+  const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return { year: previous.getFullYear(), month: previous.getMonth() + 1 };
+}
 
 function parseApiError(err: unknown): { message: string; code?: string } {
   if (err instanceof ApiError) {
@@ -44,418 +62,429 @@ async function download(promise: Promise<{ blob: Blob; fileName: string }>) {
   saveBlobAsFile(blob, fileName);
 }
 
-type Employee = { id: string; fullName: string; baseSalary: number };
-
 export function EmekHaqqiView() {
   const auth = useAuth();
   const now = new Date();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loadingEmployees, setLoadingEmployees] = useState(false);
 
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const allowedPeriod = previousCalendarMonth(now);
 
-  const [preview, setPreview] = useState<SalaryCalculationPreviewResponse | null>(null);
-  const [loadingPreview, setLoadingPreview] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(allowedPeriod.year);
+  const [selectedMonth, setSelectedMonth] = useState(allowedPeriod.month);
+
+  const [payrollRun, setPayrollRun] = useState<PayrollRunResponse | null>(null);
+  // Dövr dəyişəndə yükləmə vəziyyətini handler-lər qaldırır — effect yalnız sorğunu işə salır.
+  const [loading, setLoading] = useState(true);
+  const [calculating, setCalculating] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [payingAll, setPayingAll] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+  const [payingSlipId, setPayingSlipId] = useState<string | null>(null);
+  const [exportingRunId, setExportingRunId] = useState<string | null>(null);
+  const [exportingSlipId, setExportingSlipId] = useState<string | null>(null);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodKey>("BankTransfer");
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
-  const [notes, setNotes] = useState("");
-  const [creating, setCreating] = useState(false);
-
-  const [payments, setPayments] = useState<SalaryPaymentResponse[]>([]);
-  const [loadingPayments, setLoadingPayments] = useState(false);
-  const [paying, setPaying] = useState<string | null>(null);
-  const [exporting, setExporting] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
-    setLoadingEmployees(true);
-    fetch("/api/hr/employees/search", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${auth.accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ pageSize: 1000 }),
-    })
-      .then((res) => res.json())
-      .then((
-        data: { data: { employees: Array<{ id: string; fullName: string; baseSalary: number }> } },
-      ) => {
-        setEmployees(data.data.employees.filter((e) => e.baseSalary > 0));
-        setLoadingEmployees(false);
-      })
-      .catch(() => {
-        setError("İşçi siyahısı yüklənə bilmədi");
-        setLoadingEmployees(false);
-      });
-  }, [auth]);
-
-  useEffect(() => {
-    if (auth.status !== "authenticated") return;
-    loadPayments();
-  }, [auth]);
-
-  function loadPayments() {
-    if (auth.status !== "authenticated") return;
-    setLoadingPayments(true);
-    searchSalaryPayments(auth.accessToken, { pageSize: 100 })
-      .then((result) => {
-        setPayments(result.salaryPayments);
+    // Dövr sürətlə dəyişdirilsə, köhnə sorğunun cavabı yeni dövrün məlumatını əzmasin.
+    let cancelled = false;
+    getPayrollRunByPeriod(auth.accessToken, selectedYear, selectedMonth)
+      .then((run) => {
+        if (cancelled) return;
+        setPayrollRun(run);
         setError(null);
       })
-      .catch((err) => setError(parseApiError(err).message))
-      .finally(() => setLoadingPayments(false));
+      .catch((err) => {
+        if (cancelled) return;
+        const apiErr = parseApiError(err);
+        if (apiErr.code === "PayrollRun.NotFound") {
+          setPayrollRun(null);
+        } else {
+          setError(apiErr.message);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [auth, selectedYear, selectedMonth]);
+
+  async function handleCalculate() {
+    if (auth.status !== "authenticated") return;
+    setCalculating(true);
+    setError(null);
+    try {
+      const run = await calculatePayrollRun(auth.accessToken, { year: selectedYear, month: selectedMonth });
+      setPayrollRun(run);
+    } catch (err) {
+      setError(parseApiError(err).message);
+    } finally {
+      setCalculating(false);
+    }
   }
 
-  async function handlePreview() {
-    if (!selectedEmployeeId) {
-      setError("İşçi seçin");
+  async function handleApprove() {
+    if (!payrollRun || auth.status !== "authenticated") return;
+    if (!window.confirm("Əmək haqqı hesablamasını təsdiqləyirsiniz?")) return;
+    setApproving(true);
+    setError(null);
+    try {
+      const updated = await approvePayrollRun(auth.accessToken, payrollRun.id);
+      setPayrollRun(updated);
+    } catch (err) {
+      setError(parseApiError(err).message);
+    } finally {
+      setApproving(false);
+    }
+  }
+
+  async function handlePayAll() {
+    if (!payrollRun || auth.status !== "authenticated") return;
+    if (!window.confirm("Bütün əmək haqqlarını ödənilmiş qeyd edirsiniz?")) return;
+    setPayingAll(true);
+    setError(null);
+    try {
+      const updated = await payAllPayslips(auth.accessToken, payrollRun.id, paymentMethod);
+      setPayrollRun(updated);
+    } catch (err) {
+      setError(parseApiError(err).message);
+    } finally {
+      setPayingAll(false);
+    }
+  }
+
+  async function handleRecalculate() {
+    if (!payrollRun || auth.status !== "authenticated") return;
+    if (
+      !window.confirm(
+        "Hesablama yenidən qurulacaq və sonradan əlavə olunan bonus/düzəlişlər nəzərə alınacaq. Davam edilsin?",
+      )
+    )
       return;
-    }
-    if (auth.status !== "authenticated") return;
-    setLoadingPreview(true);
+    setRecalculating(true);
     setError(null);
     try {
-      const result = await getSalaryCalculationPreview(
-        auth.accessToken,
-        selectedEmployeeId,
-        selectedYear,
-        selectedMonth
-      );
-      setPreview(result);
-      setShowPreview(true);
+      const updated = await recalculatePayrollRun(auth.accessToken, payrollRun.id);
+      setPayrollRun(updated);
     } catch (err) {
       setError(parseApiError(err).message);
     } finally {
-      setLoadingPreview(false);
+      setRecalculating(false);
     }
   }
 
-  async function handleCreate() {
-    if (!selectedEmployeeId || !preview) return;
-    if (auth.status !== "authenticated") return;
-    setCreating(true);
+  async function handlePaySlip(employeeId: string) {
+    if (!payrollRun || auth.status !== "authenticated") return;
+    if (!window.confirm("Bu işçinin əmək haqqını ödənilmiş qeyd edirsiniz?")) return;
+    setPayingSlipId(employeeId);
     setError(null);
     try {
-      const request: CreateSalaryPaymentRequest = {
-        employeeId: selectedEmployeeId,
-        salaryMonth: selectedMonth,
-        salaryYear: selectedYear,
-        paymentMethod,
-        paymentDate,
-        notes: notes || null,
-      };
-      await createSalaryPayment(auth.accessToken, request);
-      setShowPreview(false);
-      setPreview(null);
-      setNotes("");
-      loadPayments();
+      const updated = await payPayslip(auth.accessToken, payrollRun.id, employeeId, paymentMethod);
+      setPayrollRun(updated);
     } catch (err) {
       setError(parseApiError(err).message);
     } finally {
-      setCreating(false);
+      setPayingSlipId(null);
     }
   }
 
-  async function handlePay(paymentId: string) {
-    if (auth.status !== "authenticated") return;
-    if (!window.confirm("Ödənişi təsdiqləyirsiniz?")) return;
-    setPaying(paymentId);
+  async function handleExportRun() {
+    if (!payrollRun || auth.status !== "authenticated") return;
+    setExportingRunId(payrollRun.id);
     setError(null);
     try {
-      await paySalaryPayment(auth.accessToken, paymentId);
-      loadPayments();
+      await download(exportPayrollRunPdf(auth.accessToken, payrollRun.id));
     } catch (err) {
       setError(parseApiError(err).message);
     } finally {
-      setPaying(null);
+      setExportingRunId(null);
     }
   }
 
-  async function handleExport(paymentId: string) {
-    if (auth.status !== "authenticated") return;
-    setExporting(paymentId);
+  async function handleExportSlip(employeeId: string) {
+    if (!payrollRun || auth.status !== "authenticated") return;
+    setExportingSlipId(employeeId);
     setError(null);
     try {
-      await download(exportSalaryPaymentPdf(auth.accessToken, paymentId));
+      await download(exportPayslipPdf(auth.accessToken, payrollRun.id, employeeId));
     } catch (err) {
       setError(parseApiError(err).message);
     } finally {
-      setExporting(null);
-    }
-  }
-
-  async function handleDelete(paymentId: string) {
-    if (auth.status !== "authenticated") return;
-    if (!window.confirm("Ödənişi silmək istədiyinizə əminsiniz?")) return;
-    setDeleting(paymentId);
-    setError(null);
-    try {
-      await deleteSalaryPayment(auth.accessToken, paymentId);
-      loadPayments();
-    } catch (err) {
-      setError(parseApiError(err).message);
-    } finally {
-      setDeleting(null);
+      setExportingSlipId(null);
     }
   }
 
   if (auth.status !== "authenticated") return null;
 
+  // Status değerləri: Draft=1, Calculated=2, Approved=3, Paid=4
+  const isCalculated = payrollRun && payrollRun.status >= 2;
+  const isApproved = payrollRun && payrollRun.status >= 3;
+  const isPaid = payrollRun && payrollRun.status === 4;
+
+  // Yalnız bitmiş (keçmiş təqvim) ay üçün YENİ hesablama yaradıla bilər; köhnə aylara baxmaq
+  // (tarixçə) sərbəstdir, yeni hesablama isə backend-də də bağlıdır.
+  const isAllowedPeriod = selectedYear === allowedPeriod.year && selectedMonth === allowedPeriod.month;
+  const hasPayments = payrollRun?.payslips.some((slip) => slip.paidAt !== null) ?? false;
+
+  const periodValue = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
+
+  function shiftMonth(delta: number) {
+    const shifted = new Date(selectedYear, selectedMonth - 1 + delta, 1);
+    setLoading(true);
+    setSelectedYear(shifted.getFullYear());
+    setSelectedMonth(shifted.getMonth() + 1);
+  }
+
   return (
     <div className="panel-page">
-      <div className="panel-toolbar">
-        <div style={{ flex: 1 }}>
-          <h1>Əmək haqqı ödənişləri</h1>
+      <div className="panel-page-head">
+        <div>
+          <h1>Əmək haqqı</h1>
           <p className="panel-page-lead">
-            Hər işçi üçün ayrıca maaş ödənişi yaradın. Bonus və düzəlişlər HR-dan avtomatik hesablanır.
+            Aylıq əmək haqqını bütün işçilər üçün hesablayın. Bonus və düzəlişlər HR-dan avtomatik əlavə olunur.
+          </p>
+        </div>
+        <div className="emek-period-block">
+          <div className="emek-period-nav">
+            <button
+              type="button"
+              className="emek-period-arrow"
+              onClick={() => shiftMonth(-1)}
+              aria-label="Əvvəlki ay"
+              disabled={loading || calculating}
+            >
+              ‹
+            </button>
+            <input
+              type="month"
+              className="emek-period-input"
+              aria-label="Dövr"
+              value={periodValue}
+              disabled={loading || calculating}
+              onChange={(e) => {
+                const [y, m] = e.target.value.split("-").map(Number);
+                if (y && m) {
+                  setLoading(true);
+                  setSelectedYear(y);
+                  setSelectedMonth(m);
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="emek-period-arrow"
+              onClick={() => shiftMonth(1)}
+              aria-label="Növbəti ay"
+              disabled={loading || calculating}
+            >
+              ›
+            </button>
+            <button
+              type="button"
+              className="panel-btn panel-btn-primary"
+              onClick={handleCalculate}
+              disabled={loading || calculating || Boolean(isCalculated) || !isAllowedPeriod}
+            >
+              {calculating ? "Hesablanır..." : isCalculated ? "Hesablanıb" : isAllowedPeriod ? "Hesabla" : "Bağlıdır"}
+            </button>
+          </div>
+          <p className="emek-period-note">
+            Əmək haqqı ay bitdikdən sonra hesablanır — indi yalnız{" "}
+            <strong>
+              {MONTHS[allowedPeriod.month - 1]} {allowedPeriod.year}
+            </strong>{" "}
+            üçün yeni hesablama yaradıla bilər. Köhnə aylara baxmaq mümkündür.
           </p>
         </div>
       </div>
 
-      {error && <p className="form-error">{error}</p>}
+      {error && (
+        <p className="ledger-alert" role="alert">
+          {error}
+        </p>
+      )}
 
-      <div className="panel-section">
-        <h3>Yeni ödəniş yarat</h3>
-        <div className="form-row">
-          <div className="form-field">
-            <label htmlFor="employee">İşçi</label>
-            <select
-              id="employee"
-              value={selectedEmployeeId || ""}
-              onChange={(e) => {
-                setSelectedEmployeeId(e.target.value || null);
-                setShowPreview(false);
-                setPreview(null);
-              }}
-              disabled={loadingEmployees}
-            >
-              <option value="">Seçin...</option>
-              {employees.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.fullName} — {money(e.baseSalary)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="month">Ay</label>
-            <select id="month" value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>
-              {MONTHS.map((name, i) => (
-                <option key={name} value={i + 1}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label htmlFor="year">İl</label>
-            <input
-              id="year"
-              type="number"
-              min={2000}
-              max={2100}
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-            />
-          </div>
-          <div className="form-field">
-            <label>&nbsp;</label>
-            <button
-              type="button"
-              className="panel-btn panel-btn-primary"
-              onClick={handlePreview}
-              disabled={!selectedEmployeeId || loadingPreview}
-            >
-              {loadingPreview ? "Yüklənir..." : "Hesabla"}
-            </button>
-          </div>
+      {loading && (
+        <div aria-hidden="true">
+          <div className="emek-skeleton" />
+          <div className="emek-skeleton" />
         </div>
+      )}
 
-        {showPreview && preview && (
-          <div className="panel-section" style={{ marginTop: 16, background: "#f9fafb", padding: 16, borderRadius: 4 }}>
-            <h4>
-              {preview.employeeFullName} — {MONTHS[selectedMonth - 1]} {selectedYear}
-            </h4>
-            <div style={{ marginTop: 12 }}>
-              <p>
-                <strong>Əsas maaş:</strong> {money(preview.baseSalary)}
-              </p>
-              {preview.bonuses.length > 0 && (
-                <div style={{ marginTop: 8 }}>
-                  <strong>Bonuslar:</strong>
-                  <ul style={{ marginTop: 4, paddingLeft: 20 }}>
-                    {preview.bonuses.map((b, i) => (
-                      <li key={i}>
-                        {b.description} — {money(b.amount)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {preview.adjustments.length > 0 && (
-                <div style={{ marginTop: 8 }}>
-                  <strong>Düzəlişlər:</strong>
-                  <ul style={{ marginTop: 4, paddingLeft: 20 }}>
-                    {preview.adjustments.map((a, i) => (
-                      <li key={i}>
-                        {a.description} — {money(a.amount)}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <p style={{ marginTop: 12, fontSize: 18 }}>
-                <strong>Toplam:</strong> {money(preview.totalGross)}
-              </p>
+      {!loading && !payrollRun && (
+        <div className="emek-empty">
+          <strong>
+            {MONTHS[selectedMonth - 1]} {selectedYear} üçün əmək haqqı hesablanmayıb
+          </strong>
+          <span>
+            {isAllowedPeriod
+              ? "«Hesabla» düyməsinə basın — əmək haqqı bütün işçilər üçün avtomatik hesablanacaq."
+              : `Bu dövr üçün yeni hesablama yaradıla bilməz. Hesablamaq üçün ${MONTHS[allowedPeriod.month - 1]} ${allowedPeriod.year} dövrünü seçin.`}
+          </span>
+        </div>
+      )}
+
+      {!loading && payrollRun && (
+        <>
+          <div className="emek-stats">
+            <div className="emek-stat emek-stat-gross">
+              <span className="emek-stat-label">Gross cəmi</span>
+              <strong>{money(payrollRun.totalGross)}</strong>
+              <span className="emek-stat-caption">Baza maaş + bonus + düzəlişlər</span>
             </div>
-
-            <div className="form-row" style={{ marginTop: 16 }}>
-              <div className="form-field">
-                <label htmlFor="paymentMethod">Ödəniş üsulu</label>
-                <select
-                  id="paymentMethod"
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodKey)}
-                >
-                  <option value="BankTransfer">Bank köçürməsi</option>
-                  <option value="Cash">Nağd</option>
-                  <option value="Card">Kart</option>
-                </select>
-              </div>
-              <div className="form-field">
-                <label htmlFor="paymentDate">Ödəniş tarixi</label>
-                <input
-                  id="paymentDate"
-                  type="date"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                />
-              </div>
-              <div className="form-field">
-                <label htmlFor="notes">Qeyd</label>
-                <input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} />
-              </div>
+            <div className="emek-stat emek-stat-net">
+              <span className="emek-stat-label">Net cəmi</span>
+              <strong>{money(payrollRun.totalNet)}</strong>
+              <span className="emek-stat-caption">Vergi və ayırmalardan sonra ödəniləcək</span>
             </div>
-
-            <div style={{ marginTop: 12 }}>
-              <button
-                type="button"
-                className="panel-btn panel-btn-primary"
-                onClick={handleCreate}
-                disabled={creating}
-                style={{ marginRight: 8 }}
-              >
-                {creating ? "Yaradılır..." : "Ödəniş yarat"}
-              </button>
-              <button
-                type="button"
-                className="panel-btn"
-                onClick={() => {
-                  setShowPreview(false);
-                  setPreview(null);
-                }}
-              >
-                Ləğv et
-              </button>
+            <div className="emek-stat emek-stat-cost">
+              <span className="emek-stat-label">İşəgötürən xərci</span>
+              <strong>{money(payrollRun.totalEmployerCost)}</strong>
+              <span className="emek-stat-caption">Net məbləğ + işəgötürən vergi və ayırmaları</span>
+            </div>
+            <div className="emek-stat emek-stat-count">
+              <span className="emek-stat-label">İşçi sayı</span>
+              <strong>{payrollRun.payslips.length}</strong>
+              <span className="emek-stat-caption">
+                {MONTHS[payrollRun.month - 1]} {payrollRun.year} dövrü
+              </span>
             </div>
           </div>
-        )}
-      </div>
 
-      <div className="panel-section" style={{ marginTop: 32 }}>
-        <h3>Maaş ödənişləri ({payments.length})</h3>
-        {loadingPayments ? (
-          <p>Yüklənir...</p>
-        ) : payments.length === 0 ? (
-          <p className="panel-page-lead">Hələ heç bir ödəniş yaradılmayıb</p>
-        ) : (
-          <div className="data-table-wrap">
+          <section className="data-table-wrap">
+            <div className="ledger-table-head">
+              <h3>İşçilər</h3>
+              <div className="emek-run-actions">
+                <span className="ledger-count">{payrollRun.payslips.length}</span>
+                <span className={`panel-role-tag ${isApproved ? "panel-role-tag-good" : ""}`}>
+                  {payrollRunStatusLabel(payrollRun.status)}
+                </span>
+                {!isApproved && (
+                  <button
+                    type="button"
+                    className="panel-btn panel-btn-primary"
+                    onClick={handleApprove}
+                    disabled={approving}
+                  >
+                    {approving ? "Təsdiq edilir..." : "Təsdiqlə"}
+                  </button>
+                )}
+                {isApproved && !isPaid && (
+                  <>
+                    <select
+                      className="panel-select"
+                      aria-label="Ödəniş üsulu"
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value as PaymentMethodKey)}
+                    >
+                      <option value="BankTransfer">Bank köçürməsi</option>
+                      <option value="Cash">Nağd</option>
+                      <option value="Card">Kart</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="panel-btn panel-btn-primary"
+                      onClick={handlePayAll}
+                      disabled={payingAll}
+                    >
+                      {payingAll ? "Ödənilir..." : "Hamısını ödə"}
+                    </button>
+                  </>
+                )}
+                {!hasPayments && (
+                  <button
+                    type="button"
+                    className="panel-btn"
+                    onClick={handleRecalculate}
+                    disabled={recalculating}
+                    title="Sonradan əlavə olunan bonus/düzəlişləri də daxil etmək üçün hesablamanı yenidən qurur"
+                  >
+                    {recalculating ? "Hesablanır..." : "Yenidən hesabla"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="panel-btn"
+                  onClick={handleExportRun}
+                  disabled={exportingRunId === payrollRun.id}
+                >
+                  {exportingRunId === payrollRun.id ? "Export edilir..." : "PDF (Hamısı)"}
+                </button>
+              </div>
+            </div>
             <div className="owner-table-scroll">
               <table className="data-table">
                 <thead>
                   <tr>
                     <th>İşçi</th>
-                    <th>Dövr</th>
-                    <th>Ödəniş tarixi</th>
-                    <th>Ödəniş üsulu</th>
-                    <th>Məbləğ</th>
-                    <th>Status</th>
+                    <th className="emek-amount">Əsas maaş</th>
+                    <th className="emek-amount">Bonus</th>
+                    <th className="emek-amount">Düzəliş</th>
+                    <th className="emek-amount">Gross</th>
+                    <th className="emek-amount">Net</th>
+                    <th>Ödəniş</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {payments
-                    .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime())
-                    .map((p) => {
-                      const isDraft = p.status === 1;
-                      const methodKey = p.paymentMethod === 0 ? "Cash" : p.paymentMethod === 1 ? "BankTransfer" : "Card";
-                      return (
-                        <tr key={p.id}>
-                          <td>{p.employeeFullName}</td>
-                          <td>
-                            {MONTHS[p.salaryMonth - 1]} {p.salaryYear}
-                          </td>
-                          <td>{p.paymentDate.slice(0, 10)}</td>
-                          <td>{PAYMENT_METHOD_LABELS[methodKey]}</td>
-                          <td>
-                            <strong>{money(p.grossSalary)}</strong>
-                          </td>
-                          <td>
-                            <span
-                              className={`panel-role-tag ${isDraft ? "" : "panel-role-tag-good"}`}
-                            >
-                              {salaryPaymentStatusLabel(p.status)}
+                  {payrollRun.payslips.map((slip) => {
+                    const isPaidSlip = slip.paidAt !== null;
+                    const methodKey =
+                      slip.paymentMethod === 0 ? "Cash" : slip.paymentMethod === 1 ? "BankTransfer" : "Card";
+                    return (
+                      <tr key={slip.employeeId}>
+                        <td>{slip.employeeFullName}</td>
+                        <td className="emek-amount">{money(slip.baseSalary)}</td>
+                        <td className="emek-amount">{slip.bonusAmount > 0 ? money(slip.bonusAmount) : "—"}</td>
+                        <td className="emek-amount">
+                          {slip.adjustmentAmount !== 0 ? money(slip.adjustmentAmount) : "—"}
+                        </td>
+                        <td className="emek-amount">{money(slip.grossSalary)}</td>
+                        <td className="emek-amount emek-amount-net">{money(slip.finalNetSalary)}</td>
+                        <td>
+                          {isPaidSlip ? (
+                            <span className="panel-role-tag panel-role-tag-good">
+                              Ödənilib {slip.paymentMethod !== null && `(${PAYMENT_METHOD_LABELS[methodKey]})`}
                             </span>
-                          </td>
-                          <td>
-                            <div style={{ display: "flex", gap: 4 }}>
-                              {isDraft && (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="panel-btn panel-btn-sm panel-btn-primary"
-                                    onClick={() => handlePay(p.id)}
-                                    disabled={paying === p.id}
-                                  >
-                                    {paying === p.id ? "..." : "Ödə"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="panel-btn panel-btn-sm panel-btn-danger"
-                                    onClick={() => handleDelete(p.id)}
-                                    disabled={deleting === p.id}
-                                  >
-                                    {deleting === p.id ? "..." : "Sil"}
-                                  </button>
-                                </>
-                              )}
+                          ) : (
+                            <span className="panel-role-tag">Ödənilməyib</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="emek-row-actions">
+                            {isApproved && !isPaidSlip && (
                               <button
                                 type="button"
-                                className="panel-btn panel-btn-sm"
-                                onClick={() => handleExport(p.id)}
-                                disabled={exporting === p.id}
+                                className="panel-btn panel-btn-sm panel-btn-primary"
+                                onClick={() => handlePaySlip(slip.employeeId)}
+                                disabled={payingSlipId === slip.employeeId}
                               >
-                                {exporting === p.id ? "..." : "PDF"}
+                                {payingSlipId === slip.employeeId ? "..." : "Ödə"}
                               </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            )}
+                            <button
+                              type="button"
+                              className="panel-btn panel-btn-sm"
+                              onClick={() => handleExportSlip(slip.employeeId)}
+                              disabled={exportingSlipId === slip.employeeId}
+                            >
+                              {exportingSlipId === slip.employeeId ? "..." : "PDF"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }

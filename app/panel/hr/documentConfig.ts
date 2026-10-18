@@ -76,20 +76,6 @@ export const DIRECT_ORDER_FIELDS: Record<DirectOrderKind, { label: string; field
       { key: "salaryYear", label: "Maaş ili", kind: "number", required: true, min: 2000, max: 2100 },
     ],
   },
-  SalaryDeduction: {
-    label: "Maaşdan tutulma",
-    fields: [
-      { key: "employeeId", label: "İşçi", kind: "employee", required: true },
-      { key: "district", label: "Məhkəmə (rayon)", kind: "text", required: true },
-      { key: "judgementNo", label: "Qərarın nömrəsi", kind: "number", required: true },
-      { key: "judgementDate", label: "Qərarın tarixi", kind: "date", required: true },
-      { key: "startDate", label: "Tutulmanın başlanğıcı", kind: "date", required: true },
-      { key: "percentageSalary", label: "Maaşdan tutulma faizi", kind: "number", required: true, min: 1, max: 100 },
-      { key: "stateFee", label: "Dövlət rüsumu (₼)", kind: "number", required: true },
-      { key: "creditor", label: "Alacaqlı", kind: "text", required: true },
-      { key: "debt", label: "Borc məbləği (₼)", kind: "number", required: true },
-    ],
-  },
   UnexcusedAbsence: {
     label: "İcazəsiz qeyb",
     fields: [

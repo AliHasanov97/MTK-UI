@@ -31,14 +31,23 @@ import {
   type WorkHistory,
   type WorkSchedule,
 } from "../../../../lib/api/hr";
+import {
+  getVacationPaysByEmployee,
+  payVacationPay,
+  vacationPayStatusLabel,
+  PAYMENT_METHOD_LABELS,
+  type VacationPayResponse,
+  type PaymentMethodKey,
+} from "../../../../lib/api/payments";
 import { Modal } from "../../../Modal";
 import { InstitutionPicker } from "../../Pickers";
 import { formatDate, fullName, hrErrorMessage } from "../../shared";
 import { employeeToForm } from "../EmployeeForm";
 import { EmployeeDocumentsTab } from "./EmployeeDocumentsTab";
+import { PaymentsTab } from "./EmployeePaymentsTab";
 import { EMPLOYEE_SECTIONS, type EmployeeSectionKey } from "../EmployeeSections";
 
-type Tab = "info" | "schedule" | "work" | "education" | "vacation" | "documents";
+type Tab = "info" | "schedule" | "work" | "education" | "vacation" | "documents" | "payments";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "info", label: "Məlumatlar" },
@@ -47,6 +56,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "education", label: "Təhsil" },
   { key: "vacation", label: "Məzuniyyət balansı" },
   { key: "documents", label: "Ərizə və əmrlər" },
+  { key: "payments", label: "Maaş ödənişləri" },
 ];
 
 const money = (amount: number) =>
@@ -140,6 +150,7 @@ export function EmployeeDetailView({ employeeId }: { employeeId: string }) {
       {tab === "education" && <EducationTab accessToken={accessToken} employeeId={employeeId} />}
       {tab === "vacation" && <VacationBalanceTab accessToken={accessToken} employeeId={employeeId} />}
       {tab === "documents" && <EmployeeDocumentsTab accessToken={accessToken} employeeId={employeeId} />}
+      {tab === "payments" && <PaymentsTab accessToken={accessToken} employeeId={employeeId} employeeFullName={fullName(employee)} />}
 
       {editing && (
         <EditSectionModal
