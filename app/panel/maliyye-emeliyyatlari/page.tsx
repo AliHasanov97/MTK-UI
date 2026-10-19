@@ -36,7 +36,7 @@ export default function MaliyyeEmeliyyatlariPage() {
 
         {sections.map((section) => (
           <div key={section.title} style={{ marginBottom: "2rem" }}>
-            <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "1rem", color: "#374151" }}>
+            <h2 style={{ fontSize: "1.25rem", fontWeight: 600, marginBottom: "1rem", color: "var(--ink)" }}>
               {section.title}
             </h2>
             <div className="panel-card-grid">

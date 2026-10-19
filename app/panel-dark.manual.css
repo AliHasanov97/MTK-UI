@@ -1,0 +1,76 @@
+/* Əl ilə düzəlişlər (scripts/gen-dark-panel.mjs generasiya zamanı sona əlavə edir). */
+
+/* Modal: fon və kart eyni tünd rəngdə olmasın — pərdə daha tünd, kart daha açıq və haşiyəli. */
+html[data-theme=dark][data-area=panel] .modal-backdrop,
+html[data-theme=dark][data-area=panel] .panel-backdrop{background:rgba(0,0,0,.68)}
+html[data-theme=dark][data-area=panel] .modal-card{background:#1d2d27;border:1px solid #3a5045;box-shadow:0 30px 80px rgba(0,0,0,.65)}
+html[data-theme=dark][data-area=panel] .modal-close{background:#26382f;border-color:#3a5045;color:#c9d6ce}
+html[data-theme=dark][data-area=panel] .modal-close:hover{background:#2f453a}
+
+/* Giriş sahələri: yerləşdiyi kartdan daha tünd, aydın haşiyə ilə. */
+html[data-theme=dark][data-area=panel] .form-field input,
+html[data-theme=dark][data-area=panel] .form-field textarea,
+html[data-theme=dark][data-area=panel] .form-field select{background:#0f1914;border-color:#3a5045;color:#e8efe9}
+html[data-theme=dark][data-area=panel] .form-field input:focus,
+html[data-theme=dark][data-area=panel] .form-field textarea:focus,
+html[data-theme=dark][data-area=panel] .form-field select:focus{border-color:#6bb08a;outline:none}
+html[data-theme=dark][data-area=panel] .form-field input::placeholder,
+html[data-theme=dark][data-area=panel] .form-field textarea::placeholder{color:#6f8176}
+
+/* Axtarışlı seçim: sahə tünd, açılan siyahı modaldan açıq. */
+html[data-theme=dark][data-area=panel] .searchable-select-input{background:#0f1914;border-color:#3a5045;color:#e8efe9}
+html[data-theme=dark][data-area=panel] .searchable-select-menu{background:#26382f;border:1px solid #3a5045;box-shadow:0 14px 30px rgba(0,0,0,.5)}
+html[data-theme=dark][data-area=panel] .searchable-select-option:hover{background:#31473b}
+
+/* Yan menyu: seçilmiş bölmə — aydın yaşıl fon, ağ yazı, açıq ikon. */
+html[data-theme=dark][data-area=panel] .panel-nav-item.active{background:#2f6b4d;color:#fff}
+html[data-theme=dark][data-area=panel] .panel-nav-item.active span{color:#d6efb8}
+html[data-theme=dark][data-area=panel] .panel-nav-item:hover:not(.active){background:#1b2a24;color:#e8efe9}
+
+/* ---- Alətlər zolağı (toolbar): axtarış, seçim, düymələr, filtrlər ---- */
+/* Bütün giriş sahələri: tünd fon, aydın haşiyə, açıq mətn. */
+html[data-theme=dark][data-area=panel] input[type=text],
+html[data-theme=dark][data-area=panel] input[type=search],
+html[data-theme=dark][data-area=panel] input[type=number],
+html[data-theme=dark][data-area=panel] input[type=date],
+html[data-theme=dark][data-area=panel] input[type=month],
+html[data-theme=dark][data-area=panel] input[type=email],
+html[data-theme=dark][data-area=panel] input[type=password],
+html[data-theme=dark][data-area=panel] input[type=tel],
+html[data-theme=dark][data-area=panel] input:not([type]),
+html[data-theme=dark][data-area=panel] select,
+html[data-theme=dark][data-area=panel] textarea{background:#0f1914;color:#e8efe9;border-color:#3a5045}
+html[data-theme=dark][data-area=panel] input::placeholder,
+html[data-theme=dark][data-area=panel] textarea::placeholder{color:#6f8176}
+html[data-theme=dark][data-area=panel] input:focus,
+html[data-theme=dark][data-area=panel] select:focus,
+html[data-theme=dark][data-area=panel] textarea:focus{border-color:#6bb08a;outline:none}
+
+/* Düymələr */
+html[data-theme=dark][data-area=panel] .panel-btn{background:#1d2d27;border-color:#3a5045;color:#e1ebe4}
+html[data-theme=dark][data-area=panel] .panel-btn:hover{background:#2a3d34}
+html[data-theme=dark][data-area=panel] .panel-btn-primary{background:#2f6b4d;border-color:#2f6b4d;color:#fff}
+html[data-theme=dark][data-area=panel] .panel-btn-primary:hover{background:#3a7d5b}
+
+/* Cədvəl başlığındakı filtr */
+html[data-theme=dark][data-area=panel] .col-filter-btn{color:#9fb0a6}
+html[data-theme=dark][data-area=panel] .col-filter-btn:hover{background:#2a3d34;color:#fff}
+html[data-theme=dark][data-area=panel] .col-filter-btn.active{color:#8fd1ab}
+html[data-theme=dark][data-area=panel] .col-filter-panel{background:#1d2d27;border-color:#3a5045;box-shadow:0 16px 40px rgba(0,0,0,.6)}
+html[data-theme=dark][data-area=panel] .col-filter-option{color:#d5e0d8}
+html[data-theme=dark][data-area=panel] .col-filter-option:hover{background:#2a3d34}
+html[data-theme=dark][data-area=panel] .col-filter-clear{color:#e58f8f}
+
+/* Telefonda filtr çipləri */
+html[data-theme=dark][data-area=panel] .tf-chip{background:#1d2d27;border-color:#3a5045;color:#d5e0d8}
+
+/* Səhifələmə */
+html[data-theme=dark][data-area=panel] .panel-pagination{color:#9fb0a6}
+html[data-theme=dark][data-area=panel] .panel-pagination-bordered{border-top-color:#2a3d34}
+html[data-theme=dark][data-area=panel] .tf-chip.tf-chip-clear{color:#e58f8f;border-color:#6b3d3d}
+
+/* Cədvəl tooltip-i (portal): fon var(--ink) idi, tund rejimdə açıq olub ağ yazını gizlədirdi. */
+html[data-theme=dark][data-area=panel] .hesabat-tooltip{background:#0a120e;color:#e8efe9;border:1px solid #3a5045;box-shadow:0 12px 28px rgba(0,0,0,.6)}
+html[data-theme=dark][data-area=panel] .hesabat-tooltip-title{border-bottom-color:rgba(255,255,255,.14)}
+html[data-theme=dark][data-area=panel] .hesabat-tooltip-arrow[data-direction="down"]{border-top-color:#3a5045}
+html[data-theme=dark][data-area=panel] .hesabat-tooltip-arrow[data-direction="up"]{border-bottom-color:#3a5045}

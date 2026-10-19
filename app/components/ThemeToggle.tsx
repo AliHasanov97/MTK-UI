@@ -1,5 +1,7 @@
 "use client";
 
+import "./theme-toggle.css";
+
 const STORAGE_KEY = "theme";
 
 /**

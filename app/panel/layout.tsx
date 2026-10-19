@@ -4,10 +4,21 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../lib/auth/AuthContext";
 import { PanelShell } from "./PanelShell";
+import "../panel-dark.css";
 
 export default function PanelLayout({ children }: LayoutProps<"/panel">) {
   const auth = useAuth();
   const router = useRouter();
+
+  // Tund rejim stilləri (panel-dark.css) yalnız html[data-area=panel] olanda tətbiq olunur;
+  // portallarla body-yə çıxan modallar da buna görə düzgün rənglənir.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.area = "panel";
+    return () => {
+      delete root.dataset.area;
+    };
+  }, []);
 
   useEffect(() => {
     if (auth.status === "unauthenticated") {

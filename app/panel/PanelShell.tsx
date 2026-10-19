@@ -7,6 +7,7 @@ import { Logo } from "../components/Logo";
 import { useCompanyName } from "../components/CompanyName";
 import { NAV_MODULES } from "./nav";
 import { UserMenu } from "../components/UserMenu";
+import { ThemeToggle } from "../components/ThemeToggle";
 import { useAuth } from "../lib/auth/AuthContext";
 
 export function PanelShell({ children }: { children: React.ReactNode }) {
@@ -76,7 +77,10 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
             <span />
             <span />
           </button>
-          <UserMenu />
+          <div className="panel-topbar-actions">
+            <ThemeToggle />
+            <UserMenu />
+          </div>
         </header>
         {activeModule?.tabs && (
           <nav className="panel-tabs" aria-label={`${activeModule.label} bölmələri`}>

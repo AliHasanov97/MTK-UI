@@ -87,7 +87,7 @@ function RateCard({ group, createdBy }: { group: RateGroup; createdBy: Record<st
       <h3>{rateLabel(head)}</h3>
       {group.current ? (
         <>
-          <p style={{ fontSize: 26, fontWeight: 700, color: "#2f3b32", margin: "4px 0 2px" }}>
+          <p style={{ fontSize: 26, fontWeight: 700, color: "var(--ink)", margin: "4px 0 2px" }}>
             {group.current.amount.toFixed(2)} ₼ <span style={{ fontSize: 13, fontWeight: 500 }}>/ {unit}</span>
           </p>
           <p>{group.current.effectiveFrom.slice(0, 10)} tarixindən tətbiq olunur</p>

@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         {/* Səhifə çəkilməmişdən əvvəl rejimi qurur (yanıb-sönmənin qarşısı üçün). */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t}catch(e){}`,
+            __html: `try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t;if(location.pathname.indexOf("/panel")===0)document.documentElement.dataset.area="panel"}catch(e){}`,
           }}
         />
       </head>

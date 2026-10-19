@@ -1,0 +1,8 @@
+.theme-toggle{display:grid;place-items:center;width:38px;height:38px;border:1px solid #dfe5dc;border-radius:8px;background:#fff;color:#162522;cursor:pointer;padding:0;flex-shrink:0;transition:background .2s}
+.theme-toggle:hover{background:#f5f6f2}
+.theme-sun{display:none}
+html[data-theme=dark] .theme-moon{display:none}
+html[data-theme=dark] .theme-sun{display:block}
+html[data-theme=dark] .theme-toggle{background:#16231e;border-color:#24362e;color:#e8efe9}
+html[data-theme=dark] .theme-toggle:hover{background:#1f322a}
+.panel-topbar-actions{display:flex;align-items:center;gap:10px;margin-left:auto}

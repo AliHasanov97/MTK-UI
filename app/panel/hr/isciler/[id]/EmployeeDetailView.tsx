@@ -932,7 +932,7 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
         </div>
         <div className="hr-profile-stats">
           <div className="hr-stat">
-            <strong style={{ fontSize: 32, color: "#333" }}>{totalStats.totalDays}</strong>
+            <strong style={{ fontSize: 32, color: "var(--ink)" }}>{totalStats.totalDays}</strong>
             <span>Ümumi hüquq</span>
           </div>
           <div className="hr-stat">
@@ -967,10 +967,10 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
                 <th style={{ textAlign: "center" }}>Qarabağ</th>
                 <th style={{ textAlign: "center" }}>Uşaq</th>
                 <th style={{ textAlign: "center" }}>Əlil</th>
-                <th style={{ textAlign: "center", backgroundColor: "#e3f2fd" }}>İl üzrə cəmi</th>
+                <th style={{ textAlign: "center", backgroundColor: "#e3f2fd", color: "#1f2d27" }}>İl üzrə cəmi</th>
                 <th style={{ textAlign: "center" }}>İstifadə</th>
                 <th style={{ textAlign: "center" }}>Komp.</th>
-                <th style={{ textAlign: "center", backgroundColor: "#f1f8e9" }}>Qalıq</th>
+                <th style={{ textAlign: "center", backgroundColor: "#f1f8e9", color: "#1f2d27" }}>Qalıq</th>
               </tr>
             </thead>
             <tbody>
@@ -983,7 +983,7 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
                 return (
                   <tr
                     key={idx}
-                    style={{ backgroundColor: isCurrent ? "#e8f5e9" : "transparent" }}
+                    style={{ backgroundColor: isCurrent ? "#e8f5e9" : "transparent", color: isCurrent ? "#1f2d27" : undefined }}
                   >
                     <td style={{ fontWeight: isCurrent ? 600 : 400 }}>
                       {isCurrent && <span style={{ color: "#28a745", marginRight: 6 }}>●</span>}
@@ -1004,7 +1004,7 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
                     <td style={{ textAlign: "center", color: balance.disabledChildDays > 0 ? "#2196f3" : "#999" }}>
                       {balance.disabledChildDays || "—"}
                     </td>
-                    <td style={{ textAlign: "center", fontWeight: 600, backgroundColor: "#e3f2fd" }}>
+                    <td style={{ textAlign: "center", fontWeight: 600, backgroundColor: "#e3f2fd", color: "#1f2d27" }}>
                       {balance.totalEntitledDays}
                     </td>
                     <td style={{ textAlign: "center", color: "#dc3545" }}>
