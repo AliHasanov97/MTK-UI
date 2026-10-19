@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Logo } from "../components/Logo";
 import { useCompanyName } from "../components/CompanyName";
 import { NAV_MODULES } from "./nav";
@@ -15,6 +15,16 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
   const companyName = useCompanyName();
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Telefonda menyu açılanda arxadakı məzmun sürüşdürülməsin (menyu bağlananda və ya səhifədən çıxanda bərpa olunur).
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const { overflow } = document.body.style;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = overflow;
+    };
+  }, [mobileNavOpen]);
 
   if (auth.status !== "authenticated") return null;
   const { user, logout } = auth;

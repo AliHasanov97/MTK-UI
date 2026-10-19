@@ -1123,3 +1123,15 @@ thead .tb-sticky{z-index:4;background:#f7f8f4}
 .emek-period-block{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .emek-period-note{margin:0;max-width:420px;font-size:11px;line-height:1.6;color:#6d7973;text-align:right}
 @media(max-width:640px){.emek-period-block{align-items:stretch}.emek-period-note{text-align:left;max-width:none}}
+
+/* Mobil menyu açıqkən: kənar fon toxunuşla sürüşdürülmür, menyunun öz siyahısı sürüşür */
+@media(max-width:900px){
+  .panel-backdrop{touch-action:none}
+  .panel-sidebar{overscroll-behavior:contain}
+  .panel-sidebar .panel-nav{overflow-y:auto;overscroll-behavior:contain;min-height:0}
+}
+
+/* Mobil: üst zolaq (hamburger düyməsi) sürüşdürəndə də yuxarıda qalır, menyu həmişə açıla bilir */
+@media(max-width:900px){
+  .panel-topbar{position:sticky;top:0;z-index:50}
+}
