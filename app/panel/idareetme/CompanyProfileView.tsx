@@ -31,12 +31,15 @@ export function CompanyProfileView() {
   const [name, setName] = useState("");
   const [director, setDirector] = useState("");
   const [address, setAddress] = useState("");
+  const [email, setEmail] = useState("info@mtk.az");
+  const [phone, setPhone] = useState("");
+  const [workHours, setWorkHours] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   // Profil əvvəlcə oxu rejimində açılır; "Redaktə et" ilə dəyişdirilir. Profil hələ yoxdursa birbaşa yaratma formasıdır.
   const [editing, setEditing] = useState(false);
-  const [snapshot, setSnapshot] = useState({ name: "", director: "", address: "" });
+  const [snapshot, setSnapshot] = useState({ name: "", director: "", address: "", email: "info@mtk.az", phone: "", workHours: "" });
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -45,7 +48,10 @@ export function CompanyProfileView() {
         setName(c.name);
         setDirector(c.director ?? "");
         setAddress(c.address);
-        setSnapshot({ name: c.name, director: c.director ?? "", address: c.address });
+        setEmail(c.email || "info@mtk.az");
+        setPhone(c.phone ?? "");
+        setWorkHours(c.workHours ?? "");
+        setSnapshot({ name: c.name, director: c.director ?? "", address: c.address, email: c.email || "info@mtk.az", phone: c.phone ?? "", workHours: c.workHours ?? "" });
         setNotFound(false);
         setError(null);
       })
@@ -75,11 +81,17 @@ export function CompanyProfileView() {
         name: name.trim(),
         director: director.trim() || null,
         address: address.trim(),
+        email: email.trim() || "info@mtk.az",
+        phone: phone.trim() || null,
+        workHours: workHours.trim() || null,
       });
       setName(updated.name);
       setDirector(updated.director ?? "");
       setAddress(updated.address);
-      setSnapshot({ name: updated.name, director: updated.director ?? "", address: updated.address });
+      setEmail(updated.email || "info@mtk.az");
+      setPhone(updated.phone ?? "");
+      setWorkHours(updated.workHours ?? "");
+      setSnapshot({ name: updated.name, director: updated.director ?? "", address: updated.address, email: updated.email || "info@mtk.az", phone: updated.phone ?? "", workHours: updated.workHours ?? "" });
       setNotFound(false);
       setSaved(true);
       setEditing(false);
@@ -105,6 +117,9 @@ export function CompanyProfileView() {
     setName(snapshot.name);
     setDirector(snapshot.director);
     setAddress(snapshot.address);
+    setEmail(snapshot.email);
+    setPhone(snapshot.phone);
+    setWorkHours(snapshot.workHours);
     setError(null);
     setEditing(false);
   }
@@ -179,6 +194,18 @@ export function CompanyProfileView() {
                         onChange={(e) => setAddress(e.target.value)}
                       />
                     </div>
+                    <div className="form-field">
+                      <label htmlFor="company-email">E-poçt</label>
+                      <input id="company-email" type="email" maxLength={200} value={email} onChange={(e) => setEmail(e.target.value)} />
+                    </div>
+                    <div className="form-field">
+                      <label htmlFor="company-phone">Telefon</label>
+                      <input id="company-phone" type="tel" maxLength={50} placeholder="Əlavə olunacaq" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                    </div>
+                    <div className="form-field">
+                      <label htmlFor="company-work-hours">İş saatları</label>
+                      <input id="company-work-hours" maxLength={200} placeholder="Əlavə olunacaq" value={workHours} onChange={(e) => setWorkHours(e.target.value)} />
+                    </div>
                   </>
                 ) : (
                   <dl className="company-view wide">
@@ -193,6 +220,18 @@ export function CompanyProfileView() {
                     <div>
                       <dt>Ünvan</dt>
                       <dd>{address || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>E-poçt</dt>
+                      <dd>{email || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt>Telefon</dt>
+                      <dd>{phone || "Əlavə olunacaq"}</dd>
+                    </div>
+                    <div>
+                      <dt>İş saatları</dt>
+                      <dd>{workHours || "Əlavə olunacaq"}</dd>
                     </div>
                   </dl>
                 )}

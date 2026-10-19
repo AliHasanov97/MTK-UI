@@ -518,13 +518,13 @@ export type AnnualPaymentReportResponse = {
 /* Şirkət profili                                                      */
 /* ------------------------------------------------------------------ */
 
-export type CompanyResponse = { id: string; name: string; director: string | null; address: string };
+export type CompanyResponse = { id: string; name: string; director: string | null; address: string; email: string; phone: string | null; workHours: string | null };
 
 export function getCompany(accessToken: string) {
   return apiFetch<Envelope<CompanyResponse>>("api/payments/companies", accessToken).then((e) => e.data);
 }
 
-export type UpsertCompanyRequest = { name: string; director?: string | null; address: string };
+export type UpsertCompanyRequest = { name: string; director?: string | null; address: string; email?: string; phone?: string | null; workHours?: string | null };
 
 export function upsertCompany(accessToken: string, request: UpsertCompanyRequest) {
   return apiFetch<Envelope<CompanyResponse>>("api/payments/companies", accessToken, {

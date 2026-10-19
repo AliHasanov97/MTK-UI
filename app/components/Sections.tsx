@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Arrow } from "./Arrow";
 import { LoginButton } from "./LoginButton";
 import { formatArticleDate, getLatestArticles } from "../lib/api/articles";
-import { about, compare, contact, faqs, residentFeatures, security } from "../landingContent";
+import { about, compare, faqs, residentFeatures, security } from "../landingContent";
+import { getCompanyContactInfo } from "../lib/api/company";
 
 function Heading({ eyebrow, children, lead }: { eyebrow: string; children: React.ReactNode; lead?: string }) {
   return (
@@ -155,7 +156,14 @@ export function Faq() {
   );
 }
 
-export function Contact() {
+export async function Contact() {
+  const company = await getCompanyContactInfo();
+  const contact = [
+    { icon: "✉", label: "E-poçt", value: company.email, href: "mailto:" + company.email },
+    { icon: "☎", label: "Telefon", value: company.phone ?? "Əlavə olunacaq", href: company.phone ? "tel:" + company.phone.replace(/[^\d+]/g, "") : undefined },
+    { icon: "⌂", label: "Ünvan", value: company.address, href: undefined },
+    { icon: "◷", label: "İş saatları", value: company.workHours ?? "Əlavə olunacaq", href: undefined },
+  ];
   return (
     <section className="lp-contact section-wrap" id="elaqe">
       <Heading eyebrow="ƏLAQƏ" lead="Sualınız və ya giriş tələbiniz varsa, bizimlə əlaqə saxlayın.">
