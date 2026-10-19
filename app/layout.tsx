@@ -25,7 +25,15 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const companyName = await getCompanyName();
   return (
-    <html lang="az">
+    <html lang="az" suppressHydrationWarning>
+      <head>
+        {/* Səhifə çəkilməmişdən əvvəl rejimi qurur (yanıb-sönmənin qarşısı üçün). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         <CompanyNameProvider name={companyName}>
           <AuthProvider config={keycloakConfig}>{children}</AuthProvider>

@@ -225,7 +225,7 @@ a.lp-contact-card:hover{border-color:#b8c9a4}
 @media(max-width:1100px){.desktop-nav{gap:22px;margin-left:36px}}
 @media(max-width:900px){
   .desktop-nav{display:none}
-  body{padding-bottom:calc(68px + env(safe-area-inset-bottom))}
+  .lp-root{padding-bottom:calc(68px + env(safe-area-inset-bottom))}
   .bottom-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:120;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -10px 24px -18px rgba(22,37,34,.35)}
   .bottom-nav a{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;font-size:10px;font-weight:600;color:#7d8982;border-radius:10px;transition:color .2s}
   .bottom-nav a.bottom-nav-active{color:var(--green)}
@@ -239,3 +239,69 @@ a.lp-contact-card:hover{border-color:#b8c9a4}
 .lp-news-home{padding-block:0 96px}
 .lp-news-home .lp-more{display:inline-block;margin-top:24px}
 .lp-news-home .lp-news-card{padding:22px}
+
+/* ---------- Tund rejim (yalnız ictimai səhifələr: .lp-root) ---------- */
+.lp-root{background:var(--paper);color:var(--ink);min-height:100vh}
+.header-right{display:flex;align-items:center;gap:10px}
+.theme-toggle{display:grid;place-items:center;width:42px;height:42px;border:1px solid #dfe5dc;border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;padding:0;transition:background .2s}
+.theme-toggle:hover{background:#f5f6f2}
+.theme-sun{display:none}
+html[data-theme=dark] .theme-moon{display:none}
+html[data-theme=dark] .theme-sun{display:block}
+
+html[data-theme=dark] .lp-root{
+  --ink:#e8efe9;--muted:#9fb0a6;--green:#8fc9a6;--paper:#0e1713;--line:#24362e;
+  color-scheme:dark;
+
+  .site-header{background:rgba(14,23,19,.85);border-color:var(--line)}
+  .desktop-nav{color:#a9b8af}
+  .desktop-nav a:hover,.text-link:hover{color:#fff}
+  .header-cta,.theme-toggle,.panel-user-trigger,.panel-user-dropdown{background:#16231e;border-color:var(--line);color:var(--ink)}
+  .header-cta:hover,.theme-toggle:hover{background:#1f322a}
+  .panel-user-dropdown-item{color:var(--ink)}
+  .panel-user-dropdown-item:hover{background:#1f322a}
+  .eyebrow{color:#8fa398}
+  .live-dot{box-shadow:0 0 0 4px #1d2f26}
+  .text-link{color:#b9c8be}
+  .button-dark{background:#2f6b4d;color:#fff}
+  .button-dark:hover{background:#3a7d5b}
+  .section-heading>p{color:#93a69b}
+  .feature-icon{background:#1f322a;color:#9fd3b0}
+  .feature-number{color:#6f8076}
+  .role-tags span{background:#16231e;border-color:var(--line);color:#b9c8be}
+  .site-footer{background:#0b130f;color:#8a9c91}
+  .lp-footer-links a:hover{color:#fff}
+
+  .lp-hero-copy>p,.lp-page-hero>p,.lp-residents-copy>p{color:#9fb0a6}
+  .lp-breadcrumb{color:#7f9187}
+  .lp-preview{background:#16231e;border-color:var(--line);box-shadow:0 30px 60px -30px rgba(0,0,0,.7)}
+  .lp-preview-bar{background:#1b2a24}
+  .lp-preview-bar i{background:#2f4339}
+  .lp-preview-bar span,.lp-preview-kpis small{color:#8fa398}
+  .lp-preview-kpis div{background:#0e1713}
+  .lp-preview-list li{border-color:var(--line)}
+  .lp-preview-list b,.lp-preview-list em,.lp-news-meta em{background:#1f322a;color:#9fd3b0}
+  .lp-stats,.lp-residents,.lp-tips{background:#121f1a}
+  .lp-stats span{color:#93a69b}
+
+  .lp-module,.lp-guide-card,.lp-news-card,.lp-contact-card,.lp-residents-grid article,.lp-security-grid article,
+  .lp-faq details,.lp-prose ol>li,.lp-related a,.lp-before,.lp-role-grid article{background:#16231e;border-color:var(--line)}
+  .lp-module>p,.lp-guide-card p,.lp-news-card p,.lp-residents-grid p,.lp-security-grid p,.lp-contact-card small,.lp-news-meta{color:#93a69b}
+  .lp-module li,.lp-prose,.lp-guide-aside a,.lp-role-grid p{color:#b9c8be}
+  .lp-module ul{border-color:var(--line)}
+  .lp-before li,.lp-faq details p{color:#9fb0a6}
+  .lp-faq summary,.lp-prose h2,.lp-guide-card h3,.lp-news-card h3{color:var(--ink)}
+  .lp-guide-aside a:hover{background:#16231e}
+  .lp-guide-aside a[aria-current=page]{background:#1f322a;color:#9fd3b0}
+  .lp-prose ol>li::before{background:#2f6b4d}
+
+  .lp-flow{background:#0b130f}
+  .lp-about-card,.lp-after{background:#16231e;border:1px solid var(--line)}
+  .lp-closing{border-color:var(--line)}
+
+  .lp-top{background:#2f6b4d}
+  .bottom-nav{background:rgba(14,23,19,.96);border-color:var(--line)}
+  .bottom-nav a{color:#8a9c91}
+  .bottom-nav a.bottom-nav-active{color:#9fd3b0}
+  .bottom-nav a.bottom-nav-active::after{background:#9fd3b0}
+}

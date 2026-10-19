@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { HeaderAuth } from "./HeaderAuth";
+import { ThemeToggle } from "./ThemeToggle";
 import { getCompanyName } from "../lib/api/company";
 
 const links = [
@@ -25,7 +26,10 @@ export async function Header() {
             </Link>
           ))}
         </nav>
-        <HeaderAuth />
+        <div className="header-right">
+          <ThemeToggle />
+          <HeaderAuth />
+        </div>
       </div>
     </header>
   );
