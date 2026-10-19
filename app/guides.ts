@@ -191,7 +191,7 @@ export const guides: Guide[] = [
     icon: "✳",
     title: "Müraciətlər",
     summary: "Sakin müraciətlərinin qeydiyyatı və izlənməsi.",
-    panelHref: "/panel/muraciyetler",
+    panelHref: "/panel/muracietler",
     roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER],
     sections: [
       {

@@ -47,6 +47,7 @@ import { EmployeeDocumentsTab } from "./EmployeeDocumentsTab";
 import { PaymentsTab } from "./EmployeePaymentsTab";
 import { EMPLOYEE_SECTIONS, type EmployeeSectionKey } from "../EmployeeSections";
 import { DateInput } from "../../../../components/DateInput";
+import "./vacation-balance.css";
 
 type Tab = "info" | "schedule" | "work" | "education" | "vacation" | "documents" | "payments";
 
@@ -902,7 +903,7 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
   };
 
   return (
-    <section className="hr-section">
+    <section className="hr-section vb">
       <h3 className="hr-section-title">
         Məzuniyyət balansı
         <button
@@ -914,38 +915,29 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
           {recalculating ? "Hesablanır…" : "Yenidən hesabla"}
         </button>
       </h3>
-      {recalculated && <p className="hr-note" style={{ color: "#28a745", marginBottom: 16 }}>✓ Balans yenidən hesablandı</p>}
+      {recalculated && <p className="hr-note vb-ok">✓ Balans yenidən hesablandı</p>}
 
       {/* ÜMUMİ VƏZİYYƏT */}
-      <div style={{
-        backgroundColor: "#f8f9fa",
-        borderRadius: 8,
-        padding: "16px 20px",
-        marginBottom: 24
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h4 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#666" }}>
-            Bütün illər üzrə cəmi
-          </h4>
-          <span style={{ fontSize: 13, color: "#999" }}>
-            {balances.length} iş ili
-          </span>
+      <div className="vb-summary">
+        <div className="vb-summary-head">
+          <h4 className="vb-title">Bütün illər üzrə cəmi</h4>
+          <span className="vb-sub">{balances.length} iş ili</span>
         </div>
         <div className="hr-profile-stats">
           <div className="hr-stat">
-            <strong style={{ fontSize: 32, color: "var(--ink)" }}>{totalStats.totalDays}</strong>
+            <strong className="vb-num-total">{totalStats.totalDays}</strong>
             <span>Ümumi hüquq</span>
           </div>
           <div className="hr-stat">
-            <strong style={{ fontSize: 32, color: "#dc3545" }}>{totalStats.usedDays}</strong>
+            <strong className="vb-num-used">{totalStats.usedDays}</strong>
             <span>İstifadə</span>
           </div>
           <div className="hr-stat">
-            <strong style={{ fontSize: 32, color: "#ffc107" }}>{totalStats.compensatedDays}</strong>
+            <strong className="vb-num-comp">{totalStats.compensatedDays}</strong>
             <span>Kompensasiya</span>
           </div>
           <div className="hr-stat">
-            <strong style={{ fontSize: 32, color: totalStats.remainingDays > 0 ? "#28a745" : "#999" }}>
+            <strong className={totalStats.remainingDays > 0 ? "vb-num-left" : "vb-num-zero"}>
               {totalStats.remainingDays}
             </strong>
             <span>Qalıq</span>
@@ -955,23 +947,21 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
 
       {/* HƏR İŞ İLİNİN VƏZİYYƏTİ */}
       <div>
-        <h4 style={{ margin: "0 0 12px 0", fontSize: 15, fontWeight: 600, color: "#666" }}>
-          İş illəri üzrə ({balances.length} il)
-        </h4>
+        <h4 className="vb-title">İş illəri üzrə ({balances.length} il)</h4>
         <div className="data-table-wrap">
           <table className="data-table">
             <thead>
               <tr>
                 <th>İş ili</th>
-                <th style={{ textAlign: "center" }}>Əsas</th>
-                <th style={{ textAlign: "center" }}>Staj</th>
-                <th style={{ textAlign: "center" }}>Qarabağ</th>
-                <th style={{ textAlign: "center" }}>Uşaq</th>
-                <th style={{ textAlign: "center" }}>Əlil</th>
-                <th style={{ textAlign: "center", backgroundColor: "#e3f2fd", color: "#1f2d27" }}>İl üzrə cəmi</th>
-                <th style={{ textAlign: "center" }}>İstifadə</th>
-                <th style={{ textAlign: "center" }}>Komp.</th>
-                <th style={{ textAlign: "center", backgroundColor: "#f1f8e9", color: "#1f2d27" }}>Qalıq</th>
+                <th>Əsas</th>
+                <th>Staj</th>
+                <th>Qarabağ</th>
+                <th>Uşaq</th>
+                <th>Əlil</th>
+                <th className="vb-total">İl üzrə cəmi</th>
+                <th>İstifadə</th>
+                <th>Komp.</th>
+                <th className="vb-left">Qalıq</th>
               </tr>
             </thead>
             <tbody>
@@ -980,48 +970,23 @@ function VacationBalanceTab({ accessToken, employeeId }: { accessToken: string; 
                 const start = new Date(balance.workYearStart);
                 const end = new Date(balance.workYearEnd);
                 const isCurrent = now >= start && now <= end;
+                const bonus = (days: number) => (days > 0 ? "vb-bonus" : "vb-dim");
 
                 return (
-                  <tr
-                    key={idx}
-                    style={{ backgroundColor: isCurrent ? "#e8f5e9" : "transparent", color: isCurrent ? "#1f2d27" : undefined }}
-                  >
-                    <td style={{ fontWeight: isCurrent ? 600 : 400 }}>
-                      {isCurrent && <span style={{ color: "#28a745", marginRight: 6 }}>●</span>}
+                  <tr key={idx} className={isCurrent ? "vb-current" : undefined}>
+                    <td>
+                      {isCurrent && <span className="vb-dot">●</span>}
                       {formatDate(balance.workYearStart)} – {formatDate(balance.workYearEnd)}
                     </td>
-                    <td style={{ textAlign: "center" }}>
-                      {balance.baseEntitledDays}
-                    </td>
-                    <td style={{ textAlign: "center", color: balance.experienceBonusDays > 0 ? "#2196f3" : "#999" }}>
-                      {balance.experienceBonusDays || "—"}
-                    </td>
-                    <td style={{ textAlign: "center", color: balance.karabakhWorkerDays > 0 ? "#2196f3" : "#999" }}>
-                      {balance.karabakhWorkerDays || "—"}
-                    </td>
-                    <td style={{ textAlign: "center", color: balance.childrenUnder14Days > 0 ? "#2196f3" : "#999" }}>
-                      {balance.childrenUnder14Days || "—"}
-                    </td>
-                    <td style={{ textAlign: "center", color: balance.disabledChildDays > 0 ? "#2196f3" : "#999" }}>
-                      {balance.disabledChildDays || "—"}
-                    </td>
-                    <td style={{ textAlign: "center", fontWeight: 600, backgroundColor: "#e3f2fd", color: "#1f2d27" }}>
-                      {balance.totalEntitledDays}
-                    </td>
-                    <td style={{ textAlign: "center", color: "#dc3545" }}>
-                      {balance.usedDays || "—"}
-                    </td>
-                    <td style={{ textAlign: "center", color: "#ffc107" }}>
-                      {balance.compensatedDays || "—"}
-                    </td>
-                    <td style={{
-                      textAlign: "center",
-                      fontWeight: 600,
-                      backgroundColor: "#f1f8e9",
-                      color: balance.remainingDays > 0 ? "#28a745" : "#999"
-                    }}>
-                      {balance.remainingDays}
-                    </td>
+                    <td>{balance.baseEntitledDays}</td>
+                    <td className={bonus(balance.experienceBonusDays)}>{balance.experienceBonusDays || "—"}</td>
+                    <td className={bonus(balance.karabakhWorkerDays)}>{balance.karabakhWorkerDays || "—"}</td>
+                    <td className={bonus(balance.childrenUnder14Days)}>{balance.childrenUnder14Days || "—"}</td>
+                    <td className={bonus(balance.disabledChildDays)}>{balance.disabledChildDays || "—"}</td>
+                    <td className="vb-total">{balance.totalEntitledDays}</td>
+                    <td className="vb-used">{balance.usedDays || "—"}</td>
+                    <td className="vb-comp">{balance.compensatedDays || "—"}</td>
+                    <td className={`vb-left ${balance.remainingDays > 0 ? "vb-has" : "vb-zero"}`}>{balance.remainingDays}</td>
                   </tr>
                 );
               })}

@@ -96,7 +96,7 @@ export const NAV_MODULES: NavModule[] = [
     ],
   },
   {
-    href: "/panel/muraciyetler",
+    href: "/panel/muracietler",
     label: "Müraciətlər",
     icon: "✳",
     roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER],
@@ -139,6 +139,7 @@ export const NAV_MODULES: NavModule[] = [
     roles: [ROLES.ADMIN],
     tabs: [
       { href: "/panel/idareetme", label: "Sistem idarəetməsi" },
+      { href: "/panel/idareetme/muracietler", label: "Müraciətlər" },
       { href: "/panel/audit", label: "Audit qeydləri" },
     ],
   },

@@ -1,16 +1,6 @@
-import { RequireRole } from "../../components/auth/RequireRole";
-import { ROLES } from "../../lib/auth/roleConstants";
+import { redirect } from "next/navigation";
 
-export default function MuraciyetlerPage() {
-  return (
-    <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.OWNER]}>
-      <div className="panel-page">
-        <h1>Müraciətlər</h1>
-        <p className="panel-page-lead">
-          Tezliklə burada sakinlərin müraciətləri və gündəlik məsələlər
-          olacaq.
-        </p>
-      </div>
-    </RequireRole>
-  );
+// Köhnə (səhv yazılmış) ünvan: müraciətlər modulu /panel/muracietler-dədir.
+export default function OldAppealsRoute() {
+  redirect("/panel/muracietler");
 }

@@ -62,10 +62,14 @@ function fromHsl({ h, s, l }) {
 const fmt = ([r, g, b], a) =>
   a < 1 ? `rgba(${r},${g},${b},${+a.toFixed(3)})` : "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
 
-function invert(color, isBg) {
+// Tünd fonda mətn rəngi bu parlaqlıqdan solğun olmasın (kiçik boz etiketlər oxunsun deyə).
+const MIN_TEXT_L = 0.66;
+
+function invert(color, isBg, isText = false) {
   const hsl = toHsl(color);
   if (isBg && hsl.l >= 0.985) return fmt(CARD, color.a);
-  const l = (1 - hsl.l) * 0.88 + 0.07;
+  let l = (1 - hsl.l) * 0.88 + 0.07;
+  if (isText) l = Math.max(l, MIN_TEXT_L);
   // Az doymuş (boz-yaşılımtıl) rənglər tünd fonun yaşıl çalarına çəkilir: əks halda
   // sarımtıl açıq tonlar tərsinə çevriləndə çirkli zeytun/qəhvəyi görünür.
   if (hsl.s < 0.3) return fmt(fromHsl({ h: 0.43, s: Math.min(hsl.s, 0.2), l }), color.a);
@@ -80,7 +84,7 @@ function transformValue(prop, value) {
     const { l } = toHsl(c);
     if (c.a < 1 && l < 0.15) return m; // kölgə / qara üst-pərdə
     if (isText && l > 0.9) return m; // ağ mətn tünd fonda qalır
-    return invert(c, isBg);
+    return invert(c, isBg, isText);
   });
 }
 

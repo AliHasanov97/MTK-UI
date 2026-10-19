@@ -1,0 +1,39 @@
+/* Məzuniyyət balansı (EmployeeDetailView → VacationBalanceSection) */
+.vb{
+  --vb-surface:#f8f9fa;--vb-muted:#666;--vb-dim:#999;
+  --vb-red:#dc3545;--vb-amber:#d99a00;--vb-green:#28a745;--vb-blue:#2196f3;
+  --vb-total-bg:#e3f2fd;--vb-left-bg:#f1f8e9;--vb-current-bg:#e8f5e9;--vb-on-tint:#1f2d27;
+}
+html[data-theme=dark][data-area=panel] .vb{
+  --vb-surface:#1b2a24;--vb-muted:#9fb0a6;--vb-dim:#6f8176;
+  --vb-red:#ff7d89;--vb-amber:#ffd24d;--vb-green:#4cd081;--vb-blue:#6bb6ff;
+  --vb-total-bg:#17303d;--vb-left-bg:#1d3a2b;--vb-current-bg:#1a3326;--vb-on-tint:#e8efe9;
+}
+
+.vb-ok{color:var(--vb-green);margin-bottom:16px}
+.vb-summary{background:var(--vb-surface);border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin-bottom:24px}
+.vb-summary-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.vb-title{margin:0 0 12px;font-size:15px;font-weight:600;color:var(--vb-muted)}
+.vb-summary-head .vb-title{margin:0}
+.vb-sub{font-size:13px;color:var(--vb-dim)}
+.vb .hr-stat strong{font-size:32px}
+.vb-num-total{color:var(--ink)}
+.vb-num-used{color:var(--vb-red)}
+.vb-num-comp{color:var(--vb-amber)}
+.vb-num-left{color:var(--vb-green)}
+.vb-num-zero{color:var(--vb-dim)}
+
+.vb table th,.vb table td{text-align:center}
+.vb table th:first-child,.vb table td:first-child{text-align:left}
+.vb th.vb-total,.vb td.vb-total{background:var(--vb-total-bg);color:var(--vb-on-tint)}
+.vb th.vb-left,.vb td.vb-left{background:var(--vb-left-bg);color:var(--vb-on-tint)}
+.vb td.vb-total,.vb td.vb-left{font-weight:600}
+.vb tr.vb-current>td:not(.vb-total):not(.vb-left){background:var(--vb-current-bg)}
+.vb tr.vb-current>td:first-child{font-weight:600}
+.vb-dot{color:var(--vb-green);margin-right:6px}
+.vb .vb-bonus{color:var(--vb-blue)}
+.vb .vb-dim{color:var(--vb-dim)}
+.vb .vb-used{color:var(--vb-red)}
+.vb .vb-comp{color:var(--vb-amber)}
+.vb td.vb-left.vb-has{color:var(--vb-green)}
+.vb td.vb-left.vb-zero{color:var(--vb-dim)}

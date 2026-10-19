@@ -1,0 +1,81 @@
+/* Müraciətlər */
+.ap-chip{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.2px;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.ap-status-1{color:#25608f;background:#e6f1fa}      /* Təqdim edilib */
+.ap-status-2{color:#8a6d1f;background:#fbf0d9}      /* İşlənir */
+.ap-status-3{color:#3f7a56;background:#e6f4ea}      /* Həll edilib */
+.ap-status-4{color:#5c6963;background:#eceeea}      /* Bağlanıb */
+.ap-status-5{color:#a24a4a;background:#fbe9e9}      /* Rədd edilib */
+.ap-prio-1{color:#5c6963;background:#eceeea}
+.ap-prio-2{color:#8a6d1f;background:#fbf0d9}
+.ap-prio-3{color:#a24a4a;background:#fbe9e9}
+
+.ap-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.ap-head h1{margin:0}
+.ap-head .panel-page-lead{margin:6px 0 0}
+
+.ap-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.ap-tab{font:inherit;font-size:12px;font-weight:700;padding:7px 13px;border:1px solid var(--line);border-radius:99px;background:#fff;color:#5c6963;cursor:pointer}
+.ap-tab:hover{background:#f2f4ee}
+.ap-tab.active{background:var(--green);border-color:var(--green);color:#fff}
+
+.ap-row{cursor:pointer}
+.ap-title{font-weight:650;color:var(--ink)}
+.ap-sub{display:block;font-size:11px;color:#8a938c;font-weight:400;margin-top:2px}
+.ap-empty{text-align:center;padding:48px 20px;color:#78837c}
+.ap-empty strong{display:block;font-size:15px;color:var(--ink);margin-bottom:6px}
+.ap-empty .panel-btn{margin-top:16px}
+
+/* Detal */
+.ap-back{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:650;color:#5c6963;margin-bottom:14px}
+.ap-back:hover{color:var(--green)}
+.ap-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+.ap-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+.ap-card+.ap-card{margin-top:16px}
+.ap-card h2{margin:0 0 14px;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--green)}
+.ap-titlebar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.ap-titlebar h1{margin:0;font-size:22px;letter-spacing:-.5px}
+.ap-desc{margin:0;white-space:pre-wrap;line-height:1.75;font-size:14px;color:#3c463f}
+.ap-meta{display:grid;gap:14px;margin:0}
+.ap-meta div{display:flex;flex-direction:column;gap:3px}
+.ap-meta dt{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:#8a938c}
+.ap-meta dd{margin:0;font-size:13px;font-weight:600;color:var(--ink);word-break:break-word}
+
+.ap-thread{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.ap-msg{max-width:88%;padding:11px 14px;border-radius:12px;background:#f2f4ee;font-size:13px;line-height:1.6}
+.ap-msg.mine{align-self:flex-end;background:#e4efe3}
+.ap-msg-head{display:flex;gap:10px;align-items:baseline;margin-bottom:3px;font-size:11px;color:#78837c}
+.ap-msg-head b{color:var(--ink);font-size:12px}
+.ap-msg p{margin:0;white-space:pre-wrap;word-break:break-word}
+.ap-none{margin:0 0 14px;font-size:13px;color:#8a938c}
+.ap-compose{display:grid;gap:10px}
+.ap-compose textarea{font:inherit;font-size:13px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;resize:vertical;min-height:84px}
+.ap-compose .form-actions{margin:0}
+.ap-actions .form-field{margin-bottom:12px}
+.ap-actions .panel-btn{width:100%}
+.ap-hint{font-size:12px;color:#78837c;margin:0 0 12px;line-height:1.6}
+.ap-ok{font-size:12px;font-weight:700;color:#3f7a56;margin:8px 0 0}
+
+@media(max-width:900px){
+  .ap-layout{grid-template-columns:1fr}
+  .ap-msg{max-width:100%}
+}
+
+/* Tund rejim */
+html[data-theme=dark] .ap-status-1{color:#8fc4f0;background:#14283a}
+html[data-theme=dark] .ap-status-2{color:#f0cf7a;background:#33290f}
+html[data-theme=dark] .ap-status-3{color:#8fd1ab;background:#143024}
+html[data-theme=dark] .ap-status-4,html[data-theme=dark] .ap-prio-1{color:#aab8b0;background:#24312b}
+html[data-theme=dark] .ap-status-5,html[data-theme=dark] .ap-prio-3{color:#f0a0a0;background:#3a1b1b}
+html[data-theme=dark] .ap-prio-2{color:#f0cf7a;background:#33290f}
+html[data-theme=dark] .ap-tab{background:#1d2d27;border-color:#3a5045;color:#c9d6ce}
+html[data-theme=dark] .ap-tab:hover{background:#2a3d34}
+html[data-theme=dark] .ap-tab.active{background:#2f6b4d;border-color:#2f6b4d;color:#fff}
+html[data-theme=dark] .ap-sub,html[data-theme=dark] .ap-meta dt,html[data-theme=dark] .ap-none{color:#8fa398}
+html[data-theme=dark] .ap-card{background:#16231e;border-color:#24362e}
+html[data-theme=dark] .ap-desc{color:#c9d6ce}
+html[data-theme=dark] .ap-msg{background:#1f2f28}
+html[data-theme=dark] .ap-msg.mine{background:#1d3a2b}
+html[data-theme=dark] .ap-msg-head{color:#8fa398}
+html[data-theme=dark] .ap-back{color:#b9c8be}
+html[data-theme=dark] .ap-compose textarea{background:#0f1914;border-color:#3a5045;color:#e8efe9}
+html[data-theme=dark] .ap-empty,html[data-theme=dark] .ap-hint{color:#93a69b}
