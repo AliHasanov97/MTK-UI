@@ -548,6 +548,10 @@ export function exportAnnualPaymentReport(accessToken: string, year: number, pro
   if (propertyType) params.set("propertyType", String(propertyTypeToOrdinal(propertyType)));
   return apiFetchFile(`api/payments/charges/reports/annual/export?${params.toString()}`, accessToken);
 }
+export function exportMonthlyReportPdf(accessToken: string, year: number, month: number) {
+  const params = new URLSearchParams({ year: String(year), month: String(month) });
+  return apiFetchFile(`api/reports/monthly/export-pdf?${params.toString()}`, accessToken);
+}
 
 /* ------------------------------------------------------------------ */
 /* Maaş Ödənişləri (PayrollRun/Payslip - Aylıq toplu hesablama)      */

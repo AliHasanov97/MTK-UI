@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../lib/auth/AuthContext";
-import { ApiError } from "../../lib/api/client";
+import { ApiError, saveBlobAsFile } from "../../lib/api/client";
 import { SortDirection } from "../../lib/api/buildings";
 import {
+  exportMonthlyReportPdf,
   getCompanyBalance,
   searchTransactions,
   transactionDirectionFromOrdinal,
@@ -50,6 +51,7 @@ export function UmumiHesabatView() {
   const [transactions, setTransactions] = useState<TransactionResponse[] | null>(null);
   const [companyBalance, setCompanyBalance] = useState<CompanyBalanceResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [year, setYear] = useState(CURRENT_YEAR);
   const [month, setMonth] = useState(CURRENT_MONTH);
 
@@ -144,6 +146,19 @@ export function UmumiHesabatView() {
   }
 
   const periodValue = `${year}-${String(month).padStart(2, "0")}`;
+  async function handleExportPdf() {
+    if (auth.status !== "authenticated") return;
+    setExporting(true);
+    setError(null);
+    try {
+      const { blob, fileName } = await exportMonthlyReportPdf(auth.accessToken, year, month);
+      saveBlobAsFile(blob, fileName);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <>
@@ -188,6 +203,9 @@ export function UmumiHesabatView() {
           )}
           <button type="button" className="panel-btn panel-btn-primary" onClick={() => window.print()}>
             ⎙ Çap et
+          </button>
+          <button type="button" className="panel-btn panel-btn-primary" onClick={handleExportPdf} disabled={loading || exporting}>
+            {exporting ? "PDF hazırlanır…" : "PDF endir"}
           </button>
         </div>
       </div>
