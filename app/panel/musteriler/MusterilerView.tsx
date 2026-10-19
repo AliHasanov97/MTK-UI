@@ -36,6 +36,7 @@ import { dateOnlyToUtcIso } from "../../lib/api/payments";
 import { Modal } from "../Modal";
 import { SearchableSelect } from "../SearchableSelect";
 import { DateInput } from "../../components/DateInput";
+import { useConfirm } from "../../components/ConfirmDialog";
 
 const PAGE_SIZE = 10;
 const CHARGE_FETCH_SIZE = 500;
@@ -54,6 +55,7 @@ function errorMessage(err: unknown) {
 
 function CustomersSegment() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const canManage = useCanDoEverything();
   const [customers, setCustomers] = useState<CustomerListResult[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -129,7 +131,7 @@ function CustomersSegment() {
   }
 
   async function handleDelete(customer: CustomerListResult) {
-    if (!window.confirm(`${customer.name} silinsin? Bu əməliyyat geri qaytarıla bilməz.`)) return;
+    if (!(await confirm(`${customer.name} silinsin? Bu əməliyyat geri qaytarıla bilməz.`))) return;
 
     setWorkingId(customer.id);
     setError(null);
@@ -479,6 +481,7 @@ export function MusterilerView() {
 
 function DebtsSegment() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const canManage = useCanDoEverything();
   const canMakePayments = useCanPay();
   const [charges, setCharges] = useState<CustomerChargeResponse[] | null>(null);
@@ -543,7 +546,7 @@ function DebtsSegment() {
   const totalPaid = (charges ?? []).reduce((sum, c) => sum + c.paidAmount, 0);
 
   async function handleCancel(charge: CustomerChargeResponse) {
-    if (!window.confirm(`"${charge.description}" borcu ləğv edilsin?`)) return;
+    if (!(await confirm(`"${charge.description}" borcu ləğv edilsin?`))) return;
     setWorkingId(charge.id);
     setError(null);
     try {

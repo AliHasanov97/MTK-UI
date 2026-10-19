@@ -1,0 +1,23 @@
+/* Saytın ümumi təsdiq pəncərəsi (ConfirmDialog.tsx) */
+.cd-backdrop{z-index:900;align-items:center}
+.cd-card{max-width:420px;text-align:center;padding:28px 26px 22px;animation:cd-in .16s ease-out}
+@keyframes cd-in{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.cd-icon{width:52px;height:52px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;font-size:26px;font-weight:800}
+.cd-icon-danger{background:#fbe9e9;color:#b34747}
+.cd-icon-primary{background:#e6f1e0;color:#3f7a56}
+.cd-card h2{margin:0 0 8px;font-size:18px;letter-spacing:-.4px}
+.cd-message{margin:0;font-size:14px;line-height:1.7;color:#5c6963;word-break:break-word}
+.cd-actions{display:flex;gap:10px;margin-top:22px}
+.cd-actions .panel-btn{flex:1}
+.cd-danger{background:#b34747;border-color:#b34747;color:#fff}
+.cd-danger:hover{background:#963a3a!important}
+
+html[data-theme=dark] .cd-icon-danger{background:#3a1b1b;color:#f0a0a0}
+html[data-theme=dark] .cd-icon-primary{background:#143024;color:#8fd1ab}
+html[data-theme=dark] .cd-message{color:#9fb0a6}
+html[data-theme=dark] .cd-danger{background:#a24a4a;border-color:#a24a4a;color:#fff}
+html[data-theme=dark] .cd-danger:hover{background:#b85a5a!important}
+
+@media(max-width:480px){
+  .cd-actions{flex-direction:column-reverse}
+}

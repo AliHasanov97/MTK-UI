@@ -15,6 +15,7 @@ import {
 } from "../../../lib/api/purchases-client";
 import { ApiError } from "../../../lib/api/client";
 import { CreatePurchaseModal } from "./CreatePurchaseModal";
+import { useConfirm } from "../../../components/ConfirmDialog";
 
 const PAGE_SIZE = 12;
 
@@ -28,6 +29,7 @@ function errorMessage(err: unknown) {
 
 export function SalinmalarView() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const canManage = useCanDoEverything();
   const router = useRouter();
   const [purchases, setPurchases] = useState<PurchaseResponse[] | null>(null);
@@ -82,7 +84,7 @@ export function SalinmalarView() {
   const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   async function handleCancel(purchase: PurchaseResponse) {
-    if (!window.confirm("Hazırlanan satınalma ləğv edilsin?")) return;
+    if (!(await confirm("Hazırlanan satınalma ləğv edilsin?"))) return;
     setCancellingId(purchase.id);
     setError(null);
     try {

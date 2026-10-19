@@ -31,6 +31,7 @@ import { VENDOR_CHARGE_STATUS_LABELS, vendorChargeStatusFromOrdinal } from "../.
 import type { PaymentResponse } from "../../../lib/api/payments";
 import { PaymentsTable, lastPaymentDate, useCreatedBy } from "../../binalar/finance";
 import { CreateChargeModal, ReceivePaymentModal } from "../MusterilerView";
+import { useConfirm } from "../../../components/ConfirmDialog";
 
 const money = new Intl.NumberFormat("az-AZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const formatMoney = (n: number) => `${money.format(n)} ₼`;
@@ -59,6 +60,7 @@ function initials(name: string) {
 
 export function CustomerDetailView({ customerId }: { customerId: string }) {
   const auth = useAuth();
+  const confirm = useConfirm();
   const canMakePayments = useCanPay();
   const canManage = useCanDoEverything();
   const [customer, setCustomer] = useState<CustomerResponse | null>(null);
@@ -153,7 +155,7 @@ export function CustomerDetailView({ customerId }: { customerId: string }) {
   const lastPayment = lastPaymentDate(payments);
 
   async function handleCancel(charge: CustomerChargeResponse) {
-    if (!window.confirm(`"${charge.description}" borcu ləğv edilsin?`)) return;
+    if (!(await confirm(`"${charge.description}" borcu ləğv edilsin?`))) return;
     setWorkingId(charge.id);
     setError(null);
     try {

@@ -1,0 +1,41 @@
+/* BBCode render (.bb) və redaktor (.bbe) */
+.bb{white-space:pre-line;line-height:1.85;word-break:break-word}
+.bb h2,.bb h3{white-space:normal;line-height:1.3;letter-spacing:-.4px;margin:22px 0 10px}
+.bb h2{font-size:21px}
+.bb h3{font-size:17px}
+.bb blockquote{white-space:pre-line;margin:16px 0;padding:10px 16px;border-left:3px solid #8eaf67;background:rgba(142,175,103,.12);border-radius:0 8px 8px 0}
+.bb ul,.bb ol{white-space:normal;margin:12px 0;padding-left:24px;display:grid;gap:6px}
+.bb ul{list-style:disc}
+.bb ol{list-style:decimal}
+.bb li{white-space:pre-line}
+.bb hr{border:0;border-top:1px solid rgba(127,140,132,.35);margin:20px 0}
+.bb img{display:block;max-width:100%;height:auto;border-radius:10px;margin:14px 0}
+.bb a{color:#345c4a;text-decoration:underline;text-underline-offset:2px}
+.bb .bb-center{text-align:center}
+html[data-theme=dark] .bb a{color:#8fd1ab}
+html[data-theme=dark] .bb blockquote{border-left-color:#4f9f77;background:rgba(79,159,119,.14)}
+
+.bbe{border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+.bbe-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:8px 10px;border-bottom:1px solid var(--line);background:#f6f8f3}
+.bbe-tabs{display:flex;gap:2px}
+.bbe-tabs button{font:inherit;font-size:12px;font-weight:700;padding:6px 12px;border:0;border-radius:7px;background:none;color:#5c6963;cursor:pointer}
+.bbe-tabs button.active{background:#fff;color:#162522;box-shadow:0 0 0 1px var(--line)}
+.bbe-tools{display:flex;flex-wrap:wrap;gap:4px}
+.bbe-tools button{font:inherit;font-size:12px;min-width:30px;padding:5px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;color:#3c463f;cursor:pointer}
+.bbe-tools button:hover{background:#eef1e9;border-color:#c7cfc3}
+.bbe-text{display:block;width:100%;border:0;padding:12px 14px;font:inherit;font-size:13px;line-height:1.7;resize:vertical;min-height:200px;background:#fff;color:inherit;outline:none}
+.bbe-preview{padding:14px 16px;min-height:200px;max-height:480px;overflow:auto;font-size:14px;color:#3c463f}
+.bbe-empty{margin:0;color:#8a938c;font-size:13px}
+
+html[data-theme=dark] .bbe{background:#0f1914;border-color:#3a5045}
+html[data-theme=dark] .bbe-bar{background:#1d2d27;border-color:#3a5045}
+html[data-theme=dark] .bbe-tabs button{color:#b9c8be}
+html[data-theme=dark] .bbe-tabs button.active{background:#2a3d34;color:#fff;box-shadow:0 0 0 1px #3a5045}
+html[data-theme=dark] .bbe-tools button{background:#26382f;border-color:#3a5045;color:#e1ebe4}
+html[data-theme=dark] .bbe-tools button:hover{background:#31473b}
+html[data-theme=dark] .bbe-text{background:#0f1914;color:#e8efe9}
+html[data-theme=dark] .bbe-preview{color:#c9d6ce}
+html[data-theme=dark] .bbe-empty{color:#8fa398}
+
+/* .form-field textarea qaydaları redaktorun öz sahəsinə təsir etməsin */
+.form-field .bbe-text{border:0;border-radius:0;padding:12px 14px}

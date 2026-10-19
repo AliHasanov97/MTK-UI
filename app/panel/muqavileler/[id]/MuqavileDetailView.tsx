@@ -46,6 +46,7 @@ import { useCreatedBy, useCreatedByMap } from "../../binalar/finance";
 import { Modal } from "../../Modal";
 import { SignedDocumentsPanel } from "../../SignedDocuments";
 import { DateInput } from "../../../components/DateInput";
+import { useConfirm } from "../../../components/ConfirmDialog";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -59,6 +60,7 @@ const dateOnly = (iso: string) => iso.slice(0, 10);
 
 export function MuqavileDetailView({ contractId }: { contractId: string }) {
   const auth = useAuth();
+  const confirm = useConfirm();
   const canManage = useCanDoEverything();
   const canMakePayments = useCanPay();
   const router = useRouter();
@@ -215,7 +217,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
               className="panel-btn panel-btn-danger"
               disabled={busy}
               onClick={async () => {
-                if (!window.confirm(`${contract.number} müqaviləsi silinsin?`)) return;
+                if (!(await confirm(`${contract.number} müqaviləsi silinsin?`))) return;
                 setBusy(true);
                 setError(null);
                 try {
@@ -344,8 +346,8 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                                 type="button"
                                 className="panel-btn panel-btn-sm panel-btn-danger"
                                 disabled={busy}
-                                onClick={() => {
-                                  if (!window.confirm(`"${s.name}" xidməti silinsin?`)) return;
+                                onClick={async () => {
+                                  if (!(await confirm(`"${s.name}" xidməti silinsin?`))) return;
                                   void run(() => removeContractService(accessToken, contract.id, s.id));
                                 }}
                               >
@@ -454,8 +456,8 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
                               type="button"
                               className="panel-btn panel-btn-sm panel-btn-danger"
                               disabled={busy}
-                              onClick={() => {
-                                if (!window.confirm(`"${c.description}" borcu ləğv edilsin?`)) return;
+                              onClick={async () => {
+                                if (!(await confirm(`"${c.description}" borcu ləğv edilsin?`))) return;
                                 void run(() =>
                                   contract.customerId
                                     ? cancelCustomerCharge(accessToken, c.id)

@@ -31,11 +31,13 @@ import {
 } from "../../../lib/api/purchases-client";
 import { formatDateTime } from "../../../lib/format";
 import { errorMessage, formatMoney, formatQuantity } from "../shared";
+import { useConfirm } from "../../../components/ConfirmDialog";
 
 const PAGE_SIZE = 10;
 
 export function MateriallarView() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const canManage = useCanDoEverything();
   const [items, setItems] = useState<NomenclatureListItem[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -98,7 +100,7 @@ export function MateriallarView() {
   }
 
   async function handleDelete(item: NomenclatureListItem) {
-    if (!window.confirm(`${item.name} silinsin?`)) return;
+    if (!(await confirm(`${item.name} silinsin?`))) return;
     setWorkingId(item.id);
     setError(null);
     try {

@@ -20,6 +20,7 @@ import { Pagination } from "../Pagination";
 import { PAGE_SIZE, formatDate, fullName, hrErrorMessage } from "../shared";
 import { emptyEmployeeForm } from "./EmployeeForm";
 import { EmployeeFormFields } from "./EmployeeSections";
+import { useConfirm } from "../../../components/ConfirmDialog";
 
 // Filtr siyahılarını doldurmaq üçün bir dəfə süzgəcsiz yüklənən işçi sayı (cədvəl öz səhifələnmiş sorğusunu işlədir)
 const FILTER_SOURCE_SIZE = 1000;
@@ -44,6 +45,7 @@ function tenure(startIso: string): string {
 
 export function IscilerView() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const [items, setItems] = useState<EmployeeListItem[] | null>(null);
   const [source, setSource] = useState<EmployeeListItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -147,7 +149,7 @@ export function IscilerView() {
   }
 
   async function handleDelete(employee: EmployeeListItem) {
-    if (!window.confirm(`${fullName(employee)} silinsin?`)) return;
+    if (!(await confirm(`${fullName(employee)} silinsin?`))) return;
     setWorkingId(employee.id);
     setError(null);
     try {

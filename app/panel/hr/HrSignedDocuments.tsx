@@ -11,6 +11,7 @@ import {
 } from "../../lib/api/hr";
 import { formatDateTime } from "../../lib/format";
 import { hrErrorMessage } from "./shared";
+import { useConfirm } from "../../components/ConfirmDialog";
 
 const MAX_BYTES = 20 * 1024 * 1024;
 
@@ -44,6 +45,7 @@ export function HrSignedDocuments({
   /** Yüklənmiş imzalı sənəd sayı dəyişəndə (sənəd generasiyasını gizlətmək üçün) */
   onCountChange?: (count: number) => void;
 }) {
+  const confirm = useConfirm();
   const [files, setFiles] = useState<HrFileAttachment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -182,8 +184,8 @@ export function HrSignedDocuments({
                   type="button"
                   className="panel-btn panel-btn-sm panel-btn-danger"
                   disabled={busyId === f.id}
-                  onClick={() => {
-                    if (!window.confirm(`“${f.fileName}” silinsin?`)) return;
+                  onClick={async () => {
+                    if (!(await confirm(`“${f.fileName}” silinsin?`))) return;
                     run(f.id, async () => {
                       await deleteAttachment(accessToken, f.id);
                       await refresh();

@@ -12,6 +12,7 @@ import {
   type FileAttachmentTarget,
 } from "../lib/api/fileAttachments";
 import { formatDateTime } from "../lib/format";
+import { useConfirm } from "../components/ConfirmDialog";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -51,6 +52,7 @@ export function SignedDocumentsPanel({
   canUpload: boolean;
   onAttachmentsChange?: (attachments: FileAttachmentResponse[]) => void;
 }) {
+  const confirm = useConfirm();
   const [attachments, setAttachments] = useState<FileAttachmentResponse[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -138,7 +140,7 @@ export function SignedDocumentsPanel({
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Bu sənədi silmək istədiyinizə əminsiniz?")) return;
+    if (!(await confirm("Bu sənədi silmək istədiyinizə əminsiniz?"))) return;
 
     setBusyId(id);
     setError(null);

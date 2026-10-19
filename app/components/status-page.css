@@ -1,0 +1,41 @@
+/* 404 / 500 səhifələri */
+.sp{position:relative;min-height:100vh;display:grid;place-items:center;padding:32px 18px;background:var(--paper);color:var(--ink);overflow:hidden}
+.sp-glow{position:absolute;width:min(760px,90vw);height:420px;left:50%;top:12%;transform:translateX(-50%);background:radial-gradient(ellipse,#e3ecd8 0%,transparent 68%);pointer-events:none}
+.sp-card{position:relative;z-index:1;width:min(560px,100%);text-align:center;display:flex;flex-direction:column;align-items:center}
+.sp-brand{margin-bottom:28px}
+.sp-code{font-size:clamp(96px,22vw,168px);line-height:1;font-weight:800;letter-spacing:-8px;background:linear-gradient(135deg,#345c4a 0%,#8eaf67 100%);-webkit-background-clip:text;background-clip:text;color:transparent;user-select:none}
+.sp h1{margin:6px 0 10px;font-size:clamp(22px,4vw,30px);letter-spacing:-1px;font-weight:650}
+.sp-text{margin:0;max-width:440px;font-size:15px;line-height:1.75;color:#6b7771}
+.sp-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:28px}
+.sp-btn{display:inline-flex;align-items:center;justify-content:center;font:inherit;font-size:14px;font-weight:700;padding:12px 20px;border-radius:9px;border:1px solid #d6ddd0;background:#fff;color:var(--ink);cursor:pointer;text-decoration:none;transition:background .2s,transform .2s}
+.sp-btn:hover{background:#f2f4ee;transform:translateY(-1px)}
+.sp-btn-primary{background:var(--green);border-color:var(--green);color:#fff}
+.sp-btn-primary:hover{background:#274939}
+.sp-digest{margin:22px 0 0;font-size:12px;color:#8a938c}
+.sp-digest code{padding:2px 7px;border-radius:6px;background:#eceeea;font-size:12px}
+.sp-links{margin-top:34px;padding-top:22px;border-top:1px solid var(--line);width:100%}
+.sp-links small{display:block;margin-bottom:10px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#8a938c}
+.sp-links div{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 18px;font-size:14px;font-weight:600}
+.sp-links a{color:var(--green)}
+.sp-links a:hover{text-decoration:underline}
+
+html[data-theme=dark] .sp{background:#0e1713;color:#e8efe9}
+html[data-theme=dark] .sp-glow{background:radial-gradient(ellipse,#17301f 0%,transparent 68%)}
+html[data-theme=dark] .sp-code{background:linear-gradient(135deg,#6bb08a 0%,#c9e3a1 100%);-webkit-background-clip:text;background-clip:text}
+html[data-theme=dark] .sp-text{color:#9fb0a6}
+html[data-theme=dark] .sp-btn{background:#1d2d27;border-color:#3a5045;color:#e8efe9}
+html[data-theme=dark] .sp-btn:hover{background:#2a3d34}
+html[data-theme=dark] .sp-btn-primary{background:#2f6b4d;border-color:#2f6b4d;color:#fff}
+html[data-theme=dark] .sp-btn-primary:hover{background:#3a7d5b}
+html[data-theme=dark] .sp-digest{color:#8fa398}
+html[data-theme=dark] .sp-digest code{background:#24312b;color:#c9d6ce}
+html[data-theme=dark] .sp-links{border-color:#24362e}
+html[data-theme=dark] .sp-links small{color:#8fa398}
+html[data-theme=dark] .sp-links a{color:#8fd1ab}
+html[data-theme=dark] .sp .brand{color:#e8efe9}
+
+@media(max-width:640px){
+  .sp{align-items:start;padding-top:48px}
+  .sp-code{letter-spacing:-4px}
+  .sp-actions{flex-direction:column;align-self:stretch}
+}

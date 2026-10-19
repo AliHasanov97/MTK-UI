@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Arrow } from "./Arrow";
 import { LoginButton } from "./LoginButton";
-import { formatNewsDate, news } from "../news";
+import { formatArticleDate, getLatestArticles } from "../lib/api/articles";
 import { about, compare, contact, faqs, residentFeatures, security } from "../landingContent";
 
 function Heading({ eyebrow, children, lead }: { eyebrow: string; children: React.ReactNode; lead?: string }) {
@@ -109,21 +109,24 @@ export function About() {
 }
 
 /** Ana səhifə üçün: ən son 3 xəbər və hamısına keçid. */
-export function LatestNews() {
+export async function LatestNews() {
+  const articles = await getLatestArticles(3);
+  // Xəbər yoxdursa (və ya backend əlçatmazdırsa) bölmə ana səhifədə göstərilmir.
+  if (articles.length === 0) return null;
+
   return (
     <section className="lp-news lp-news-home section-wrap" id="xeberler">
-      <Heading eyebrow="XƏBƏRLƏR" lead="Sistemdəki yeniliklər və kooperativ elanları.">
+      <Heading eyebrow="XƏBƏRLƏR" lead="Kooperativin son xəbərləri və elanları.">
         Son <span>xəbərlər.</span>
       </Heading>
       <div className="lp-news-grid">
-        {news.slice(0, 3).map((n) => (
-          <Link key={n.slug} href={`/xeberler/${n.slug}`} className="lp-news-card">
+        {articles.map((a) => (
+          <Link key={a.id} href={`/xeberler/${a.id}`} className="lp-news-card">
             <div className="lp-news-meta">
-              <em>{n.category}</em>
-              <time dateTime={n.date}>{formatNewsDate(n.date)}</time>
+              <time dateTime={a.publishedAt ?? a.createdAt}>{formatArticleDate(a.publishedAt ?? a.createdAt)}</time>
             </div>
-            <h3>{n.title}</h3>
-            <p>{n.excerpt}</p>
+            <h3>{a.title}</h3>
+            <p>{a.summary}</p>
           </Link>
         ))}
       </div>

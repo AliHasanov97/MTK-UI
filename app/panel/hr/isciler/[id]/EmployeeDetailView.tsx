@@ -47,6 +47,7 @@ import { EmployeeDocumentsTab } from "./EmployeeDocumentsTab";
 import { PaymentsTab } from "./EmployeePaymentsTab";
 import { EMPLOYEE_SECTIONS, type EmployeeSectionKey } from "../EmployeeSections";
 import { DateInput } from "../../../../components/DateInput";
+import { useConfirm } from "../../../../components/ConfirmDialog";
 import "./vacation-balance.css";
 
 type Tab = "info" | "schedule" | "work" | "education" | "vacation" | "documents" | "payments";
@@ -453,6 +454,7 @@ function ScheduleTab({ accessToken, employeeId }: { accessToken: string; employe
 /* ----------------------------- İş tarixçəsi ----------------------------- */
 
 function WorkHistoryTab({ accessToken, employeeId }: { accessToken: string; employeeId: string }) {
+  const confirm = useConfirm();
   const [items, setItems] = useState<WorkHistory[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -471,7 +473,7 @@ function WorkHistoryTab({ accessToken, employeeId }: { accessToken: string; empl
   }, [accessToken, employeeId, reloadKey]);
 
   async function handleDelete(item: WorkHistory) {
-    if (!window.confirm(`${item.companyName} qeydi silinsin?`)) return;
+    if (!(await confirm(`${item.companyName} qeydi silinsin?`))) return;
     try {
       await deleteWorkHistory(accessToken, item.id);
       load();
@@ -620,6 +622,7 @@ function AddWorkHistoryModal({
 /* ----------------------------- Təhsil ----------------------------- */
 
 function EducationTab({ accessToken, employeeId }: { accessToken: string; employeeId: string }) {
+  const confirm = useConfirm();
   const [items, setItems] = useState<EducationHistory[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -636,7 +639,7 @@ function EducationTab({ accessToken, employeeId }: { accessToken: string; employ
   }, [accessToken, employeeId, reloadKey]);
 
   async function handleDelete(item: EducationHistory) {
-    if (!window.confirm(`${item.educationalInstitutionName ?? "Təhsil"} qeydi silinsin?`)) return;
+    if (!(await confirm(`${item.educationalInstitutionName ?? "Təhsil"} qeydi silinsin?`))) return;
     try {
       await deleteEducationHistory(accessToken, item.id);
       setReloadKey((k) => k + 1);

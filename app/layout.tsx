@@ -4,6 +4,7 @@ import { AuthProvider } from "./lib/auth/AuthContext";
 import { keycloakConfig } from "./lib/auth/config";
 import { getCompanyName } from "./lib/api/company";
 import { CompanyNameProvider } from "./components/CompanyName";
+import { ConfirmProvider } from "./components/ConfirmDialog";
 
 // KEYCLOAK_URL (and the other Keycloak vars) are plain runtime env vars, not
 // NEXT_PUBLIC_*, so they only hold the right value if this layout is
@@ -36,7 +37,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         <CompanyNameProvider name={companyName}>
-          <AuthProvider config={keycloakConfig}>{children}</AuthProvider>
+          <ConfirmProvider>
+            <AuthProvider config={keycloakConfig}>{children}</AuthProvider>
+          </ConfirmProvider>
         </CompanyNameProvider>
       </body>
     </html>

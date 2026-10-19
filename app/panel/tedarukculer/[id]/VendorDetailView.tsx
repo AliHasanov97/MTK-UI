@@ -23,6 +23,7 @@ import {
 import { getPaymentsByVendor, type PaymentResponse } from "../../../lib/api/payments";
 import { PaymentsTable, lastPaymentDate, useCreatedBy } from "../../binalar/finance";
 import { Modal } from "../../Modal";
+import { useConfirm } from "../../../components/ConfirmDialog";
 
 const money = new Intl.NumberFormat("az-AZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const formatMoney = (n: number) => `${money.format(n)} ₼`;
@@ -51,6 +52,7 @@ function initials(name: string) {
 
 export function VendorDetailView({ vendorId }: { vendorId: string }) {
   const auth = useAuth();
+  const confirm = useConfirm();
   const canMakePayments = useCanPay();
   const canManage = useCanDoEverything();
   const [vendor, setVendor] = useState<VendorResponse | null>(null);
@@ -122,7 +124,7 @@ export function VendorDetailView({ vendorId }: { vendorId: string }) {
   const lastPayment = lastPaymentDate(payments);
 
   async function handleCancel(charge: VendorChargeResponse) {
-    if (!window.confirm(`"${charge.description}" borcu ləğv edilsin?`)) return;
+    if (!(await confirm(`"${charge.description}" borcu ləğv edilsin?`))) return;
     setWorkingId(charge.id);
     setError(null);
     try {

@@ -18,6 +18,7 @@ import {
   type PayrollRunResponse,
 } from "../../../lib/api/payments";
 import { DateInput } from "../../../components/DateInput";
+import { useConfirm } from "../../../components/ConfirmDialog";
 
 const MONTHS = [
   "Yanvar",
@@ -65,6 +66,7 @@ async function download(promise: Promise<{ blob: Blob; fileName: string }>) {
 
 export function EmekHaqqiView() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const now = new Date();
 
   const allowedPeriod = previousCalendarMonth(now);
@@ -130,7 +132,7 @@ export function EmekHaqqiView() {
 
   async function handleApprove() {
     if (!payrollRun || auth.status !== "authenticated") return;
-    if (!window.confirm("Əmək haqqı hesablamasını təsdiqləyirsiniz?")) return;
+    if (!(await confirm("Əmək haqqı hesablamasını təsdiqləyirsiniz?"))) return;
     setApproving(true);
     setError(null);
     try {
@@ -145,7 +147,7 @@ export function EmekHaqqiView() {
 
   async function handlePayAll() {
     if (!payrollRun || auth.status !== "authenticated") return;
-    if (!window.confirm("Bütün əmək haqqlarını ödənilmiş qeyd edirsiniz?")) return;
+    if (!(await confirm("Bütün əmək haqqlarını ödənilmiş qeyd edirsiniz?"))) return;
     setPayingAll(true);
     setError(null);
     try {
@@ -160,12 +162,7 @@ export function EmekHaqqiView() {
 
   async function handleRecalculate() {
     if (!payrollRun || auth.status !== "authenticated") return;
-    if (
-      !window.confirm(
-        "Hesablama yenidən qurulacaq və sonradan əlavə olunan bonus/düzəlişlər nəzərə alınacaq. Davam edilsin?",
-      )
-    )
-      return;
+    if (!(await confirm("Hesablama yenidən qurulacaq və sonradan əlavə olunan bonus/düzəlişlər nəzərə alınacaq. Davam edilsin?"))) return;
     setRecalculating(true);
     setError(null);
     try {
@@ -180,7 +177,7 @@ export function EmekHaqqiView() {
 
   async function handlePaySlip(employeeId: string) {
     if (!payrollRun || auth.status !== "authenticated") return;
-    if (!window.confirm("Bu işçinin əmək haqqını ödənilmiş qeyd edirsiniz?")) return;
+    if (!(await confirm("Bu işçinin əmək haqqını ödənilmiş qeyd edirsiniz?"))) return;
     setPayingSlipId(employeeId);
     setError(null);
     try {

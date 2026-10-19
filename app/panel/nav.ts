@@ -127,6 +127,13 @@ export const NAV_MODULES: NavModule[] = [
     ],
   },
   {
+    // Xəbərlərin idarəsi (CRUD) — admin və komandant. Yayımlananlar ictimai saytda (/xeberler) görünür.
+    href: "/panel/xeberler",
+    label: "Xəbərlər",
+    icon: "✎",
+    roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER],
+  },
+  {
     href: "/panel/profil",
     label: "Mənim profilim",
     icon: "☺",
@@ -139,8 +146,7 @@ export const NAV_MODULES: NavModule[] = [
     roles: [ROLES.ADMIN],
     tabs: [
       { href: "/panel/idareetme", label: "Sistem idarəetməsi" },
-      { href: "/panel/idareetme/muracietler", label: "Müraciətlər" },
-      { href: "/panel/audit", label: "Audit qeydləri" },
+      { href: "/panel/idareetme/muracietler", label: "Müraciətlər" },      { href: "/panel/audit", label: "Audit qeydləri" },
     ],
   },
 ];

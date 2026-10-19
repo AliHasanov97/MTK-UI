@@ -19,6 +19,7 @@ import {
 import { Modal } from "../../Modal";
 import { formatDate, hrErrorMessage } from "../shared";
 import { DateInput } from "../../../components/DateInput";
+import { useConfirm } from "../../../components/ConfirmDialog";
 
 const SCHEDULES = [
   { value: 1, label: "5 günlük" },
@@ -40,6 +41,7 @@ type EditTarget = { day: CalendarDay | null; date?: string };
 
 export function TeqvimView() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const [year, setYear] = useState(new Date().getFullYear());
   const [schedule, setSchedule] = useState(1);
   const [sheets, setSheets] = useState<Record<number, CalendarYear> | null>(null);
@@ -69,7 +71,7 @@ export function TeqvimView() {
   }
 
   async function handleDelete(day: CalendarDay) {
-    if (!window.confirm(`${formatDate(day.date)} — "${day.name}" silinsin?`)) return;
+    if (!(await confirm(`${formatDate(day.date)} — "${day.name}" silinsin?`))) return;
     try {
       await deleteCalendarDay(accessToken, day.id);
       setEditing(null);

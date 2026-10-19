@@ -15,6 +15,7 @@ import { hasAnyRole, ROLES } from "../../../../lib/auth/roleConstants";
 import { dateOnly } from "../../../../lib/format";
 import { SignedDocumentsPanel } from "../../../SignedDocuments";
 import { CreatePurchaseModal } from "../CreatePurchaseModal";
+import { useConfirm } from "../../../../components/ConfirmDialog";
 
 function errorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -30,6 +31,7 @@ const money = (amount: number) =>
 
 export function SalinmaDetailView({ purchaseId }: { purchaseId: string }) {
   const auth = useAuth();
+  const confirm = useConfirm();
   const [purchase, setPurchase] = useState<PurchaseResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -69,7 +71,7 @@ export function SalinmaDetailView({ purchaseId }: { purchaseId: string }) {
   }
 
   async function handleCancel() {
-    if (!window.confirm("Hazırlanan satınalma ləğv edilsin?")) return;
+    if (!(await confirm("Hazırlanan satınalma ləğv edilsin?"))) return;
     setCancelling(true);
     setError(null);
     setNotice(null);

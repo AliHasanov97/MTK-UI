@@ -324,3 +324,24 @@ html[data-theme=dark] .lp-root .lp-footer-links a{color:#b9c8be}
   .lp-footer-links{display:none}
   .site-footer{gap:10px}
 }
+
+/* Xəbərlər (API-dən) */
+.lp-news-thumb{width:calc(100% + 48px);margin:-24px -24px 6px;height:150px;object-fit:cover;display:block}
+.lp-news-empty{padding:40px 0 80px;color:#78837c;font-size:14px}
+.lp-article-image{width:100%;max-height:380px;object-fit:cover;border-radius:12px;margin-bottom:24px}
+html[data-theme=dark] .lp-root .lp-news-empty{color:#93a69b}
+
+.lp-article-author{margin-top:24px;font-size:12px;color:#849087}
+html[data-theme=dark] .lp-root .lp-article-author{color:#8fa398}
+
+/* Xəbər səhifəsində əlavə fayllar */
+.lp-files{margin-top:32px;padding-top:8px;border-top:1px solid var(--line)}
+.lp-files ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.lp-files a{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:inherit;text-decoration:none;font-size:14px}
+.lp-files a:hover{border-color:#b8c9a4;background:#f6f8f3}
+.lp-file-name{font-weight:650;word-break:break-all}
+.lp-files small{font-size:10px;font-weight:700;letter-spacing:.5px;color:#849087}
+.lp-file-dl{margin-left:auto;font-size:12px;font-weight:700;color:var(--green)}
+html[data-theme=dark] .lp-root .lp-files a{background:#16231e;border-color:#24362e}
+html[data-theme=dark] .lp-root .lp-files a:hover{background:#1d2d27;border-color:#3a5045}
+html[data-theme=dark] .lp-root .lp-files small{color:#8fa398}

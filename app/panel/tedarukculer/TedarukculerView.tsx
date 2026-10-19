@@ -32,6 +32,7 @@ import { formatDateTime } from "../../lib/format";
 import { resolveVendorNames } from "../binalar/resolve";
 import { useCreatedByMap } from "../binalar/finance";
 import { Modal } from "../Modal";
+import { useConfirm } from "../../components/ConfirmDialog";
 
 const VENDOR_PAGE_SIZE = 10;
 // Same pattern as the ledger: one big pull, filtered client-side. The generic
@@ -92,6 +93,7 @@ export function TedarukculerView() {
 
 function VendorsSegment() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const canManage = useCanDoEverything();
   const [vendors, setVendors] = useState<VendorListResult[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
@@ -167,7 +169,7 @@ function VendorsSegment() {
   }
 
   async function handleDelete(vendor: VendorListResult) {
-    if (!window.confirm(`${vendor.name} silinsin? Bu əməliyyat geri qaytarıla bilməz.`)) return;
+    if (!(await confirm(`${vendor.name} silinsin? Bu əməliyyat geri qaytarıla bilməz.`))) return;
 
     setWorkingId(vendor.id);
     setError(null);
@@ -357,6 +359,7 @@ function VendorsSegment() {
 
 function DebtsSegment() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const canManage = useCanDoEverything();
   const canMakePayments = useCanPay();
   const [charges, setCharges] = useState<VendorChargeResponse[] | null>(null);
@@ -436,7 +439,7 @@ function DebtsSegment() {
   }
 
   async function handleCancel(charge: VendorChargeResponse) {
-    if (!window.confirm(`"${charge.description}" borcu ləğv edilsin?`)) return;
+    if (!(await confirm(`"${charge.description}" borcu ləğv edilsin?`))) return;
     setWorkingId(charge.id);
     setError(null);
     try {

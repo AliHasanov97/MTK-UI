@@ -28,6 +28,7 @@ import { Modal } from "../Modal";
 import { ConvertJobApplicationModal } from "./ConvertJobApplicationModal";
 import { HrSignedDocuments } from "./HrSignedDocuments";
 import { formatDate, hrErrorMessage } from "./shared";
+import { useConfirm } from "../../components/ConfirmDialog";
 
 export type DocTarget =
   | { type: "application"; kind: ApplicationKind; id: string }
@@ -179,6 +180,7 @@ export function DocumentDetailModal({
   /** Siyahının yenilənməsi üçün (status, silmə, əmrə çevirmə) */
   onChanged: () => void;
 }) {
+  const confirm = useConfirm();
   const [stack, setStack] = useState<DocTarget[]>([target]);
   const current = stack[stack.length - 1];
   const [detail, setDetail] = useState<DocumentDetail | null>(null);
@@ -323,7 +325,7 @@ export function DocumentDetailModal({
 
   async function handleDelete() {
     const what = isApplication ? "Ərizə" : "Əmr";
-    if (!window.confirm(`${what} №${number ?? ""} silinsin?`)) return;
+    if (!(await confirm(`${what} №${number ?? ""} silinsin?`))) return;
     setBusy("delete");
     setError(null);
     try {

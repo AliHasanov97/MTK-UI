@@ -19,6 +19,7 @@ import {
 import { Modal } from "../../Modal";
 import { Pagination } from "../Pagination";
 import { PAGE_SIZE, hrErrorMessage } from "../shared";
+import { useConfirm } from "../../../components/ConfirmDialog";
 
 type Section = "jobs" | "institutions";
 
@@ -92,6 +93,7 @@ const SECTIONS: { key: Section; title: string; hint: string; icon: string }[] = 
 
 export function LugetlerView() {
   const auth = useAuth();
+  const confirm = useConfirm();
   const [section, setSection] = useState<Section>("jobs");
   const jobs = useCatalog<Job>(loadJobs);
   const institutions = useCatalog<EducationalInstitution>(loadInstitutions);
@@ -109,7 +111,7 @@ export function LugetlerView() {
   const c = section === "jobs" ? jobs : institutions;
 
   async function handleDeleteJob(job: Job) {
-    if (!window.confirm(`"${job.name}" vəzifəsi silinsin?`)) return;
+    if (!(await confirm(`"${job.name}" vəzifəsi silinsin?`))) return;
     try {
       await deleteJob(accessToken, job.id);
       jobs.reload();
@@ -119,7 +121,7 @@ export function LugetlerView() {
   }
 
   async function handleDeleteInstitution(item: EducationalInstitution) {
-    if (!window.confirm(`"${item.name}" silinsin?`)) return;
+    if (!(await confirm(`"${item.name}" silinsin?`))) return;
     try {
       await deleteInstitution(accessToken, item.id);
       institutions.reload();
