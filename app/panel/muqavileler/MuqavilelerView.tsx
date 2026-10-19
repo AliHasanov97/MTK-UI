@@ -18,6 +18,7 @@ import { searchCustomers, type CustomerListResult } from "../../lib/api/customer
 import { searchVendors, type VendorListResult } from "../../lib/api/vendors";
 import { Modal } from "../Modal";
 import { SearchableSelect } from "../SearchableSelect";
+import { DateInput } from "../../components/DateInput";
 
 const PAGE_SIZE = 10;
 
@@ -393,9 +394,8 @@ function CreateContractModal({
         <div className="form-row">
           <div className="form-field">
             <label htmlFor="contract-start">Başlanğıc tarixi</label>
-            <input
+            <DateInput
               id="contract-start"
-              type="date"
               required
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -403,9 +403,8 @@ function CreateContractModal({
           </div>
           <div className="form-field">
             <label htmlFor="contract-end">Bitmə tarixi</label>
-            <input
+            <DateInput
               id="contract-end"
-              type="date"
               required
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}

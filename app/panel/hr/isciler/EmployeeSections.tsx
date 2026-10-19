@@ -48,6 +48,8 @@ export type FieldsProps = {
   setForm: (updater: (prev: EmployeeForm) => EmployeeForm) => void;
 };
 
+import { DateInput } from "../../../components/DateInput";
+
 function useFieldHelpers({ form, setForm }: FieldsProps) {
   const set = <K extends keyof EmployeeForm>(key: K, value: EmployeeForm[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -61,12 +63,23 @@ function useFieldHelpers({ form, setForm }: FieldsProps) {
     return (
       <div className={`form-field${wide ? " form-field-wide" : ""}`}>
         <label htmlFor={`emp-${id}`}>{label}</label>
-        <input
-          id={`emp-${id}`}
-          value={String(form[id] ?? "")}
-          onChange={(e) => set(id, e.target.value as never)}
-          {...rest}
-        />
+        {rest.type === "date" ? (
+          <DateInput
+            id={`emp-${id}`}
+            value={String(form[id] ?? "")}
+            onChange={(e) => set(id, e.target.value as never)}
+            required={rest.required}
+            min={typeof rest.min === "string" ? rest.min : undefined}
+            max={typeof rest.max === "string" ? rest.max : undefined}
+          />
+        ) : (
+          <input
+            id={`emp-${id}`}
+            value={String(form[id] ?? "")}
+            onChange={(e) => set(id, e.target.value as never)}
+            {...rest}
+          />
+        )}
       </div>
     );
   };

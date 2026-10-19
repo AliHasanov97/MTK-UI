@@ -13,6 +13,7 @@ import {
 } from "../../../lib/api/purchases-client";
 import { searchVendors, type VendorListResult } from "../../../lib/api/vendors";
 import { Modal } from "../../Modal";
+import { DateInput } from "../../../components/DateInput";
 
 type PurchaseLineDraft = {
   nomenclatureId: string;
@@ -221,9 +222,8 @@ export function CreatePurchaseModal({
         <div className="form-row">
           <div className="form-field">
             <label htmlFor="purchase-date">Satınalma tarixi</label>
-            <input
+            <DateInput
               id="purchase-date"
-              type="date"
               required
               value={purchaseDate}
               onChange={(event) => setPurchaseDate(event.target.value)}

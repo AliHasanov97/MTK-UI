@@ -5,6 +5,7 @@ import { convertApplication, searchLaborCodeCases, type LaborCodeCase } from "..
 import { Modal } from "../Modal";
 import { LaborCaseSelect } from "./LaborCaseSelect";
 import { hrErrorMessage } from "./shared";
+import { DateInput } from "../../components/DateInput";
 
 /** Vakansiyaya müraciətin işə qəbul əmrinə çevrilməsi əlavə məlumat (müqavilə müddəti və əsası) tələb edir. */
 export function ConvertJobApplicationModal({
@@ -63,11 +64,11 @@ export function ConvertJobApplicationModal({
       <form onSubmit={handleSubmit}>
         <div className="form-field">
           <label htmlFor="conv-start">Müqavilənin başlanğıcı</label>
-          <input id="conv-start" type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <DateInput id="conv-start" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
         <div className="form-field">
           <label htmlFor="conv-end">Müqavilənin bitməsi</label>
-          <input id="conv-end" type="date" required value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <DateInput id="conv-end" required value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <div className="form-field">
           <span className="cal-label">Müddətli müqavilənin əsası</span>

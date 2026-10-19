@@ -46,6 +46,7 @@ import { employeeToForm } from "../EmployeeForm";
 import { EmployeeDocumentsTab } from "./EmployeeDocumentsTab";
 import { PaymentsTab } from "./EmployeePaymentsTab";
 import { EMPLOYEE_SECTIONS, type EmployeeSectionKey } from "../EmployeeSections";
+import { DateInput } from "../../../../components/DateInput";
 
 type Tab = "info" | "schedule" | "work" | "education" | "vacation" | "documents" | "payments";
 
@@ -591,11 +592,11 @@ function AddWorkHistoryModal({
         </div>
         <div className="form-field">
           <label htmlFor="wh-start">Başlanğıc tarixi</label>
-          <input id="wh-start" type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <DateInput id="wh-start" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
         <div className="form-field">
           <label htmlFor="wh-end">Bitmə tarixi</label>
-          <input id="wh-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <DateInput id="wh-end" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <div className="form-field">
           <label htmlFor="wh-notes">Qeyd</label>
@@ -801,11 +802,11 @@ function AddEducationModal({
         </div>
         <div className="form-field">
           <label htmlFor="edu-start">Başlanğıc</label>
-          <input id="edu-start" type="date" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <DateInput id="edu-start" required value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
         <div className="form-field">
           <label htmlFor="edu-end">Bitmə</label>
-          <input id="edu-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          <DateInput id="edu-end" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <div className="form-field">
           <label htmlFor="edu-diploma">Diplomun seriya və nömrəsi</label>

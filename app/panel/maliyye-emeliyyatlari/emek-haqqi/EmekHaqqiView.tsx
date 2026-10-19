@@ -17,6 +17,7 @@ import {
   type PaymentMethodKey,
   type PayrollRunResponse,
 } from "../../../lib/api/payments";
+import { DateInput } from "../../../components/DateInput";
 
 const MONTHS = [
   "Yanvar",
@@ -259,8 +260,7 @@ export function EmekHaqqiView() {
             >
               ‹
             </button>
-            <input
-              type="month"
+            <DateInput mode="month"
               className="emek-period-input"
               aria-label="Dövr"
               value={periodValue}

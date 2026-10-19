@@ -11,6 +11,7 @@ import {
   type CompanyBalanceResponse,
   type TransactionResponse,
 } from "../../lib/api/payments";
+import { DateInput } from "../../components/DateInput";
 
 // One big pull, aggregated client-side — same "whole ledger" pattern as
 // Tranzaksiyalar/Borclar. "Əvvəlki balans" needs the full history before the
@@ -156,8 +157,7 @@ export function UmumiHesabatView() {
           >
             ‹
           </button>
-          <input
-            type="month"
+          <DateInput mode="month"
             className="umumi-period-input"
             value={periodValue}
             onChange={(e) => {

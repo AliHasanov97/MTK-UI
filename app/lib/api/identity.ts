@@ -336,44 +336,6 @@ export function getGroupUsers(token: string, groupId: string) {
   return apiFetch<GroupMember[]>(`api/identity/groups/${groupId}/users`, token);
 }
 
-// ---------- Audit logs ----------
-
-export type AuditLogEntry = {
-  id: string;
-  entityType: string;
-  entityId: string;
-  action: string;
-  oldValues?: string | null;
-  newValues?: string | null;
-  userId?: string | null;
-  timestamp: string;
-};
-
-export type SearchAuditLogsRequest = {
-  entityType?: string;
-  entityId?: string;
-  action?: string;
-  userId?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  pageNumber?: number;
-  pageSize?: number;
-};
-
-export type SearchAuditLogsResult = {
-  auditLogs: AuditLogEntry[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-};
-
-export function searchAuditLogs(token: string, request: SearchAuditLogsRequest) {
-  return apiFetch<SearchAuditLogsResult>("api/identity/auditlogs/search", token, {
-    method: "POST",
-    body: JSON.stringify(request),
-  });
-}
-
 // ---------- Profile (self-service) ----------
 
 export type ChangeMyInfoRequest = {

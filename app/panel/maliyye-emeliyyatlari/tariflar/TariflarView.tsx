@@ -15,6 +15,7 @@ import {
 } from "../../../lib/api/payments";
 import { Modal } from "../../Modal";
 import { useCreatedByMap } from "../../binalar/finance";
+import { DateInput } from "../../../components/DateInput";
 
 // Manual is a snapshot-only marker used for one-off charges (see Charge.RateType) —
 // it isn't a subscribable rate an admin configures, so it's left out of the form.
@@ -296,9 +297,8 @@ function CreateRateForm({
         </div>
         <div className="form-field">
           <label htmlFor="rate-effective-from">Qüvvəyə minmə tarixi</label>
-          <input
+          <DateInput
             id="rate-effective-from"
-            type="date"
             required
             value={effectiveFrom}
             onChange={(e) => setEffectiveFrom(e.target.value)}

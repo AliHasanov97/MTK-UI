@@ -45,6 +45,7 @@ import { QueryComparisonType, type QueryFilter } from "../../../lib/api/building
 import { useCreatedBy, useCreatedByMap } from "../../binalar/finance";
 import { Modal } from "../../Modal";
 import { SignedDocumentsPanel } from "../../SignedDocuments";
+import { DateInput } from "../../../components/DateInput";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -793,18 +794,16 @@ function ServiceFormModal({
             <div className="form-row">
               <div className="form-field">
                 <label htmlFor="service-start">Xidmətin başlanğıcı (opsional)</label>
-                <input
+                <DateInput
                   id="service-start"
-                  type="date"
                   value={serviceStartDate}
                   onChange={(e) => setServiceStartDate(e.target.value)}
                 />
               </div>
               <div className="form-field">
                 <label htmlFor="service-end">Xidmətin bitməsi (opsional)</label>
-                <input
+                <DateInput
                   id="service-end"
-                  type="date"
                   value={serviceEndDate}
                   onChange={(e) => setServiceEndDate(e.target.value)}
                 />
@@ -877,9 +876,8 @@ function DatesModal({
         <div className="form-row">
           <div className="form-field">
             <label htmlFor="contract-start-edit">Başlanğıc tarixi</label>
-            <input
+            <DateInput
               id="contract-start-edit"
-              type="date"
               required
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -887,9 +885,8 @@ function DatesModal({
           </div>
           <div className="form-field">
             <label htmlFor="contract-end-edit">Bitmə tarixi</label>
-            <input
+            <DateInput
               id="contract-end-edit"
-              type="date"
               required
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -954,9 +951,8 @@ function TerminateModal({
         {error && <p className="form-error">{error}</p>}
         <div className="form-field">
           <label htmlFor="terminate-date">Ləğv tarixi</label>
-          <input
+          <DateInput
             id="terminate-date"
-            type="date"
             required
             value={terminatedOn}
             onChange={(e) => setTerminatedOn(e.target.value)}

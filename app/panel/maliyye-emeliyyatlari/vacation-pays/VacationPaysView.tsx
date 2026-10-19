@@ -15,6 +15,7 @@ import {
 } from "../../../lib/api/payments";
 import { QueryComparisonType } from "../../../lib/api/buildings";
 import { Modal } from "../../Modal";
+import { DateInput } from "../../../components/DateInput";
 
 const PAGE_SIZE = 20;
 
@@ -229,8 +230,8 @@ export function VacationPaysView() {
           <option value="1">Gözləyir</option>
           <option value="2">Ödənilib</option>
         </select>
-        <input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
-        <input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} />
+        <DateInput value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
+        <DateInput value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} />
         {activeFilterCount > 0 && (
           <button
             type="button"

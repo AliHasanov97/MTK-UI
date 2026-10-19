@@ -3,7 +3,17 @@
 import { Fragment, useEffect, useState } from "react";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { ApiError } from "../../lib/api/client";
-import { searchAuditLogs, type SearchAuditLogsResult } from "../../lib/api/identity";
+import {
+  AUDIT_ACTIONS,
+  AUDIT_MODULES,
+  auditActionLabel,
+  searchModuleAuditLogs,
+  type AuditModuleKey,
+  type AuditSearchResult,
+} from "../../lib/api/auditLogs";
+
+import { AuditDiff } from "./AuditDiff";
+import { DateInput } from "../../components/DateInput";
 
 const PAGE_SIZE = 20;
 
@@ -19,71 +29,109 @@ function errorMessage(err: unknown) {
 
 export function AuditLogView() {
   const auth = useAuth();
+  const [module, setModule] = useState<AuditModuleKey>(AUDIT_MODULES[0].key);
   const [entityType, setEntityType] = useState("");
   const [action, setAction] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
-  const [result, setResult] = useState<SearchAuditLogsResult | null>(null);
+  const [result, setResult] = useState<AuditSearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
-    searchAuditLogs(auth.accessToken, {
+    let cancelled = false;
+    searchModuleAuditLogs(auth.accessToken, module, {
       entityType: entityType || undefined,
       action: action || undefined,
       dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
-      dateTo: dateTo ? new Date(dateTo).toISOString() : undefined,
-      pageNumber,
+      dateTo: dateTo ? new Date(`${dateTo}T23:59:59`).toISOString() : undefined,
+      page: pageNumber,
       pageSize: PAGE_SIZE,
     })
       .then((res) => {
+        if (cancelled) return;
         setResult(res);
         setError(null);
       })
-      .catch((err) => setError(errorMessage(err)));
-  }, [auth, entityType, action, dateFrom, dateTo, pageNumber]);
+      .catch((err) => {
+        if (cancelled) return;
+        setResult(null);
+        setError(errorMessage(err));
+      });
+    // Modul tez-tez dəyişəndə köhnə cavab yenisini əvəz etməsin.
+    return () => {
+      cancelled = true;
+    };
+  }, [auth, module, entityType, action, dateFrom, dateTo, pageNumber]);
 
   if (auth.status !== "authenticated") return null;
 
   const totalPages = result ? Math.max(1, Math.ceil(result.totalCount / result.pageSize)) : 1;
+  const resetPage = () => {
+    setPageNumber(1);
+    setExpandedId(null);
+  };
 
   return (
     <div>
       <div className="panel-toolbar">
+        <select
+          className="panel-select"
+          aria-label="Modul"
+          value={module}
+          onChange={(e) => {
+            setModule(e.target.value as AuditModuleKey);
+            setResult(null);
+            resetPage();
+          }}
+        >
+          {AUDIT_MODULES.map((m) => (
+            <option key={m.key} value={m.key}>
+              {m.label}
+            </option>
+          ))}
+        </select>
         <input
           className="panel-search"
-          placeholder="Entity növü (məs: User)…"
+          placeholder="Entity növü (məs: Employee)…"
           value={entityType}
           onChange={(e) => {
             setEntityType(e.target.value);
-            setPageNumber(1);
+            resetPage();
           }}
         />
-        <input
-          className="panel-search"
-          placeholder="Əməliyyat (məs: Created)…"
+        <select
+          className="panel-select"
+          aria-label="Əməliyyat"
           value={action}
           onChange={(e) => {
             setAction(e.target.value);
-            setPageNumber(1);
+            resetPage();
           }}
-        />
-        <input
-          type="date"
+        >
+          <option value="">Bütün əməliyyatlar</option>
+          {AUDIT_ACTIONS.map((a) => (
+            <option key={a.value} value={a.value}>
+              {a.label}
+            </option>
+          ))}
+        </select>
+        <DateInput
+          aria-label="Başlanğıc tarix"
           value={dateFrom}
           onChange={(e) => {
             setDateFrom(e.target.value);
-            setPageNumber(1);
+            resetPage();
           }}
         />
-        <input
-          type="date"
+        <DateInput
+          aria-label="Son tarix"
           value={dateTo}
           onChange={(e) => {
             setDateTo(e.target.value);
-            setPageNumber(1);
+            resetPage();
           }}
         />
       </div>
@@ -96,7 +144,7 @@ export function AuditLogView() {
       )}
 
       {!result ? (
-        <p className="panel-page-lead">Yüklənir…</p>
+        !error && <p className="panel-page-lead">Yüklənir…</p>
       ) : (
         <div className="data-table-wrap">
           <table className="data-table">
@@ -105,17 +153,17 @@ export function AuditLogView() {
                 <th>Tarix</th>
                 <th>Entity</th>
                 <th>Əməliyyat</th>
-                <th>İstifadəçi ID</th>
+                <th>İstifadəçi</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {result.auditLogs.length === 0 && (
+              {result.rows.length === 0 && (
                 <tr>
                   <td colSpan={5}>Nəticə tapılmadı.</td>
                 </tr>
               )}
-              {result.auditLogs.map((log) => {
+              {result.rows.map((log) => {
                 const isOpen = expandedId === log.id;
                 return (
                   <Fragment key={log.id}>
@@ -127,30 +175,14 @@ export function AuditLogView() {
                       <td>
                         {log.entityType} <small>({log.entityId.slice(0, 8)}…)</small>
                       </td>
-                      <td>{log.action}</td>
-                      <td>{log.userId ? log.userId.slice(0, 8) + "…" : "—"}</td>
+                      <td>{auditActionLabel(log.action)}</td>
+                      <td>{log.userLabel ?? "—"}</td>
                       <td>{isOpen ? "▲" : "▼"}</td>
                     </tr>
                     {isOpen && (
                       <tr>
                         <td colSpan={5} className="data-table-subrow">
-                          {log.oldValues && (
-                            <>
-                              <strong>Köhnə dəyərlər:</strong>
-                              <pre style={{ whiteSpace: "pre-wrap", fontSize: 11 }}>
-                                {log.oldValues}
-                              </pre>
-                            </>
-                          )}
-                          {log.newValues && (
-                            <>
-                              <strong>Yeni dəyərlər:</strong>
-                              <pre style={{ whiteSpace: "pre-wrap", fontSize: 11 }}>
-                                {log.newValues}
-                              </pre>
-                            </>
-                          )}
-                          {!log.oldValues && !log.newValues && <p>Əlavə məlumat yoxdur.</p>}
+                          <AuditDiff oldValues={log.oldValues} newValues={log.newValues} />
                         </td>
                       </tr>
                     )}
@@ -161,7 +193,7 @@ export function AuditLogView() {
           </table>
           <div className="panel-pagination">
             <span>
-              Cəmi {result.totalCount} qeyd — səhifə {result.pageNumber}/{totalPages}
+              Cəmi {result.totalCount} qeyd — səhifə {result.page}/{totalPages}
             </span>
             <div style={{ display: "flex", gap: 8 }}>
               <button

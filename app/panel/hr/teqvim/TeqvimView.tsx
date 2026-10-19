@@ -18,6 +18,7 @@ import {
 } from "../../../lib/api/hr";
 import { Modal } from "../../Modal";
 import { formatDate, hrErrorMessage } from "../shared";
+import { DateInput } from "../../../components/DateInput";
 
 const SCHEDULES = [
   { value: 1, label: "5 günlük" },
@@ -383,7 +384,7 @@ function CalendarDayModal({
         <div className="cal-form-2">
           <div className="form-field">
             <label htmlFor="cd-date">Tarix</label>
-            <input id="cd-date" type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+            <DateInput id="cd-date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
           </div>
           <div className="form-field">
             <label htmlFor="cd-name">Ad</label>
@@ -512,8 +513,8 @@ function BulkModal({
               value={r.name}
               onChange={(e) => patch(i, { name: e.target.value })}
             />
-            <input type="date" required aria-label="Başlanğıc" value={r.from} onChange={(e) => patch(i, { from: e.target.value })} />
-            <input type="date" aria-label="Bitmə" value={r.to} min={r.from} onChange={(e) => patch(i, { to: e.target.value })} />
+            <DateInput required aria-label="Başlanğıc" value={r.from} onChange={(e) => patch(i, { from: e.target.value })} />
+            <DateInput aria-label="Bitmə" value={r.to} min={r.from} onChange={(e) => patch(i, { to: e.target.value })} />
             <select aria-label="Növ" value={r.dayType} onChange={(e) => patch(i, { dayType: Number(e.target.value) })}>
               {CALENDAR_DAY_TYPES.map((o) => (
                 <option key={o.value} value={o.value}>

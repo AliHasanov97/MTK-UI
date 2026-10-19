@@ -9,6 +9,7 @@ import {
   type Option,
 } from "../../lib/api/hr";
 import { EmployeePicker, JobPicker } from "./Pickers";
+import { DateInput } from "../../components/DateInput";
 
 export type FieldSpec = {
   key: string;
@@ -85,10 +86,16 @@ export function DynamicForm({
               </select>
             ) : spec.kind === "textarea" ? (
               <textarea id={id} rows={3} value={value} onChange={(e) => onChange(spec.key, e.target.value)} />
+            ) : spec.kind === "date" ? (
+              <DateInput
+                id={id}
+                value={value}
+                onChange={(e) => onChange(spec.key, e.target.value)}
+              />
             ) : (
               <input
                 id={id}
-                type={spec.kind === "date" ? "date" : spec.kind === "number" ? "number" : "text"}
+                type={spec.kind === "number" ? "number" : "text"}
                 min={spec.min}
                 max={spec.max}
                 value={value}

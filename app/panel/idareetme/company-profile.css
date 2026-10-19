@@ -1,0 +1,57 @@
+/* Sistem idarəetməsi → Şirkət profili */
+.company-card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;max-width:980px}
+.company-head{display:flex;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid var(--line)}
+.company-avatar{flex-shrink:0;width:46px;height:46px;border-radius:12px;background:#edf2e7;color:#64804e;display:grid;place-items:center;font-size:22px}
+.company-head h2{margin:0;font-size:17px;letter-spacing:-.3px}
+.company-head p{margin:4px 0 0;max-width:620px;font-size:12px;line-height:1.7;color:#78837c}
+
+.company-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:28px;padding:24px;align-items:start}
+.company-state{padding:24px;margin:0}
+.company-notice{grid-column:1/-1;display:flex;flex-direction:column;gap:2px;padding:12px 16px;border-radius:10px;background:#fbf6e6;border:1px solid #efe3b6;color:#6b5a1d;font-size:13px}
+.company-notice span{font-size:12px;opacity:.85}
+
+.company-form{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px;align-content:start}
+.company-form .form-field{margin:0}
+.company-form .wide{grid-column:1/-1}
+.company-form input{width:100%}
+.company-form .form-error{margin:0}
+.company-actions{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding-top:8px;border-top:1px solid var(--line);margin-top:4px}
+.company-saved{font-size:12px;font-weight:700;color:#3f7a56;background:#eaf3ea;padding:6px 12px;border-radius:99px}
+
+.company-preview{background:#f7f8f4;border:1px dashed #cdd6c6;border-radius:12px;padding:18px}
+.company-preview>small{font-size:10px;font-weight:750;letter-spacing:1.4px;color:#849087}
+.company-doc{display:flex;flex-direction:column;gap:3px;margin-top:12px;padding:18px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 20px -14px rgba(22,37,34,.35);font-size:12px;color:#5c6963;word-break:break-word}
+.company-doc strong{font-size:16px;letter-spacing:-.3px;color:var(--ink)}
+.company-doc hr{border:0;border-top:1px solid var(--line);margin:10px 0 6px;width:100%}
+.company-doc-row b{color:var(--ink);font-weight:650}
+
+@media(max-width:860px){
+  .company-body{grid-template-columns:1fr;padding:18px}
+  .company-head{padding:16px 18px}
+}
+@media(max-width:560px){
+  .company-form{grid-template-columns:1fr}
+}
+
+html[data-theme=dark] .company-card{background:#16231e;border-color:#24362e}
+html[data-theme=dark] .company-head{border-color:#24362e}
+html[data-theme=dark] .company-avatar{background:#1f322a;color:#9fd3b0}
+html[data-theme=dark] .company-head p{color:#93a69b}
+html[data-theme=dark] .company-notice{background:#2b2714;border-color:#4d4420;color:#e6d68f}
+html[data-theme=dark] .company-actions{border-color:#24362e}
+html[data-theme=dark] .company-saved{background:#1f3a2b;color:#8fd1ab}
+html[data-theme=dark] .company-preview{background:#0f1914;border-color:#3a5045}
+html[data-theme=dark] .company-preview>small{color:#8fa398}
+html[data-theme=dark] .company-doc{background:#16231e;border-color:#24362e;box-shadow:0 8px 20px -14px rgba(0,0,0,.8);color:#9fb0a6}
+html[data-theme=dark] .company-doc strong,html[data-theme=dark] .company-doc-row b{color:#e8efe9}
+html[data-theme=dark] .company-doc hr{border-color:#24362e}
+
+/* Oxu rejimi */
+.company-view{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:0}
+.company-view>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.company-view .wide{grid-column:1/-1}
+.company-view dt{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#849087}
+.company-view dd{margin:0;font-size:15px;font-weight:600;color:var(--ink);word-break:break-word}
+@media(max-width:560px){.company-view{grid-template-columns:1fr}}
+html[data-theme=dark] .company-view dt{color:#8fa398}
+html[data-theme=dark] .company-view dd{color:#e8efe9}

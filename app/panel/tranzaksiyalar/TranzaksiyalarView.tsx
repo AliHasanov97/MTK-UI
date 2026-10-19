@@ -28,6 +28,7 @@ import { Modal } from "../Modal";
 import { SignedDocumentsPanel } from "../SignedDocuments";
 import { getPurchase, purchaseStatusLabel, type PurchaseResponse } from "../../lib/api/purchases-client";
 import type { PaymentAllocationDetailResponse, PaymentResponse } from "../../lib/api/payments";
+import { DateInput } from "../../components/DateInput";
 
 // Fetched unfiltered/unpaged from the API (large flat pull, sorted newest first) —
 // the date range below is applied client-side. The generic QueryFilter mechanism
@@ -303,11 +304,11 @@ export function TranzaksiyalarView() {
         <div className="ledger-filter-fields">
           <div className="form-field">
             <label htmlFor="tx-start">Başlanğıc</label>
-            <input id="tx-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <DateInput id="tx-start" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
           <div className="form-field">
             <label htmlFor="tx-end">Son</label>
-            <input id="tx-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <DateInput id="tx-end" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </div>
           <div className="form-field">
             <label htmlFor="tx-search">Axtarış</label>

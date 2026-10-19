@@ -35,6 +35,7 @@ import {
 import { dateOnlyToUtcIso } from "../../lib/api/payments";
 import { Modal } from "../Modal";
 import { SearchableSelect } from "../SearchableSelect";
+import { DateInput } from "../../components/DateInput";
 
 const PAGE_SIZE = 10;
 const CHARGE_FETCH_SIZE = 500;
@@ -844,7 +845,7 @@ export function CreateChargeModal({
           </div>
           <div className="form-field">
             <label htmlFor="cc-due">Son ödəniş tarixi</label>
-            <input id="cc-due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <DateInput id="cc-due" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
         </div>
         <div className="form-actions">
