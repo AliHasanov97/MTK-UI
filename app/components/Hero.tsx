@@ -7,7 +7,7 @@ const bars = [38, 56, 44, 72, 60, 86, 68];
 export async function Hero() {
   const name = await getCompanyName();
   return (
-    <section className="lp-hero section-wrap" id="top">
+    <section className="lp-hero section-wrap">
       <div className="lp-hero-copy">
         <div className="eyebrow">
           <span className="live-dot" /> {name.toLocaleUpperCase("az")} · İDARƏETMƏ SİSTEMİ

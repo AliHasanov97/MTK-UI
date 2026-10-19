@@ -2,9 +2,11 @@ import Image from "next/image";
 
 export function Logo({
   name,
+  href = "#top",
   variant = "header",
 }: {
   name: string;
+  href?: string;
   variant?: "header" | "footer";
 }) {
   const brandClassName = variant === "footer" ? "brand footer-brand" : "brand";
@@ -12,7 +14,7 @@ export function Logo({
     variant === "footer" ? "brand-mark brand-mark-footer" : "brand-mark brand-mark-header";
 
   return (
-    <a className={brandClassName} href="#top" aria-label={`${name} ana səhifə`}>
+    <a className={brandClassName} href={href} aria-label={`${name} ana səhifə`}>
       <Image
         src="/logo.png"
         alt={`${name} logo`}

@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { Arrow } from "./Arrow";
 import { LoginButton } from "./LoginButton";
-import { about, changelog, compare, contact, faqs, residentFeatures, security } from "../landingContent";
+import { formatNewsDate, news } from "../news";
+import { about, compare, contact, faqs, residentFeatures, security } from "../landingContent";
 
 function Heading({ eyebrow, children, lead }: { eyebrow: string; children: React.ReactNode; lead?: string }) {
   return (
@@ -106,23 +108,28 @@ export function About() {
   );
 }
 
-export function Changelog() {
+/** Ana səhifə üçün: ən son 3 xəbər və hamısına keçid. */
+export function LatestNews() {
   return (
-    <section className="lp-changelog section-wrap" id="yenilikler">
-      <Heading eyebrow="YENİLİKLƏR" lead="Sistem davamlı inkişaf edir.">
-        Son <span>yeniləmələr.</span>
+    <section className="lp-news lp-news-home section-wrap" id="xeberler">
+      <Heading eyebrow="XƏBƏRLƏR" lead="Sistemdəki yeniliklər və kooperativ elanları.">
+        Son <span>xəbərlər.</span>
       </Heading>
-      <ul className="lp-changelog-list">
-        {changelog.map((c) => (
-          <li key={c.title}>
-            <em>{c.tag}</em>
-            <div>
-              <strong>{c.title}</strong>
-              <p>{c.text}</p>
+      <div className="lp-news-grid">
+        {news.slice(0, 3).map((n) => (
+          <Link key={n.slug} href={`/xeberler/${n.slug}`} className="lp-news-card">
+            <div className="lp-news-meta">
+              <em>{n.category}</em>
+              <time dateTime={n.date}>{formatNewsDate(n.date)}</time>
             </div>
-          </li>
+            <h3>{n.title}</h3>
+            <p>{n.excerpt}</p>
+          </Link>
         ))}
-      </ul>
+      </div>
+      <Link className="text-link lp-more" href="/xeberler">
+        Bütün xəbərlər →
+      </Link>
     </section>
   );
 }

@@ -37,13 +37,6 @@ export const about = {
   values: ["Şəffaflıq", "Dəqiqlik", "Sadəlik", "Hesabatlılıq"],
 };
 
-export const changelog = [
-  { tag: "Yeni", title: "Əmək haqqı ödənişləri", text: "İşçilər üçün maaş ödənişləri, qəbzlər (PDF) və ödəniş tarixçəsi." },
-  { tag: "Yeni", title: "Məzuniyyət ödənişləri", text: "Məzuniyyət pulunun hesablanması və idarə olunması." },
-  { tag: "Yeni", title: "Maliyyə əməliyyatları", text: "Xərc və gəlir daxiletməsi, tariflər və yenilənmiş əməliyyatlar səhifəsi." },
-  { tag: "Təkmil", title: "Cədvəllər və filtrlər", text: "Sütun filtrləri, çeşidləmə və telefon üçün kart görünüşü." },
-];
-
 export const faqs = [
   {
     q: "Sistemə necə giriş əldə edə bilərəm?",

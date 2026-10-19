@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { modules } from "../content";
 
 export function Modules() {
@@ -33,6 +34,14 @@ export function Modules() {
             </ul>
           </article>
         ))}
+      </div>
+      <div className="lp-more-row">
+        <Link className="text-link lp-more" href="/sistem">
+          Sistem haqqında ətraflı →
+        </Link>
+        <Link className="text-link lp-more" href="/telimat">
+          İstifadə təlimatları →
+        </Link>
       </div>
     </section>
   );
