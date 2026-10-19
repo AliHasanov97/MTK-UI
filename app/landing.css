@@ -305,3 +305,22 @@ html[data-theme=dark] .lp-root{
   .bottom-nav a.bottom-nav-active{color:#9fd3b0}
   .bottom-nav a.bottom-nav-active::after{background:#9fd3b0}
 }
+
+/* Mobil footer və alt naviqasiya düzəlişləri */
+.lp-footer-links a{color:#5c6963}
+html[data-theme=dark] .lp-root .lp-footer-links a{color:#b9c8be}
+@media(max-width:900px){
+  .site-footer{display:flex;flex-direction:column;align-items:flex-start;gap:16px;padding:28px 18px 32px;font-size:12px}
+  .site-footer>span:last-child{text-align:left;font-size:11px}
+  .lp-footer-links{gap:10px 20px;font-size:14px;font-weight:600}
+  /* Alt naviqasiya "yuxarı qayıt"ı əvəz edir və footer mətninin üstünü örtürdü */
+  .lp-top{display:none}
+  /* Aktiv bölmə xətti barın üst kənarında, ikon və yazı ilə üst-üstə düşmür */
+  .bottom-nav a.bottom-nav-active::after{bottom:auto;top:-7px;left:25%;right:25%;height:3px;border-radius:0 0 3px 3px}
+}
+
+/* Telefonda footer-də naviqasiya yoxdur: bölmələr alt naviqasiya zolağındadır */
+@media(max-width:900px){
+  .lp-footer-links{display:none}
+  .site-footer{gap:10px}
+}
