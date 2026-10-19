@@ -7,7 +7,7 @@ export default function IscilerPage() {
     <RequireRole allowed={[ROLES.ADMIN, ROLES.BUILDING_MANAGER]}>
       <div className="panel-page">
         <h1>İşçilər</h1>
-        <p className="panel-page-lead">MTK-nın işçilərinin siyahısı, vəzifə və maaş məlumatları.</p>
+        <p className="panel-page-lead">İşçilərin siyahısı, vəzifə və maaş məlumatları.</p>
         <IscilerView />
       </div>
     </RequireRole>

@@ -10,7 +10,7 @@ export default function SalinmalarPage() {
           <div>
             <h1>Salınmalar</h1>
             <p className="panel-page-lead">
-              MTK üçün alınan mal və xidmətləri, tədarükçü və qaimə məlumatları ilə birlikdə qeydiyyata alın.
+              Alınan mal və xidmətləri, tədarükçü və qaimə məlumatları ilə birlikdə qeydiyyata alın.
             </p>
           </div>
           <span className="ledger-badge">Təchizat</span>

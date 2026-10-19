@@ -1,8 +1,10 @@
 import Image from "next/image";
 
 export function Logo({
+  name,
   variant = "header",
 }: {
+  name: string;
   variant?: "header" | "footer";
 }) {
   const brandClassName = variant === "footer" ? "brand footer-brand" : "brand";
@@ -10,16 +12,16 @@ export function Logo({
     variant === "footer" ? "brand-mark brand-mark-footer" : "brand-mark brand-mark-header";
 
   return (
-    <a className={brandClassName} href="#top" aria-label="Babek 87 ana səhifə">
+    <a className={brandClassName} href="#top" aria-label={`${name} ana səhifə`}>
       <Image
         src="/logo.png"
-        alt="Babek 87 logo"
+        alt={`${name} logo`}
         width={186}
         height={106}
         priority={variant === "header"}
         className={markClassName}
       />
-      <span>Vahid MTK</span>
+      <span>{name}</span>
     </a>
   );
 }

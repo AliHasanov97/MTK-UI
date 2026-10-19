@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "../components/Logo";
+import { useCompanyName } from "../components/CompanyName";
 import { NAV_MODULES } from "./nav";
 import { UserMenu } from "../components/UserMenu";
 import { useAuth } from "../lib/auth/AuthContext";
 
 export function PanelShell({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
+  const companyName = useCompanyName();
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -34,7 +36,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
 
       <aside className={mobileNavOpen ? "panel-sidebar open" : "panel-sidebar"}>
         <div className="panel-sidebar-top">
-          <Logo variant="header" />
+          <Logo name={companyName} variant="header" />
           <button
             type="button"
             className="panel-sidebar-close"

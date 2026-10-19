@@ -2,44 +2,28 @@ import { roles } from "../content";
 
 export function Roles() {
   return (
-    <section className="roles-section section-wrap" id="haqqinda">
-      <div className="roles-card">
-        <div className="roles-copy">
-          <div className="eyebrow">BİR MTK-NIN İŞ AXINI</div>
+    <section className="lp-roles section-wrap" id="rollar">
+      <div className="section-heading">
+        <div>
+          <div className="eyebrow">KİMLƏR ÜÇÜNDÜR</div>
           <h2>
-            Bir komanda.
+            Bir komanda,
             <br />
-            <span>Ortaq mənzərə.</span>
+            <span>hər kəs öz rolunda.</span>
           </h2>
-          <p>
-            İdarəçi, mühasib, sakin və işçilər məhəllədəki binaların gündəlik
-            idarəçiliyində öz rollarına uyğun iştirak edir.
-          </p>
-          <div className="role-tags">
-            {roles.map((role) => (
-              <span key={role}>{role}</span>
-            ))}
-          </div>
         </div>
-        <div className="roles-graphic">
-          <div className="role-orbit role-orbit-a" />
-          <div className="role-orbit role-orbit-b" />
-          <div className="role-center">
-            MTK
-          </div>
-          <div className="role-node node-top">
-            <span>⌂</span>
-          </div>
-          <div className="role-node node-right">
-            <span>₼</span>
-          </div>
-          <div className="role-node node-bottom">
-            <span>◎</span>
-          </div>
-          <div className="role-node node-left">
-            <span>↗</span>
-          </div>
-        </div>
+        <p>
+          Giriş rola görə məhdudlaşır: istifadəçi yalnız səlahiyyətinə aid
+          bölmələri görür.
+        </p>
+      </div>
+      <div className="lp-role-grid">
+        {roles.map((r) => (
+          <article key={r.name}>
+            <h3>{r.name}</h3>
+            <p>{r.text}</p>
+          </article>
+        ))}
       </div>
     </section>
   );

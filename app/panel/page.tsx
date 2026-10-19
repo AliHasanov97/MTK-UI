@@ -18,7 +18,7 @@ export default function PanelOverviewPage() {
     <div className="panel-page">
       <h1>Xoş gəldiniz, {auth.user.name ?? auth.user.username}</h1>
       <p className="panel-page-lead">
-        Bu, MTK idarəetmə panelinizin ümumi baxışıdır. Aşağıdakı modullar rolunuza
+        Bu, idarəetmə panelinizin ümumi baxışıdır. Aşağıdakı modullar rolunuza
         uyğun olaraq göstərilir.
       </p>
       <div className="panel-card-grid">
