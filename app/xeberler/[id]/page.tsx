@@ -1,11 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteShell } from "../../components/SiteShell";
-import { PageHero } from "../../components/PageHero";
 import { BBCode } from "../../components/BBCode";
 import { formatArticleDate, getPublishedArticle, publicArticleFileUrl } from "../../lib/api/articles";
 
 type Props = { params: Promise<{ id: string }> };
+
+const IMAGE_FILE_EXTENSION = /\.(avif|bmp|gif|jpe?g|png|svg|tiff?|webp)$/i;
+
+function isImageAttachment(file: { fileName: string; mimeType: string }) {
+  const mimeType = file.mimeType.trim().toLowerCase();
+  return mimeType.startsWith("image/") || IMAGE_FILE_EXTENSION.test(file.fileName);
+}
 
 export const dynamic = "force-dynamic";
 
@@ -13,41 +19,76 @@ export default async function NewsItemPage({ params }: Props) {
   const { id } = await params;
   const article = await getPublishedArticle(id);
   if (!article) notFound();
-  // Daxili (IsPublic=false) fayllar saytda göstərilmir; onları yalnız idarəetmə endirə bilir.
-  const publicFiles = article.fileAttachments.filter((f) => f.isPublic);
+  const publicFiles = article.fileAttachments.filter((file) => file.isPublic);
+  const imageFiles = publicFiles.filter(isImageAttachment);
+  const downloadableFiles = publicFiles.filter((file) => !isImageAttachment(file));
+  const publishedAt = article.publishedAt ?? article.createdAt;
+  const dateLabel = formatArticleDate(publishedAt);
 
   return (
     <SiteShell>
-      <PageHero
-        eyebrow={`XƏBƏR · ${formatArticleDate(article.publishedAt ?? article.createdAt)}`}
-        title={article.title}
-        lead={article.summary}
-        crumbs={[{ href: "/xeberler", label: "Xəbərlər" }, { label: article.title }]}
-      />
-      <article className="lp-prose lp-prose-narrow section-wrap">
-        <BBCode source={article.content} />
-        {publicFiles.length > 0 && (
-          <section className="lp-files" aria-label="Əlavə fayllar">
-            <h2>Əlavə fayllar</h2>
-            <ul>
-              {publicFiles.map((f) => (
-                <li key={f.id}>
-                  <a href={publicArticleFileUrl(f.id)} download>
-                    <span aria-hidden="true">📎</span>
-                    <span className="lp-file-name">{f.fileName}</span>
-                    {f.mimeType && <small>{f.mimeType.toUpperCase()}</small>}
-                    <span className="lp-file-dl">Endir ↓</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {article.createdByFullName && <p className="lp-article-author">Müəllif: {article.createdByFullName}</p>}
-        <Link className="text-link" href="/xeberler">
-          ← Bütün xəbərlər
+      <header className="lp-article-head section-wrap">
+        <Link className="lp-article-back" href="/xeberler">
+          <span aria-hidden="true">←</span> Bütün xəbərlər
         </Link>
-      </article>
+        <div className="lp-article-kicker">
+          <span className="lp-article-dot" aria-hidden="true" />
+          Xəbərlər
+          <span className="lp-article-kicker-separator">/</span>
+          <time dateTime={publishedAt}>{dateLabel}</time>
+        </div>
+        <h1>{article.title}</h1>
+        {article.summary && <p className="lp-article-summary">{article.summary}</p>}
+        {article.createdByFullName && (
+          <p className="lp-article-byline">
+            Müəllif <strong>{article.createdByFullName}</strong>
+          </p>
+        )}
+      </header>
+
+      <main className="lp-article-layout section-wrap">
+        <article className="lp-article-card">
+          <BBCode source={article.content} className="lp-article-content" />
+          {imageFiles.length > 0 && (
+            <div className="lp-article-images" aria-label="Xəbər şəkilləri">
+              {imageFiles.map((file) => (
+                <figure className="lp-article-image-item" key={file.id}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={publicArticleFileUrl(file.id)} alt={file.fileName} loading="lazy" />
+                  <figcaption>{file.fileName}</figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+          {downloadableFiles.length > 0 && (
+            <section className="lp-files" aria-label="Əlavə fayllar">
+              <div className="lp-files-heading">
+                <span className="lp-files-icon" aria-hidden="true">↳</span>
+                <div>
+                  <h2>Əlavə fayllar</h2>
+                  <p>Xəbərlə bağlı sənədlər və materiallar</p>
+                </div>
+              </div>
+              <ul>
+                {downloadableFiles.map((file) => (
+                  <li key={file.id}>
+                    <a href={publicArticleFileUrl(file.id)} download>
+                      <span className="lp-file-type" aria-hidden="true">{file.fileName.split(".").pop()?.toUpperCase() ?? "FILE"}</span>
+                      <span className="lp-file-name">{file.fileName}</span>
+                      {file.mimeType && <small>{file.mimeType.toUpperCase()}</small>}
+                      <span className="lp-file-dl">Endir <span aria-hidden="true">↓</span></span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          <footer className="lp-article-footer">
+            <span>MTK · Xəbərlər və elanlar</span>
+            <Link href="/xeberler">Digər xəbərlərə bax <span aria-hidden="true">→</span></Link>
+          </footer>
+        </article>
+      </main>
     </SiteShell>
   );
 }
