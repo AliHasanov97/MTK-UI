@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiFetchFile } from "./client";
 import { dateOnlyToUtcIso, searchBody, type SearchParams } from "./payments";
 
 type Envelope<T> = { data: T; message: string };
@@ -107,6 +107,10 @@ export function getPurchase(accessToken: string, purchaseId: string) {
     `api/payments/purchases/${purchaseId}`,
     accessToken,
   ).then((envelope) => envelope.data);
+}
+
+export function exportPurchasePdf(accessToken: string, purchaseId: string) {
+  return apiFetchFile("api/payments/purchases/" + purchaseId + "/export", accessToken);
 }
 
 export function getNomenclaturePurchaseHistory(accessToken: string, nomenclatureId: string) {

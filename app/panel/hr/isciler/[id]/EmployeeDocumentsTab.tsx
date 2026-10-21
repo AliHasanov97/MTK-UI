@@ -88,21 +88,27 @@ export function EmployeeDocumentsTab({ accessToken, employeeId }: { accessToken:
                           <td data-label="Növ">{kind ? APPLICATION_KINDS[kind].label : a.type}</td>
                           <td data-label="Tarix">{formatDateTime(a.createdAt)}</td>
                           <td data-label="Status">
-                            {pending || !kind || !a.order ? (
-                              <span className="panel-role-tag panel-role-tag-warn">Gözləmədə</span>
-                            ) : (
-                              <button
-                                type="button"
-                                className="panel-role-tag panel-role-tag-good doc-status-link"
-                                title="Əlaqəli əmri aç"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDetail({ type: "order", kind: ORDER_FOR_APPLICATION[kind], id: a.order!.id });
-                                }}
-                              >
-                                Əmrə çevrilib · №{a.order.name} →
-                              </button>
-                            )}
+                            {pending || !kind ? (
+  <span className="panel-role-tag panel-role-tag-warn">Gözləmədə</span>
+) : a.status === "ConvertedToOrder" ? (
+  a.order ? (
+    <button
+      type="button"
+      className="panel-role-tag panel-role-tag-good doc-status-link"
+      title="Əlaqəli əmri aç"
+      onClick={(e) => {
+        e.stopPropagation();
+        setDetail({ type: "order", kind: ORDER_FOR_APPLICATION[kind], id: a.order.id });
+      }}
+    >
+      Əmrə çevrilib · №{a.order.name} →
+    </button>
+  ) : (
+    <span className="panel-role-tag panel-role-tag-good">Əmrə çevrilib</span>
+  )
+) : (
+  <span className="panel-role-tag panel-role-tag-warn">{a.status}</span>
+)}
                           </td>
                         </tr>
                       );

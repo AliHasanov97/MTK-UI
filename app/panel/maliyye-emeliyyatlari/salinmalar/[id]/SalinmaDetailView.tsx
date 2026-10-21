@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ApiError } from "../../../../lib/api/client";
+import { ApiError, saveBlobAsFile } from "../../../../lib/api/client";
 import {
   cancelPurchase,
   getPurchase,
+  exportPurchasePdf,
   purchaseStatusLabel,
   receivePurchase,
   type PurchaseResponse,
@@ -38,6 +39,7 @@ export function SalinmaDetailView({ purchaseId }: { purchaseId: string }) {
   const [receiving, setReceiving] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -91,6 +93,19 @@ export function SalinmaDetailView({ purchaseId }: { purchaseId: string }) {
     setPurchase(updatedPurchase);
   }
 
+  async function handleExportPdf() {
+    setExportingPdf(true);
+    setError(null);
+    try {
+      const { blob, fileName } = await exportPurchasePdf(accessToken, purchaseId);
+      saveBlobAsFile(blob, fileName);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
   if (error) {
     return (
       <div className="panel-denied">
@@ -105,6 +120,13 @@ export function SalinmaDetailView({ purchaseId }: { purchaseId: string }) {
   return (
     <div className="purchase-detail">
       {notice && <p className="ledger-alert" role="status">{notice}</p>}
+      {canUploadDocuments && (
+        <div className="form-actions purchase-receive-actions">
+          <button type="button" className="panel-btn panel-btn-primary" onClick={handleExportPdf} disabled={exportingPdf}>
+            {exportingPdf ? "PDF hazırlanır…" : "Satınalma sənədini PDF yüklə"}
+          </button>
+        </div>
+      )}
       {canReceive && purchase.status === 0 && (
         <div className="form-actions purchase-receive-actions">
           <button

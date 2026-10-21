@@ -4,7 +4,7 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { useCanPay } from "../../lib/auth/roles";
-import { ApiError } from "../../lib/api/client";
+import { ApiError, saveBlobAsFile } from "../../lib/api/client";
 import { SortDirection } from "../../lib/api/buildings";
 import { formatDateTime } from "../../lib/format";
 import {
@@ -26,7 +26,7 @@ import { ColumnFilter } from "../ColumnFilter";
 import { FilterChip, MobileFilterBar } from "../MobileFilterBar";
 import { Modal } from "../Modal";
 import { SignedDocumentsPanel } from "../SignedDocuments";
-import { getPurchase, purchaseStatusLabel, type PurchaseResponse } from "../../lib/api/purchases-client";
+import { exportPurchasePdf, getPurchase, purchaseStatusLabel, type PurchaseResponse } from "../../lib/api/purchases-client";
 import type { PaymentAllocationDetailResponse, PaymentResponse } from "../../lib/api/payments";
 import { DateInput } from "../../components/DateInput";
 
@@ -501,6 +501,7 @@ function TransactionDocumentModal({
   const [error, setError] = useState<string | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
+  const [purchasePdfLoading, setPurchasePdfLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -543,6 +544,19 @@ function TransactionDocumentModal({
     }
   }
 
+  async function downloadPurchasePdf() {
+    if (!isPurchase) return;
+    setPurchasePdfLoading(true);
+    setError(null);
+    try {
+      const file = await exportPurchasePdf(accessToken, row.referenceId);
+      saveBlobAsFile(file.blob, file.fileName);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setPurchasePdfLoading(false);
+    }
+  }
   const fileTarget = isPayment
     ? { paymentId: row.referenceId }
     : isPurchase
@@ -576,6 +590,11 @@ function TransactionDocumentModal({
           <section className="data-table-wrap purchase-lines">
             <div className="transaction-document-heading">
               <h3>Satınalma qaiməsi {purchase.invoiceNumber ?? ""}</h3>
+              {canUploadDocuments && (
+                <button type="button" className="panel-btn panel-btn-sm" onClick={downloadPurchasePdf} disabled={purchasePdfLoading}>
+                  {purchasePdfLoading ? "PDF hazırlanır…" : "PDF yüklə"}
+                </button>
+              )}
               <Link className="panel-btn panel-btn-sm" href={`/panel/maliyye-emeliyyatlari/salinmalar/${purchase.id}`}>Satınalma detalı</Link>
             </div>
             <dl className="purchase-meta">
