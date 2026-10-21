@@ -157,6 +157,7 @@ export function ErizelerView() {
                 {items.map((a) => {
                   const kind = applicationKindFromValue(a.type);
                   const pending = a.status === "PendingApproval";
+                  const linkedOrder = a.order;
                   return (
                     <tr
                       key={a.id}
@@ -172,17 +173,17 @@ export function ErizelerView() {
                         {pending || !kind ? (
   <span className="panel-role-tag panel-role-tag-warn">Gözləmədə</span>
 ) : a.status === "ConvertedToOrder" ? (
-  a.order ? (
+  linkedOrder ? (
     <button
       type="button"
       className="panel-role-tag panel-role-tag-good doc-status-link"
       title="Əlaqəli əmri aç"
       onClick={(e) => {
         e.stopPropagation();
-        setDetail({ type: "order", kind: ORDER_FOR_APPLICATION[kind], id: a.order.id });
+        setDetail({ type: "order", kind: ORDER_FOR_APPLICATION[kind], id: linkedOrder.id });
       }}
     >
-      Əmrə çevrilib · №{a.order.name} →
+      Əmrə çevrilib · №{linkedOrder.name} →
     </button>
   ) : (
     <span className="panel-role-tag panel-role-tag-good">Əmrə çevrilib</span>
