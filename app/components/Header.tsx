@@ -1,5 +1,5 @@
+import Image from "next/image";
 import Link from "next/link";
-import { BuildingIcon } from "./icons";
 import { HeaderAuth } from "./HeaderAuth";
 import { ThemeToggle } from "./ThemeToggle";
 import { getCompanyName } from "../lib/api/company";
@@ -19,9 +19,7 @@ export async function Header() {
     <header className="site-header">
       <div className="site-header-inner">
         <Link className="c-brand" href="/" aria-label={`${name} ana səhifə`}>
-          <span className="c-brand-mark" aria-hidden="true">
-            <BuildingIcon size={20} />
-          </span>
+          <Image src="/logo.png" alt="" width={186} height={106} priority className="c-brand-logo" />
           <span className="c-brand-text">
             <strong>{name}</strong>
             <small>İdarəetmə sistemi</small>

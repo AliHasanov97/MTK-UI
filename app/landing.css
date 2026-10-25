@@ -221,6 +221,15 @@ html[data-theme="dark"] .lp-root {
   color: var(--c-lime);
 }
 
+/* Company logo (same /logo.png as the panel sidebar); ~1.75:1, so it is sized
+   by height rather than boxed like an icon. */
+.c-brand-logo {
+  flex: none;
+  width: auto;
+  height: 40px;
+  object-fit: contain;
+}
+
 .c-brand-text {
   display: grid;
   gap: 1px;
@@ -2393,6 +2402,10 @@ html[data-theme="dark"] .lp-root .c-contact-card.is-mail .c-feature-icon {
     width: 36px;
     height: 36px;
     border-radius: 11px;
+  }
+
+  .c-brand-logo {
+    height: 34px;
   }
 
   .c-brand-text strong {
