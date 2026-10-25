@@ -29,10 +29,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="az" suppressHydrationWarning>
       <head>
         {/* Səhifə çəkilməmişdən əvvəl rejimi qurur (yanıb-sönmənin qarşısı üçün).
-            Seçilmiş rejim "theme" cookie-sinə də yazılır ki, Keycloak teması (auth.vahid.az) eyni rejimi götürsün. */}
+            Rejim "theme" cookie-si ilə Keycloak teması (auth.vahid.az) arasında paylaşılır: cookie üstündür
+            (Keycloak-da dəyişdirilə bilər), yoxdursa localStorage, o da yoxdursa sistem rejimi. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark"){var h=location.hostname,d=/(^|\\.)vahid\\.az$/.test(h)?";domain=.vahid.az":"";document.cookie="theme="+t+";path=/;max-age=31536000;samesite=lax"+d}else{t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t;if(location.pathname.indexOf("/panel")===0)document.documentElement.dataset.area="panel"}catch(e){}`,
+            __html: `try{var c=document.cookie.match(/(?:^|;\\s*)theme=(light|dark)(?:;|$)/),t=c?c[1]:localStorage.getItem("theme");if(t==="light"||t==="dark"){localStorage.setItem("theme",t);var h=location.hostname,d=/(^|\\.)vahid\\.az$/.test(h)?";domain=.vahid.az":"";document.cookie="theme="+t+";path=/;max-age=31536000;samesite=lax"+d}else{t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t;if(location.pathname.indexOf("/panel")===0)document.documentElement.dataset.area="panel"}catch(e){}`,
           }}
         />
       </head>
