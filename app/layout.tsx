@@ -28,10 +28,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="az" suppressHydrationWarning>
       <head>
-        {/* Səhifə çəkilməmişdən əvvəl rejimi qurur (yanıb-sönmənin qarşısı üçün). */}
+        {/* Səhifə çəkilməmişdən əvvəl rejimi qurur (yanıb-sönmənin qarşısı üçün).
+            Seçilmiş rejim "theme" cookie-sinə də yazılır ki, Keycloak teması (auth.vahid.az) eyni rejimi götürsün. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t;if(location.pathname.indexOf("/panel")===0)document.documentElement.dataset.area="panel"}catch(e){}`,
+            __html: `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark"){var h=location.hostname,d=/(^|\\.)vahid\\.az$/.test(h)?";domain=.vahid.az":"";document.cookie="theme="+t+";path=/;max-age=31536000;samesite=lax"+d}else{t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t;if(location.pathname.indexOf("/panel")===0)document.documentElement.dataset.area="panel"}catch(e){}`,
           }}
         />
       </head>
