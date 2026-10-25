@@ -411,3 +411,60 @@ html[data-theme=dark] .lp-article-image-item figcaption{border-color:#2b3c33;col
   .lp-article-card .lp-article-images{width:100%;margin-top:22px}
   .lp-article-card .lp-article-image-item img{height:280px;max-height:44vh}
 }
+
+/* Android tətbiqi (APK) — landing səhifəsində ayrıca, diqqət çəkən bölmə */
+.lp-android{position:relative;overflow:hidden;background:linear-gradient(115deg,#22392f 0%,#2a483a 52%,#33543f 100%);color:#fff}
+.lp-android::before{content:"";position:absolute;top:-190px;right:-140px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,#a9cd7f5c,transparent 68%);pointer-events:none}
+.lp-android::after{content:"";position:absolute;bottom:-160px;left:-120px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,#9fd3b024,transparent 70%);pointer-events:none}
+.lp-android-inner{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding-block:88px}
+.lp-android .eyebrow{color:#b7c5b6}
+.lp-android h2{font-size:clamp(30px,3.8vw,46px);letter-spacing:-2.2px;line-height:1.1;font-weight:560;margin:18px 0 16px}
+.lp-android h2 span{font-family:Georgia,serif;font-style:italic;color:var(--lime);font-weight:400}
+.lp-android-copy>p{font-size:14px;line-height:1.8;color:#c7d3c6;margin:0;max-width:470px}
+.lp-android-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:28px}
+.lp-android-button{background:var(--lime);color:#22392f;gap:10px;padding:15px 24px;box-shadow:0 18px 34px -22px #000}
+.lp-android-button:hover{background:#dcf0c3}
+.lp-android-button svg{flex:none}
+.lp-android-meta{font-size:12px;color:#aebfb2;letter-spacing:.2px}
+.lp-android-points{display:flex;flex-wrap:wrap;gap:9px 20px;list-style:none;margin:26px 0 0;padding:0;font-size:12px;color:#d7e3d3}
+.lp-android-points li{display:flex;align-items:center;gap:7px}
+.lp-android-points li::before{content:"";width:5px;height:5px;flex:none;border-radius:50%;background:var(--lime)}
+.lp-android-visual{position:relative;display:flex;justify-content:flex-end;perspective:1500px}
+.lp-android-visual::before{content:"";position:absolute;left:-8%;right:2%;bottom:-16%;height:64%;border-radius:50%;background:radial-gradient(closest-side,#a9cd7f33,transparent 72%);pointer-events:none}
+.lp-android-visual::after{content:"";position:absolute;left:8%;right:0;bottom:-30px;height:36px;border-radius:50%;background:radial-gradient(closest-side,#000000b3,transparent 74%);filter:blur(10px);pointer-events:none}
+.lp-phone{position:relative;z-index:1;width:296px;max-width:100%;padding:4px;border-radius:32px;
+  background:linear-gradient(152deg,#a7b3aa 0%,#46544b 12%,#1a241e 34%,#101914 58%,#2c3931 78%,#7e8d82 94%,#3e4b43 100%);
+  box-shadow:
+    0 0 0 1px #0a110d,
+    inset 0 1px 0 #ffffff45,
+    inset 0 -1px 0 #00000080,
+    0 1px 1px #ffffff1f,
+    0 34px 54px -26px #000000d9,
+    0 74px 110px -64px #000000e6;
+  transform:rotateY(-7deg) rotateX(1.5deg) rotate(-1deg);
+  transform-origin:center center;
+}
+.lp-phone-key{position:absolute;right:-2px;width:2.5px;border-radius:2px;background:linear-gradient(180deg,#84938a,#33413a 26%,#18211c 72%,#5b6a61);box-shadow:1px 0 2px #000000a6}
+.lp-phone-key--vol{top:78px;height:54px}
+.lp-phone-key--pwr{top:144px;height:34px}
+.lp-phone-screen{position:relative;overflow:hidden;border-radius:28px;background:#070c09;line-height:0;
+  box-shadow:inset 0 0 0 2px #040807,inset 0 0 26px #00000066;
+}
+.lp-phone-screen img{display:block;width:100%;height:auto;border-radius:26px}
+.lp-phone-screen::after{content:"";position:absolute;left:50%;top:8px;width:9px;height:9px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle at 34% 30%,#1d2a24,#05090b 62%);box-shadow:0 0 0 1px #ffffff17,inset 0 0 2px #000;z-index:3}
+.lp-phone-glare{position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;
+  background:linear-gradient(122deg,#ffffff24 0%,#ffffff0d 15%,transparent 31%,transparent 64%,#ffffff0b 87%,transparent 100%);
+}
+html[data-theme=dark] .lp-root .lp-android{background:linear-gradient(115deg,#101c16,#16281f 55%,#1c3327)}
+@media(max-width:1000px){
+  .lp-android-inner{grid-template-columns:1fr;gap:42px;padding-block:72px}
+  .lp-android-visual{justify-content:flex-start}
+  .lp-phone{transform:none}
+}
+@media(max-width:640px){
+  .lp-android-inner{padding-block:60px;gap:34px}
+  .lp-android h2{letter-spacing:-1.6px}
+  .lp-android-actions{gap:10px}
+  .lp-android-button{width:100%}
+  .lp-phone{width:min(330px,100%)}
+}
