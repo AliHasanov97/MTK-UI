@@ -540,9 +540,38 @@ html[data-area="panel"] .panel-shell .detail-section h3 {
 /* ---------- Modul kartları ---------- */
 
 html[data-area="panel"] .panel-shell .panel-card-grid {
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 16px;
-  max-width: 1200px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 22px;
+}
+
+@media (max-width: 1500px) {
+  html[data-area="panel"] .panel-shell .panel-card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1200px) {
+  html[data-area="panel"] .panel-shell .panel-card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-area="panel"] .panel-shell .panel-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  html[data-area="panel"] .panel-shell .panel-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-area="panel"] .panel-shell a.panel-card {
+  min-height: 0;
+  padding: 26px 28px 20px;
+  border-radius: 12px;
 }
 
 html[data-area="panel"] .panel-shell .panel-card {

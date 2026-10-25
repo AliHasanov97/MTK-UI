@@ -47,16 +47,16 @@ export const NAV_MODULES: NavModule[] = [
     ],
   },
   {
-    href: "/panel/muqavileler",
+    href: "/panel/maliyye-emeliyyatlari",
     label: "Əməliyyatlar",
     icon: "₼",
     roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER, ROLES.ACCOUNTANT],
     tabs: [
+      { href: "/panel/maliyye-emeliyyatlari", label: "Maliyyə əməliyyatları" },
+      { href: "/panel/borclar", label: "Borclar" },
       { href: "/panel/muqavileler", label: "Müqavilələr" },
       { href: "/panel/tedarukculer", label: "Tədarükçülər" },
       { href: "/panel/musteriler", label: "Müştərilər" },
-      { href: "/panel/borclar", label: "Borclar" },
-      { href: "/panel/maliyye-emeliyyatlari", label: "Maliyyə əməliyyatları" },
     ],
   },
   {

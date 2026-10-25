@@ -39,6 +39,12 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
       mod.tabs?.some((tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`)),
   );
 
+  // Ən uzun uyğun gələn tab aktivdir — "/panel/binalar" (Mənzillər)
+  // "/panel/binalar/bina-siyahisi" (Binalar) ilə eyni anda seçilməsin deyə.
+  const activeTab = activeModule?.tabs
+    ?.filter((tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+
   return (
     <div className="panel-shell">
       {mobileNavOpen && (
@@ -121,11 +127,7 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={
-                  pathname === tab.href || pathname.startsWith(`${tab.href}/`)
-                    ? "panel-tab active"
-                    : "panel-tab"
-                }
+                className={tab === activeTab ? "panel-tab active" : "panel-tab"}
               >
                 {tab.label}
               </Link>
