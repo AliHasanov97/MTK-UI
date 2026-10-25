@@ -2273,17 +2273,52 @@ html[data-theme="dark"] .lp-root .c-contact-card.is-mail .c-feature-icon {
   color: #fff;
 }
 
-.c-footer-made {
+/* "Hazırlayan: Əli Həsənov" — a pill that links to LinkedIn, styled to stand
+   out from the muted footer links around it. */
+.c-footer-bottom .c-footer-made {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--c-lime) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c-lime) 10%, transparent);
+  color: #fff;
+  font-size: 12px;
+  text-decoration: none;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
-.c-footer-made i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--c-lime);
+.c-footer-made-label {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.c-footer-made strong {
+  color: var(--c-lime);
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+.c-footer-made svg {
+  flex: none;
+  color: var(--c-lime);
+}
+
+.c-footer-bottom .c-footer-made:hover,
+.c-footer-bottom .c-footer-made:focus-visible {
+  border-color: var(--c-lime);
+  background: color-mix(in srgb, var(--c-lime) 20%, transparent);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.c-footer-bottom .c-footer-made:focus-visible {
+  outline: 2px solid var(--c-lime);
+  outline-offset: 3px;
 }
 
 /* ---------- Yuxarı qayıt ---------- */
