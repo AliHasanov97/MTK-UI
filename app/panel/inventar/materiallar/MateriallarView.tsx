@@ -69,7 +69,8 @@ export function MateriallarView() {
     searchNomenclatures(auth.accessToken, {
       searchTerm: searchTerm || undefined,
       sortCriteria: { columnName: "Code", direction: 0 },
-      page: pageNumber - 1,
+      // Warehouse nomenklatura axtarışı səhifəni 1-dən sayır (digər modullardan fərqli olaraq 0-dan yox).
+      page: pageNumber,
       pageSize: PAGE_SIZE,
     })
       .then((res) => {
