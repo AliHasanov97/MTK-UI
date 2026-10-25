@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { useCanDoEverything } from "../../../lib/auth/roles";
 import { ApiError } from "../../../lib/api/client";
@@ -10,12 +12,17 @@ import {
   createBuilding,
   listApartmentTypes,
   listBuildings,
+  searchApartments,
+  type Apartment,
   type ApartmentType,
   type Building,
 } from "../../../lib/api/buildings";
 import { Modal } from "../../Modal";
 import { useCreatedByMap } from "../auditHooks";
-import { BinaSxemiModal } from "./BinaSxemiModal";
+import { fetchDebtByApartment } from "../bina/[id]/BuildingScheme";
+
+// Every apartment is loaded once to work out the per-building counts below.
+const APARTMENT_FETCH_SIZE = 5000;
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -27,15 +34,19 @@ function errorMessage(err: unknown) {
   return "Backend-ə qoşulmaq mümkün olmadı.";
 }
 
+const money = new Intl.NumberFormat("az-AZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+type BuildingStats = { apartments: number; owned: number; debt: number; debtors: number };
+
 export function BinaSiyahisiView() {
   const auth = useAuth();
+  const router = useRouter();
   const canManage = useCanDoEverything();
   const [buildings, setBuildings] = useState<Building[] | null>(null);
+  const [apartments, setApartments] = useState<Apartment[] | null>(null);
+  const [debtByApartment, setDebtByApartment] = useState<Map<string, number> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [apartmentBuilding, setApartmentBuilding] = useState<Building | null>(null);
-  const [typesBuilding, setTypesBuilding] = useState<Building | null>(null);
-  const [schemeBuilding, setSchemeBuilding] = useState<Building | null>(null);
   const createdBy = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Building");
 
   const load = useCallback(() => {
@@ -52,6 +63,21 @@ export function BinaSiyahisiView() {
     load();
   }, [load]);
 
+  // The extra columns are a nice-to-have: if they fail the list still renders.
+  useEffect(() => {
+    if (auth.status !== "authenticated") return;
+    const accessToken = auth.accessToken;
+    searchApartments(accessToken, { pageSize: APARTMENT_FETCH_SIZE })
+      .then((res) => {
+        setApartments(res.items);
+        return fetchDebtByApartment(accessToken, res.items.map((a) => a.id)).then(setDebtByApartment);
+      })
+      .catch(() => {
+        setApartments((current) => current ?? []);
+        setDebtByApartment((current) => current ?? new Map());
+      });
+  }, [auth]);
+
   if (auth.status !== "authenticated") return null;
 
   if (error) {
@@ -67,6 +93,19 @@ export function BinaSiyahisiView() {
     return <p className="panel-page-lead">Yüklənir…</p>;
   }
 
+  const stats = new Map<string, BuildingStats>();
+  for (const a of apartments ?? []) {
+    const s = stats.get(a.building.id) ?? { apartments: 0, owned: 0, debt: 0, debtors: 0 };
+    const debt = debtByApartment?.get(a.id) ?? 0;
+    s.apartments += 1;
+    if (a.currentOwner) s.owned += 1;
+    if (debt > 0.005) {
+      s.debt += debt;
+      s.debtors += 1;
+    }
+    stats.set(a.building.id, s);
+  }
+
   return (
     <div>
       <div className="panel-toolbar">
@@ -79,61 +118,85 @@ export function BinaSiyahisiView() {
       </div>
 
       <div className="data-table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Ad</th>
-              <th>Ünvan</th>
-              <th>Status</th>
-              <th>Yaradan</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {buildings.length === 0 && (
+        <div className="owner-table-scroll">
+          <table className="data-table">
+            <thead>
               <tr>
-                <td colSpan={5}>Hələ heç bir bina qeydə alınmayıb.</td>
+                <th>Ad</th>
+                <th>Ünvan</th>
+                <th className="vendor-th-amount">Mənzil</th>
+                <th>Doluluq</th>
+                <th className="vendor-th-amount">Açıq borc</th>
+                <th>Status</th>
+                <th>Yaradan</th>
               </tr>
-            )}
-            {buildings.map((b) => (
-              <tr key={b.id}>
-                <td>{b.name}</td>
-                <td>{b.fullAddress}</td>
-                <td>
-                  <span className="panel-role-tag">{b.status}</span>
-                </td>
-                <td>{createdBy[b.id] ?? "—"}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="panel-btn panel-btn-sm"
-                    onClick={() => setSchemeBuilding(b)}
+            </thead>
+            <tbody>
+              {buildings.length === 0 && (
+                <tr>
+                  <td colSpan={7}>Hələ heç bir bina qeydə alınmayıb.</td>
+                </tr>
+              )}
+              {buildings.map((b) => {
+                const s = stats.get(b.id);
+                const occupancy = s && s.apartments > 0 ? Math.round((s.owned / s.apartments) * 100) : 0;
+                return (
+                  <tr
+                    key={b.id}
+                    className="data-table-row-clickable"
+                    title="Bina səhifəsinə keç"
+                    onClick={() => router.push(`/panel/binalar/bina/${b.id}`)}
                   >
-                    Sxem
-                  </button>{" "}
-                  {canManage && (
-                    <>
-                      <button
-                        type="button"
-                        className="panel-btn panel-btn-sm"
-                        onClick={() => setTypesBuilding(b)}
+                    <td className="vendor-cell-vendor">
+                      <Link
+                        className="owner-link"
+                        href={`/panel/binalar/bina/${b.id}`}
+                        onClick={(event) => event.stopPropagation()}
                       >
-                        Mənzil tipləri
-                      </button>{" "}
-                      <button
-                        type="button"
-                        className="panel-btn panel-btn-sm"
-                        onClick={() => setApartmentBuilding(b)}
-                      >
-                        + Mənzil
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                        {b.name}
+                      </Link>
+                      {b.description && <span className="vendor-cell-sub">{b.description}</span>}
+                    </td>
+                    <td>{b.fullAddress}</td>
+                    <td className="vendor-amount">{apartments ? (s?.apartments ?? 0) : "…"}</td>
+                    <td>
+                      {!apartments ? (
+                        "…"
+                      ) : !s ? (
+                        "—"
+                      ) : (
+                        <div className="bina-occupancy">
+                          <div className="bview-meter" aria-hidden="true">
+                            <span style={{ width: `${occupancy}%` }} />
+                          </div>
+                          <span>
+                            <strong>{occupancy}%</strong> · {s.owned} sahibli, {s.apartments - s.owned} boş
+                          </span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="vendor-amount">
+                      {!debtByApartment ? (
+                        "…"
+                      ) : s && s.debt > 0.005 ? (
+                        <>
+                          <strong className="vendor-value-danger">{money.format(s.debt)} ₼</strong>
+                          <span className="vendor-cell-sub">{s.debtors} borclu mənzil</span>
+                        </>
+                      ) : (
+                        <span className="vendor-value-ok">Borc yoxdur</span>
+                      )}
+                    </td>
+                    <td>
+                      <span className="panel-role-tag">{b.status}</span>
+                    </td>
+                    <td>{createdBy[b.id] ?? "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showCreate && (
@@ -144,16 +207,6 @@ export function BinaSiyahisiView() {
             load();
           }}
         />
-      )}
-
-      {typesBuilding && <ApartmentTypesModal building={typesBuilding} onClose={() => setTypesBuilding(null)} />}
-
-      {apartmentBuilding && (
-        <CreateApartmentModal building={apartmentBuilding} onClose={() => setApartmentBuilding(null)} />
-      )}
-
-      {schemeBuilding && (
-        <BinaSxemiModal building={schemeBuilding} onClose={() => setSchemeBuilding(null)} />
       )}
     </div>
   );
@@ -231,7 +284,16 @@ function CreateBuildingModal({ onClose, onSaved }: { onClose: () => void; onSave
   );
 }
 
-function CreateApartmentModal({ building, onClose }: { building: Building; onClose: () => void }) {
+export function CreateApartmentModal({
+  building,
+  onClose,
+  onSaved,
+}: {
+  building: Building;
+  onClose: () => void;
+  /** Called once the apartment is created (the modal stays open on its success message). */
+  onSaved?: () => void;
+}) {
   const auth = useAuth();
   const [apartmentNumber, setApartmentNumber] = useState("");
   const [floor, setFloor] = useState("1");
@@ -264,6 +326,7 @@ function CreateApartmentModal({ building, onClose }: { building: Building; onClo
         apartmentTypeId,
       });
       setDone(true);
+      onSaved?.();
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -341,7 +404,7 @@ function CreateApartmentModal({ building, onClose }: { building: Building; onClo
   );
 }
 
-function ApartmentTypesModal({ building, onClose }: { building: Building; onClose: () => void }) {
+export function ApartmentTypesModal({ building, onClose }: { building: Building; onClose: () => void }) {
   const auth = useAuth();
   const accessToken = auth.status === "authenticated" ? auth.accessToken : "";
   const [types, setTypes] = useState<ApartmentType[] | null>(null);

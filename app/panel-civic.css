@@ -2410,3 +2410,466 @@ html[data-area="panel"] .panel-shell .panel-pagination .panel-btn {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Bina sxemi: axşam fasadı (hər mənzil bir pəncərə) ---------- */
+
+html[data-area="panel"] .modal-backdrop .modal-card-wide:has(.bview) {
+  width: min(1180px, calc(100vw - 36px));
+}
+
+html[data-area="panel"] .bview {
+  --bview-win-w: 52px;
+  --bview-win-h: 38px;
+  --bview-gap: 10px;
+  --bview-facade: #b7a48d;
+  --bview-facade-dark: #9a8670;
+  --bview-trim: #d9cbb7;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* Scene: dusk sky behind the building, street at the bottom. */
+html[data-area="panel"] .bview-scene {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 36px 20px 0;
+  overflow-x: auto;
+  border-radius: 18px;
+  background:
+    radial-gradient(420px 160px at 82% 12%, rgba(255, 214, 153, 0.18), transparent 70%),
+    linear-gradient(180deg, #1c2742 0%, #2e3c5f 46%, #6b5f78 78%, #c98a6a 100%);
+}
+
+html[data-area="panel"] .bview-building {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  filter: drop-shadow(0 24px 30px rgba(8, 12, 24, 0.45));
+}
+
+/* Each row = floor label column + facade strip. */
+html[data-area="panel"] .bview-floor,
+html[data-area="panel"] .bview-ground-floor {
+  display: grid;
+  grid-template-columns: 30px auto;
+  align-items: stretch;
+}
+
+html[data-area="panel"] .bview-floor-label {
+  align-self: center;
+  padding-right: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-area="panel"] .bview-windows {
+  display: grid;
+  grid-template-columns: repeat(var(--bview-cols), var(--bview-win-w));
+  gap: var(--bview-gap);
+  padding: 9px 16px;
+  background: linear-gradient(90deg, var(--bview-facade) 0%, var(--bview-facade-dark) 100%);
+  border-bottom: 3px solid var(--bview-trim);
+}
+
+html[data-area="panel"] .bview-roof {
+  display: grid;
+  grid-template-columns: 30px auto;
+}
+
+html[data-area="panel"] .bview-roof::before {
+  content: "";
+}
+
+html[data-area="panel"] .bview-roof-cap {
+  height: 22px;
+  margin: 0 -10px;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, #5d4c3f 0%, #46382e 100%);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18);
+}
+
+/* Window: frame + glass. The light classes set the glass. */
+html[data-area="panel"] .bview-win {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: var(--bview-win-w);
+  height: var(--bview-win-h);
+  padding: 0 0 3px 5px;
+  overflow: hidden;
+  border: 3px solid var(--bview-trim);
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 0.12s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Window cross bar. */
+html[data-area="panel"] .bview-win::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 50%;
+  width: 2px;
+  background: rgba(60, 45, 30, 0.35);
+}
+
+/* Glass reflection. */
+html[data-area="panel"] .bview-win::after {
+  content: "";
+  position: absolute;
+  inset: -40% auto auto -30%;
+  width: 60%;
+  height: 180%;
+  transform: rotate(28deg);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.22), transparent);
+  pointer-events: none;
+}
+
+html[data-area="panel"] .bview-win:hover {
+  transform: scale(1.08);
+  z-index: 1;
+}
+
+html[data-area="panel"] .bview-win:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+html[data-area="panel"] .bview-win.selected {
+  outline: 3px solid var(--pc-terracotta);
+  outline-offset: 2px;
+  z-index: 2;
+}
+
+html[data-area="panel"] .bview-win.dimmed {
+  opacity: 0.18;
+}
+
+html[data-area="panel"] .bview-win-number {
+  position: relative;
+  z-index: 1;
+  color: rgba(40, 28, 16, 0.85);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lights. */
+html[data-area="panel"] .bview-win--warm {
+  background: linear-gradient(180deg, #fff1c4 0%, #ffd27a 100%);
+  box-shadow: 0 0 16px rgba(255, 206, 110, 0.55);
+}
+
+html[data-area="panel"] .bview-win--off {
+  background: linear-gradient(180deg, #33415e 0%, #1f2840 100%);
+}
+
+html[data-area="panel"] .bview-win--off .bview-win-number {
+  color: rgba(220, 228, 245, 0.7);
+}
+
+html[data-area="panel"] .bview-win--green {
+  background: linear-gradient(180deg, #e3f7c9 0%, #a8dc7f 100%);
+  box-shadow: 0 0 14px rgba(150, 220, 110, 0.45);
+}
+
+html[data-area="panel"] .bview-win--amber {
+  background: linear-gradient(180deg, #ffe0a8 0%, #ffab3d 100%);
+  box-shadow: 0 0 16px rgba(255, 160, 50, 0.55);
+}
+
+html[data-area="panel"] .bview-win--red {
+  background: linear-gradient(180deg, #ffc2b5 0%, #ff6a4d 100%);
+  box-shadow: 0 0 18px rgba(255, 90, 60, 0.6);
+}
+
+html[data-area="panel"] .bview-win--blue {
+  background: linear-gradient(180deg, #d4e6ff 0%, #7fb0ff 100%);
+  box-shadow: 0 0 14px rgba(110, 160, 255, 0.5);
+}
+
+html[data-area="panel"] .bview-win--violet {
+  background: linear-gradient(180deg, #ead9ff 0%, #b48cf0 100%);
+  box-shadow: 0 0 14px rgba(170, 120, 240, 0.5);
+}
+
+html[data-area="panel"] .bview-win--teal {
+  background: linear-gradient(180deg, #ccf5ee 0%, #5fcfbd 100%);
+  box-shadow: 0 0 14px rgba(80, 200, 180, 0.5);
+}
+
+html[data-area="panel"] .bview-win--rose {
+  background: linear-gradient(180deg, #ffd6e4 0%, #f58cb0 100%);
+  box-shadow: 0 0 14px rgba(240, 120, 160, 0.5);
+}
+
+/* Wall where a floor has fewer apartments than the widest one. */
+html[data-area="panel"] .bview-wall {
+  width: var(--bview-win-w);
+  height: var(--bview-win-h);
+  border-radius: 4px;
+  background: rgba(70, 52, 36, 0.12);
+}
+
+/* Ground floor with the entrance. */
+html[data-area="panel"] .bview-entrance {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  height: 52px;
+  background: linear-gradient(90deg, #8e7a64 0%, #77654f 100%);
+}
+
+html[data-area="panel"] .bview-canopy {
+  position: absolute;
+  bottom: 40px;
+  width: 92px;
+  height: 7px;
+  border-radius: 3px;
+  background: #3f322a;
+}
+
+html[data-area="panel"] .bview-door {
+  width: 60px;
+  height: 38px;
+  border: 3px solid var(--bview-trim);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, #ffe2a0 0%, #f2b45c 100%);
+  box-shadow: 0 0 22px rgba(255, 196, 100, 0.55);
+}
+
+html[data-area="panel"] .bview-street {
+  position: relative;
+  align-self: stretch;
+  height: 34px;
+  margin: 0 -20px;
+  background: linear-gradient(180deg, #4a4f45 0%, #33372f 100%);
+  border-top: 4px solid #8a8f80;
+}
+
+html[data-area="panel"] .bview-tree {
+  position: absolute;
+  bottom: 22px;
+  left: 12%;
+  width: 34px;
+  height: 46px;
+  border-radius: 50% 50% 46% 46%;
+  background: radial-gradient(circle at 35% 30%, #4f7a4a, #24432a);
+}
+
+html[data-area="panel"] .bview-tree::after {
+  content: "";
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  width: 4px;
+  height: 16px;
+  transform: translateX(-50%);
+  background: #3b2a1f;
+}
+
+html[data-area="panel"] .bview-tree--small {
+  left: calc(12% + 38px);
+  width: 24px;
+  height: 32px;
+}
+
+html[data-area="panel"] .bview-tree--right {
+  left: auto;
+  right: 12%;
+}
+
+/* Side panel. */
+html[data-area="panel"] .bview-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+html[data-area="panel"] .bview-modes {
+  align-self: flex-start;
+}
+
+html[data-area="panel"] .bview-legend {
+  display: grid;
+  gap: 6px;
+}
+
+html[data-area="panel"] .bview-legend-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-surface);
+  color: var(--pc-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+html[data-area="panel"] .bview-legend-item strong {
+  color: var(--pc-ink);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-area="panel"] .bview-legend-item:hover,
+html[data-area="panel"] .bview-legend-item.active {
+  border-color: color-mix(in srgb, var(--pc-terracotta) 45%, var(--pc-border));
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .bview-swatch {
+  width: 22px;
+  height: 16px;
+  border: 2px solid var(--bview-trim);
+  border-radius: 3px;
+}
+
+html[data-area="panel"] .bview-stat {
+  display: grid;
+  gap: 7px;
+  padding: 12px 14px;
+  border: 1px solid var(--pc-border);
+  border-radius: 12px;
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .bview-stat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--pc-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+html[data-area="panel"] .bview-stat-head strong {
+  color: var(--pc-ink);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+html[data-area="panel"] .bview-stat small {
+  color: var(--pc-soft);
+  font-size: 11px;
+}
+
+html[data-area="panel"] .bview-meter {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .bview-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffc861, #ff9d3d);
+}
+
+html[data-area="panel"] .bview-detail {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--pc-terracotta) 35%, var(--pc-border));
+  border-radius: 12px;
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .bview-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+html[data-area="panel"] .bview-detail-head strong {
+  color: var(--pc-ink);
+  font-size: 15px;
+}
+
+html[data-area="panel"] .bview-detail dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+html[data-area="panel"] .bview-detail dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+html[data-area="panel"] .bview-detail dt {
+  color: var(--pc-soft);
+}
+
+html[data-area="panel"] .bview-detail dd {
+  margin: 0;
+  color: var(--pc-ink);
+  font-weight: 600;
+  text-align: right;
+}
+
+html[data-area="panel"] .bview-hint {
+  margin: 0;
+  color: var(--pc-soft);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  html[data-area="panel"] .bview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html[data-area="panel"] .bview-scene {
+    align-items: flex-start;
+  }
+}
+
+/* Bina səhifəsində status + əməliyyat düymələri hero-nun sağ yuxarısında. */
+html[data-area="panel"] .bina-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+html[data-area="panel"] .bina-occupancy {
+  display: grid;
+  gap: 5px;
+  min-width: 150px;
+  color: var(--pc-muted);
+  font-size: 12px;
+}
+
+html[data-area="panel"] .bina-occupancy strong {
+  color: var(--pc-ink);
+}

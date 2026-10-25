@@ -3,6 +3,8 @@ import { ROLES, type Role } from "../lib/auth/roleConstants";
 export type SubPage = {
   href: string;
   label: string;
+  /** Extra path prefixes that belong to this tab (e.g. its detail pages). */
+  matches?: string[];
 };
 
 export type NavModule = {
@@ -28,9 +30,9 @@ export const NAV_MODULES: NavModule[] = [
     icon: "⌂",
     roles: [ROLES.ADMIN, ROLES.BUILDING_MANAGER],
     tabs: [
-      { href: "/panel/binalar/bina-siyahisi", label: "Binalar" },
+      { href: "/panel/binalar/bina-siyahisi", label: "Binalar", matches: ["/panel/binalar/bina"] },
       { href: "/panel/binalar", label: "Mənzillər" },
-      { href: "/panel/binalar/qarajlar", label: "Qarajlar" },
+      { href: "/panel/binalar/qarajlar", label: "Qarajlar", matches: ["/panel/binalar/qaraj"] },
       { href: "/panel/binalar/sahibler", label: "Sahiblər" },
     ],
   },

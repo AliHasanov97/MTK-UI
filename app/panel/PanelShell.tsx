@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Logo } from "../components/Logo";
 import { useCompanyName } from "../components/CompanyName";
-import { NAV_MODULES } from "./nav";
+import { NAV_MODULES, type SubPage } from "./nav";
 import { UserMenu } from "../components/UserMenu";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useAuth } from "../lib/auth/AuthContext";
@@ -33,17 +33,25 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
     (mod) => !mod.roles || mod.roles.some((role) => user.roles.includes(role)),
   );
 
+  // Length of the longest prefix (the tab's own href or one of its `matches`)
+  // that the current path falls under; 0 when the tab doesn't match at all.
+  const tabMatchLength = (tab: SubPage) =>
+    Math.max(
+      0,
+      ...[tab.href, ...(tab.matches ?? [])]
+        .filter((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+        .map((prefix) => prefix.length),
+    );
+
   const activeModule = visibleModules.find(
-    (mod) =>
-      mod.href === pathname ||
-      mod.tabs?.some((tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`)),
+    (mod) => mod.href === pathname || mod.tabs?.some((tab) => tabMatchLength(tab) > 0),
   );
 
   // Ən uzun uyğun gələn tab aktivdir — "/panel/binalar" (Mənzillər)
   // "/panel/binalar/bina-siyahisi" (Binalar) ilə eyni anda seçilməsin deyə.
   const activeTab = activeModule?.tabs
-    ?.filter((tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`))
-    .sort((a, b) => b.href.length - a.href.length)[0];
+    ?.filter((tab) => tabMatchLength(tab) > 0)
+    .sort((a, b) => tabMatchLength(b) - tabMatchLength(a))[0];
 
   return (
     <div className="panel-shell">
