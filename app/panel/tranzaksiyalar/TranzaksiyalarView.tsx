@@ -546,7 +546,6 @@ function TransactionDocumentModal({
   const isPayment = row.documentType === "ResidentPayment" || row.documentType === "VendorPayment";
   const [loading, setLoading] = useState(isPurchase || isPayment);
   const [error, setError] = useState<string | null>(null);
-  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [purchasePdfLoading, setPurchasePdfLoading] = useState(false);
 
@@ -573,18 +572,27 @@ function TransactionDocumentModal({
     return () => { active = false; };
   }, [accessToken, isPayment, isPurchase, row.referenceId]);
 
-  useEffect(() => () => {
-    if (receiptUrl) URL.revokeObjectURL(receiptUrl);
-  }, [receiptUrl]);
-
-  async function openReceiptPreview() {
+  async function openReceiptInNewTab() {
     if (!isPayment) return;
+    // Open the tab synchronously inside the click — opening it after the await
+    // would be treated as a popup and blocked.
+    const tab = window.open("", "_blank");
     setReceiptLoading(true);
     setError(null);
     try {
       const file = await exportPaymentReceipt(accessToken, row.referenceId);
-      setReceiptUrl(URL.createObjectURL(file.blob));
+      const url = URL.createObjectURL(file.blob);
+      if (tab) {
+        tab.location.href = url;
+        // The new tab needs the blob only long enough to load it.
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } else {
+        // Popups blocked entirely — fall back to a download.
+        URL.revokeObjectURL(url);
+        saveBlobAsFile(file.blob, file.fileName);
+      }
     } catch (err) {
+      tab?.close();
       setError(errorMessage(err));
     } finally {
       setReceiptLoading(false);
@@ -672,7 +680,14 @@ function TransactionDocumentModal({
 
         {payment && (
           <section className="data-table-wrap purchase-detail-card">
-            <h3>Ödəniş məlumatı</h3>
+            <div className="transaction-document-heading">
+              <h3>Ödəniş məlumatı</h3>
+              {canUploadDocuments && (
+                <button type="button" className="panel-btn panel-btn-sm" disabled={receiptLoading} onClick={openReceiptInNewTab}>
+                  {receiptLoading ? "Qəbz açılır…" : "Qəbzə bax"}
+                </button>
+              )}
+            </div>
             <dl className="purchase-meta">
               <div><dt>Ödəyən</dt><dd>{payment.partyName ?? "—"}</dd></div>
               {showPaymentProperty && (
@@ -706,13 +721,6 @@ function TransactionDocumentModal({
                 </table>
               </div>
             )}
-            {canUploadDocuments && (receiptUrl ? (
-              <iframe className="transaction-receipt-preview" src={receiptUrl} title="Ödəniş qəbzi" />
-            ) : (
-              <button type="button" className="panel-btn panel-btn-sm" disabled={receiptLoading} onClick={openReceiptPreview}>
-                {receiptLoading ? "Qəbz açılır…" : "Qəbzə bax"}
-              </button>
-            ))}
           </section>
         )}
 

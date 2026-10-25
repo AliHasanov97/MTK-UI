@@ -8,9 +8,14 @@ import { useAuth } from "../../lib/auth/AuthContext";
 import { useCanDoEverything } from "../../lib/auth/roles";
 import { formatDateTime } from "../../lib/format";
 import {
+  NOMENCLATURE_CATEGORY_LABELS,
+  UNIT_LABELS,
+  categoryFromOrdinal,
+  getAllStock,
   recordIssue,
   searchNomenclatures,
   searchTransactions,
+  unitFromOrdinal,
   type NomenclatureListItem,
   type TransactionDto,
   type TransactionTypeKey,
@@ -18,9 +23,20 @@ import {
 import { Modal } from "../Modal";
 import { errorMessage, formatMoney, formatQuantity } from "./shared";
 
+const PAGE_SIZE = 10;
+// The transaction search returns no total count and has no text search, so every
+// row of the type is loaded once; search and pagination run client-side.
+const FETCH_SIZE = 1000;
+
+function isThisMonth(iso: string) {
+  const date = new Date(iso);
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+}
+
 /**
- * Daxilolma və çıxarış eyni cədvəli paylaşır — yalnız başlıq və (qəbulda) vahid
- * qiymət/ümumi sütunları fərqlənir.
+ * Daxilolma və çıxarış eyni cədvəli paylaşır — yalnız başlıq və (qəbulda) qaimə,
+ * vahid qiymət/ümumi sütunları fərqlənir.
  *
  * Daxilolma **yalnız oxunur**: məhsullar Payments modulundaki alışlarda alınır və
  * orada qəbul edilir, anbara isə GoodsReceivedIntegrationEvent ilə düşür. Çıxarış
@@ -35,16 +51,18 @@ export function MovementView({ transactionType }: { transactionType: Transaction
 
   const [rows, setRows] = useState<TransactionDto[] | null>(null);
   const [nomenclatures, setNomenclatures] = useState<NomenclatureListItem[]>([]);
+  const [stockOnHand, setStockOnHand] = useState<Map<string, number>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [pageNumber, setPageNumber] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [invoiceNumbers, setInvoiceNumbers] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
-    searchTransactions(auth.accessToken, { transactionType, pageSize: 200 })
+    searchTransactions(auth.accessToken, { transactionType, pageSize: FETCH_SIZE })
       .then((res) => {
         setRows(res);
         setError(null);
@@ -52,9 +70,56 @@ export function MovementView({ transactionType }: { transactionType: Transaction
       .catch((err) => setError(errorMessage(err)));
   }, [auth, transactionType, reloadKey]);
 
+  // Materials give the code, category and unit for each row (and feed the issue
+  // form's picker); stock gives the current quantity on hand.
   useEffect(() => {
-    if (!isReceipt || auth.status !== "authenticated" || !rows?.length) return;
-    const purchaseIds = [...new Set(rows.flatMap((row) => row.referenceId ? [row.referenceId] : []))]
+    if (auth.status !== "authenticated") return;
+    searchNomenclatures(auth.accessToken, {
+      sortCriteria: { columnName: "Code", direction: 0 },
+      pageSize: 500,
+    })
+      .then((res) => setNomenclatures(res.nomenclatures))
+      .catch(() => {
+        /* rows still render without the extra material columns */
+      });
+  }, [auth]);
+
+  useEffect(() => {
+    if (auth.status !== "authenticated") return;
+    getAllStock(auth.accessToken, 1, FETCH_SIZE)
+      .then((res) => setStockOnHand(new Map(res.map((s) => [s.nomenclatureId, s.quantityOnHand]))))
+      .catch(() => {
+        /* the stock column falls back to "—" */
+      });
+  }, [auth, reloadKey]);
+
+  // A new search term restarts pagination from the first page.
+  const [prevSearch, setPrevSearch] = useState(search);
+  if (search !== prevSearch) {
+    setPrevSearch(search);
+    setPageNumber(1);
+  }
+
+  const nomenclatureById = new Map(nomenclatures.map((n) => [n.id, n]));
+  const term = search.trim().toLowerCase();
+  const visible = (rows ?? []).filter((r) => {
+    if (!term) return true;
+    const n = nomenclatureById.get(r.nomenclatureId);
+    const category = n ? NOMENCLATURE_CATEGORY_LABELS[categoryFromOrdinal(n.category)] : "";
+    const invoice = r.referenceId ? (invoiceNumbers[r.referenceId] ?? "") : "";
+    return `${n?.code ?? ""} ${r.nomenclatureName} ${category} ${invoice} ${r.notes ?? ""}`
+      .toLowerCase()
+      .includes(term);
+  });
+
+  const pageCount = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
+  const currentPage = Math.min(pageNumber, pageCount);
+  const pageRows = visible.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Invoice numbers are looked up only for the receipts on the visible page.
+  useEffect(() => {
+    if (!isReceipt || auth.status !== "authenticated" || pageRows.length === 0) return;
+    const purchaseIds = [...new Set(pageRows.flatMap((row) => (row.referenceId ? [row.referenceId] : [])))]
       .filter((id) => !(id in invoiceNumbers));
     if (purchaseIds.length === 0) return;
     Promise.all(purchaseIds.map(async (id) => {
@@ -65,27 +130,9 @@ export function MovementView({ transactionType }: { transactionType: Transaction
         return [id, null] as const;
       }
     })).then((entries) => setInvoiceNumbers((current) => ({ ...current, ...Object.fromEntries(entries) })));
-  }, [auth, isReceipt, rows, invoiceNumbers]);
-
-  useEffect(() => {
-    // Material seçimi yalnız çıxarış forması üçün lazımdır.
-    if (auth.status !== "authenticated" || isReceipt) return;
-    searchNomenclatures(auth.accessToken, {
-      sortCriteria: { columnName: "Code", direction: 0 },
-      pageSize: 500,
-    })
-      .then((res) => setNomenclatures(res.nomenclatures))
-      .catch(() => {
-        /* the picker is only needed for the create form */
-      });
-  }, [auth, isReceipt]);
+  }, [auth, isReceipt, pageRows, invoiceNumbers]);
 
   if (auth.status !== "authenticated") return null;
-
-  const term = search.trim().toLowerCase();
-  const visible = (rows ?? []).filter((r) =>
-    term ? `${r.nomenclatureName} ${r.notes ?? ""}`.toLowerCase().includes(term) : true,
-  );
 
   if (error && !rows) {
     return (
@@ -96,12 +143,42 @@ export function MovementView({ transactionType }: { transactionType: Transaction
     );
   }
 
+  const allRows = rows ?? [];
+  const monthRows = allRows.filter((r) => isThisMonth(r.transactionDate));
+  const materialCount = new Set(allRows.map((r) => r.nomenclatureId)).size;
+  const receiptTotal = allRows.reduce((sum, r) => sum + (r.unitPrice ?? 0) * r.quantity, 0);
+  const columnCount = isReceipt ? 9 : 6;
+
   return (
     <div>
+      <div className="ledger-stats">
+        <article className="ledger-stat ledger-stat-in">
+          <span className="ledger-stat-label">{isReceipt ? "Daxilolma" : "Çıxarış"}</span>
+          <strong className="ledger-value-in">{rows ? allRows.length : "…"}</strong>
+          <span className="ledger-stat-caption">ümumi qeyd</span>
+        </article>
+        <article className="ledger-stat ledger-stat-net">
+          <span className="ledger-stat-label">Bu ay</span>
+          <strong className="ledger-value-in">{rows ? monthRows.length : "…"}</strong>
+          <span className="ledger-stat-caption">
+            {rows ? `${new Set(monthRows.map((r) => r.nomenclatureId)).size} material növü` : " "}
+          </span>
+        </article>
+        <article className="ledger-stat ledger-stat-out">
+          <span className="ledger-stat-label">{isReceipt ? "Ümumi məbləğ" : "Material növü"}</span>
+          <strong className="ledger-value-in">
+            {rows ? (isReceipt ? formatMoney(receiptTotal) : materialCount) : "…"}
+          </strong>
+          <span className="ledger-stat-caption">
+            {isReceipt ? `${materialCount} material növü` : "fərqli material çıxarılıb"}
+          </span>
+        </article>
+      </div>
+
       <div className="panel-toolbar">
         <input
           className="panel-search"
-          placeholder="Axtar (material, qeyd…)"
+          placeholder={isReceipt ? "Axtar (kod, material, qaimə, qeyd…)" : "Axtar (kod, material, kateqoriya, qeyd…)"}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -140,19 +217,21 @@ export function MovementView({ transactionType }: { transactionType: Transaction
               <thead>
                 <tr>
                   <th>Tarix</th>
+                  <th>Kod</th>
                   <th>Material</th>
                   {isReceipt && <th>Qaimə</th>}
                   <th className="vendor-th-amount">Miqdar</th>
                   {isReceipt && <th className="vendor-th-amount">Vahid qiymət</th>}
                   {isReceipt && <th className="vendor-th-amount">Ümumi</th>}
+                  <th className="vendor-th-amount">Cari qalıq</th>
                   <th>Qeyd</th>
                 </tr>
               </thead>
               <tbody>
                 {visible.length === 0 && (
                   <tr>
-                    <td colSpan={isReceipt ? 7 : 4}>
-                      {rows.length === 0
+                    <td colSpan={columnCount}>
+                      {allRows.length === 0
                         ? isReceipt
                           ? "Hələ daxilolma yoxdur — alışlar Payments bölməsində qəbul edilir."
                           : "Hələ çıxarış yoxdur."
@@ -160,28 +239,67 @@ export function MovementView({ transactionType }: { transactionType: Transaction
                     </td>
                   </tr>
                 )}
-                {visible.map((r) => (
-                  <tr key={r.id} className="data-table-row-clickable" onClick={() => router.push(`/panel/inventar/materiallar/${r.nomenclatureId}`)}>
-                    <td>{formatDateTime(r.transactionDate)}</td>
-                    <td className="vendor-cell-vendor"><Link className="owner-link" href={`/panel/inventar/materiallar/${r.nomenclatureId}`} onClick={(event) => event.stopPropagation()}>{r.nomenclatureName}</Link></td>
-                    {isReceipt && <td>{r.referenceId ? <Link className="owner-link" href={`/panel/maliyye-emeliyyatlari/salinmalar/${r.referenceId}`} onClick={(event) => event.stopPropagation()}>{invoiceNumbers[r.referenceId] ?? "Qaiməyə bax"}</Link> : "—"}</td>}
-                    <td className="vendor-amount">{formatQuantity(r.quantity)}</td>
-                    {isReceipt && (
-                      <td className="vendor-amount">
-                        {r.unitPrice != null ? formatMoney(r.unitPrice) : "—"}
+                {pageRows.map((r) => {
+                  const n = nomenclatureById.get(r.nomenclatureId);
+                  const unit = n ? UNIT_LABELS[unitFromOrdinal(n.unit)] : "";
+                  const onHand = stockOnHand.get(r.nomenclatureId);
+                  return (
+                    <tr key={r.id} className="data-table-row-clickable" onClick={() => router.push(`/panel/inventar/materiallar/${r.nomenclatureId}`)}>
+                      <td>{formatDateTime(r.transactionDate)}</td>
+                      <td>{n?.code ?? "—"}</td>
+                      <td className="vendor-cell-vendor">
+                        <Link className="owner-link" href={`/panel/inventar/materiallar/${r.nomenclatureId}`} onClick={(event) => event.stopPropagation()}>{r.nomenclatureName}</Link>
+                        {n && <span className="vendor-cell-sub">{NOMENCLATURE_CATEGORY_LABELS[categoryFromOrdinal(n.category)]}</span>}
                       </td>
-                    )}
-                    {isReceipt && (
+                      {isReceipt && <td>{r.referenceId ? <Link className="owner-link" href={`/panel/maliyye-emeliyyatlari/salinmalar/${r.referenceId}`} onClick={(event) => event.stopPropagation()}>{invoiceNumbers[r.referenceId] ?? "Qaiməyə bax"}</Link> : "—"}</td>}
                       <td className="vendor-amount">
-                        {r.unitPrice != null ? formatMoney(r.unitPrice * r.quantity) : "—"}
+                        <strong>{formatQuantity(r.quantity)}</strong> {unit}
                       </td>
-                    )}
-                    <td className="ledger-cell-note">{r.notes ?? "—"}</td>
-                  </tr>
-                ))}
+                      {isReceipt && (
+                        <td className="vendor-amount">
+                          {r.unitPrice != null ? formatMoney(r.unitPrice) : "—"}
+                        </td>
+                      )}
+                      {isReceipt && (
+                        <td className="vendor-amount">
+                          {r.unitPrice != null ? formatMoney(r.unitPrice * r.quantity) : "—"}
+                        </td>
+                      )}
+                      <td className="vendor-amount">
+                        {onHand != null ? `${formatQuantity(onHand)} ${unit}` : "—"}
+                      </td>
+                      <td className="ledger-cell-note">{r.notes ?? "—"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+          {visible.length > 0 && (
+            <div className="panel-pagination">
+              <span>
+                Səhifə {currentPage}/{pageCount}
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  className="panel-btn panel-btn-sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPageNumber(Math.max(1, currentPage - 1))}
+                >
+                  Əvvəlki
+                </button>
+                <button
+                  type="button"
+                  className="panel-btn panel-btn-sm"
+                  disabled={currentPage >= pageCount}
+                  onClick={() => setPageNumber(currentPage + 1)}
+                >
+                  Növbəti
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

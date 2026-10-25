@@ -122,10 +122,21 @@ export function SignedDocumentsPanel({
   }
 
   async function handlePreview(file: FileAttachmentResponse) {
+    // PDFs open in a new tab. The tab is opened synchronously inside the click —
+    // opening it after the await would be blocked as a popup. Images keep the
+    // inline preview, which is also the fallback when popups are blocked.
+    const tab = file.contentType === "application/pdf" ? window.open("", "_blank") : null;
     setBusyId(file.id);
     setError(null);
     try {
       const { blob, fileName } = await getFileAttachmentBlob(accessToken, file.id);
+      if (tab) {
+        const url = URL.createObjectURL(blob);
+        tab.location.href = url;
+        // The new tab needs the blob only long enough to load it.
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        return;
+      }
       setPreview({
         url: URL.createObjectURL(blob),
         contentType: file.contentType,
@@ -133,6 +144,7 @@ export function SignedDocumentsPanel({
         openInNewTab: window.matchMedia("(max-width: 768px), (pointer: coarse)").matches,
       });
     } catch (err) {
+      tab?.close();
       setError(errorMessage(err));
     } finally {
       setBusyId(null);

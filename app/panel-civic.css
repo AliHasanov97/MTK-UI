@@ -1612,8 +1612,11 @@ html[data-area="panel"] .modal-backdrop .transaction-files-card .payment-documen
   margin: 0;
 }
 
-html[data-area="panel"] .modal-backdrop .transaction-files-card .signed-documents-list {
+html[data-area="panel"] .modal-backdrop .transaction-files-card .signed-documents-list,
+html[data-area="panel"] .modal-backdrop .transaction-files-card .signed-document-preview,
+html[data-area="panel"] .modal-backdrop .transaction-files-card .form-error {
   flex: 1 1 100%;
+  min-width: 0;
   margin: 0;
 }
 
