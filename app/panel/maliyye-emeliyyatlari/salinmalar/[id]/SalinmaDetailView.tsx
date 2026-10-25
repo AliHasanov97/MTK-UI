@@ -182,15 +182,15 @@ export function SalinmaDetailView({ purchaseId }: { purchaseId: string }) {
           <div className="owner-table-scroll">
             <table className="data-table">
               <thead>
-                <tr><th>Material / xidmət</th><th>Miqdar</th><th>Vahid qiymət</th><th>Məbləğ</th></tr>
+                <tr><th>Material / xidmət</th><th className="vendor-th-amount">Miqdar</th><th className="vendor-th-amount">Vahid qiymət</th><th className="vendor-th-amount">Məbləğ</th></tr>
               </thead>
               <tbody>
                 {purchase.lines.map((line, index) => (
                   <tr key={line.id || `${line.nomenclatureId}-${index}`}>
                     <td>{line.nomenclatureName ?? "—"}{line.nomenclatureCode ? <span className="vendor-cell-sub">{line.nomenclatureCode}</span> : null}</td>
-                    <td>{line.quantity}</td>
-                    <td>{money(line.unitPrice)}</td>
-                    <td>{money(line.lineTotal)}</td>
+                    <td className="vendor-amount">{line.quantity}</td>
+                    <td className="vendor-amount">{money(line.unitPrice)}</td>
+                    <td className="vendor-amount">{money(line.lineTotal)}</td>
                   </tr>
                 ))}
               </tbody>

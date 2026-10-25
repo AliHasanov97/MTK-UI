@@ -1,27 +1,28 @@
 import { steps } from "../content";
+import { SectionHead } from "./SectionHead";
 
 export function Flow() {
   return (
-    <section className="lp-flow" id="nece-isleyir">
-      <div className="section-wrap lp-flow-inner">
-        <div className="lp-flow-head">
-          <div className="eyebrow eyebrow-light">NECƏ İŞLƏYİR</div>
-          <h2>
-            Qeydiyyatdan hesabata
-            <br />
-            <span>qırılmayan zəncir.</span>
-          </h2>
-        </div>
-        <ol className="lp-steps">
+    <section className="c-section" id="nece-isleyir">
+      <div className="c-wrap">
+        <SectionHead
+          title="Necə işləyir"
+          subtitle="Qeydiyyatdan hesabata dörd addım"
+        />
+
+        <div className="c-steps c-steps-cols">
           {steps.map((s, i) => (
-            <li key={s.title}>
-              <span className="lp-step-icon">{s.icon}</span>
-              <small>ADDIM {String(i + 1).padStart(2, "0")}</small>
-              <strong>{s.title}</strong>
-              <p>{s.text}</p>
-            </li>
+            <div className="c-step" key={s.title}>
+              <span className="c-step-num" aria-hidden="true">
+                {i + 1}
+              </span>
+              <div>
+                <h3>{s.title}</h3>
+                <p>{s.text}</p>
+              </div>
+            </div>
           ))}
-        </ol>
+        </div>
       </div>
     </section>
   );

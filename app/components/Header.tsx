@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "./Logo";
+import { BuildingIcon } from "./icons";
 import { HeaderAuth } from "./HeaderAuth";
 import { ThemeToggle } from "./ThemeToggle";
 import { getCompanyName } from "../lib/api/company";
@@ -18,7 +18,16 @@ export async function Header() {
   return (
     <header className="site-header">
       <div className="site-header-inner">
-        <Logo name={name} href="/" />
+        <Link className="c-brand" href="/" aria-label={`${name} ana səhifə`}>
+          <span className="c-brand-mark" aria-hidden="true">
+            <BuildingIcon size={20} />
+          </span>
+          <span className="c-brand-text">
+            <strong>{name}</strong>
+            <small>İdarəetmə sistemi</small>
+          </span>
+        </Link>
+
         <nav className="desktop-nav" aria-label="Əsas menyu">
           {links.map((l) => (
             <Link key={l.href} href={l.href}>
@@ -26,6 +35,7 @@ export async function Header() {
             </Link>
           ))}
         </nav>
+
         <div className="header-right">
           <ThemeToggle />
           <HeaderAuth />

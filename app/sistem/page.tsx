@@ -22,7 +22,7 @@ export default function SystemPage() {
         lead="Modullar, iş axını, rollar və təhlükəsizlik — bir səhifədə."
         crumbs={[{ label: "Sistem haqqında" }]}
       />
-      <Modules />
+      <Modules detailed />
       <Compare />
       <Flow />
       <Roles />

@@ -1,26 +1,30 @@
-import { Arrow } from "./Arrow";
+import { ArrowRightIcon, MailIcon } from "./icons";
 import { LoginButton } from "./LoginButton";
-import { getCompanyName } from "../lib/api/company";
+import { getCompanyContactInfo } from "../lib/api/company";
 
 export async function Closing() {
-  const name = await getCompanyName();
+  const company = await getCompanyContactInfo();
+
   return (
-    <section className="lp-closing section-wrap">
-      <div>
-        <div className="eyebrow">{name.toLocaleUpperCase("az")} · İDARƏETMƏ SİSTEMİ</div>
-        <h2>
-          İdarəetmədə aydınlıq
-          <br />
-          elə buradan başlayır.
-        </h2>
-      </div>
-      <div className="lp-closing-actions">
-        <LoginButton className="button button-dark">
-          Daxil ol <Arrow />
-        </LoginButton>
-        <a className="text-link" href="mailto:info@mtk.az">
-          Bizimlə əlaqə saxla
-        </a>
+    <section className="c-closing">
+      <div className="c-wrap">
+        <div className="c-closing-card">
+          <h2>İdarəetmədə şəffaflıq</h2>
+          <p>
+            İdarəçi tam mənzərəni, mühasib dəqiq rəqəmləri, sakin isə öz borcunu və
+            müraciətinin gedişatını görür.
+          </p>
+          <LoginButton className="c-btn c-btn-white">
+            Daxil ol
+            <span className="c-btn-arrow">
+              <ArrowRightIcon size={16} />
+            </span>
+          </LoginButton>
+          <a className="c-closing-contact" href={`mailto:${company.email}`}>
+            <MailIcon size={14} />
+            Bizimlə əlaqə
+          </a>
+        </div>
       </div>
     </section>
   );

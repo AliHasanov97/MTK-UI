@@ -32,7 +32,7 @@ export default async function GuidePage({ params }: Props) {
         lead={guide.summary}
         crumbs={[{ href: "/telimat", label: "Təlimat" }, { label: guide.title }]}
       >
-        <div className="role-tags lp-guide-roles">
+        <div className="c-page-roles">
           <small>Kim istifadə edir:</small>
           {guide.roles.map((r) => (
             <span key={r}>{ROLE_LABELS[r]}</span>
@@ -40,8 +40,8 @@ export default async function GuidePage({ params }: Props) {
         </div>
       </PageHero>
 
-      <div className="lp-guide-layout section-wrap">
-        <aside className="lp-guide-aside" aria-label="Bölmələr">
+      <div className="c-wrap c-guide-layout">
+        <aside className="c-guide-aside" aria-label="Bölmələr">
           <strong>Təlimatlar</strong>
           {guides.map((g) => (
             <Link key={g.slug} href={`/telimat/${g.slug}`} aria-current={g.slug === guide.slug ? "page" : undefined}>
@@ -50,7 +50,7 @@ export default async function GuidePage({ params }: Props) {
           ))}
         </aside>
 
-        <article className="lp-prose">
+        <article className="c-prose">
           {guide.sections.map((s) => (
             <section key={s.title}>
               <h2>{s.title}</h2>
@@ -63,7 +63,7 @@ export default async function GuidePage({ params }: Props) {
           ))}
 
           {guide.tips.length > 0 && (
-            <section className="lp-tips">
+            <section className="c-tips">
               <h2>Məsləhətlər</h2>
               <ul>
                 {guide.tips.map((t) => (
@@ -76,7 +76,7 @@ export default async function GuidePage({ params }: Props) {
           {related.length > 0 && (
             <section>
               <h2>Əlaqəli təlimatlar</h2>
-              <div className="lp-related">
+              <div className="c-related">
                 {related.map((g) => (
                   <Link key={g.slug} href={`/telimat/${g.slug}`}>
                     {g.icon} {g.title}
@@ -86,8 +86,8 @@ export default async function GuidePage({ params }: Props) {
             </section>
           )}
 
-          <div className="lp-guide-cta">
-            <LoginButton className="button button-dark">Panelə daxil ol</LoginButton>
+          <div className="c-guide-cta">
+            <LoginButton className="c-btn c-btn-orange">Panelə daxil ol</LoginButton>
           </div>
         </article>
       </div>

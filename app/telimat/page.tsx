@@ -20,20 +20,25 @@ export default function GuidesPage() {
         lead="Hər bölmə üçün addım-addım izahat. Bölməni seçin və ya rolunuza uyğun təlimatlara baxın."
         crumbs={[{ label: "Təlimat" }]}
       />
-      <section className="lp-guide-index section-wrap">
-        <div className="lp-guide-grid">
-          {guides.map((g) => (
-            <Link key={g.slug} href={`/telimat/${g.slug}`} className="lp-guide-card">
-              <span className="feature-icon">{g.icon}</span>
-              <h3>{g.title}</h3>
-              <p>{g.summary}</p>
-              <div className="role-tags">
-                {g.roles.map((r) => (
-                  <span key={r}>{ROLE_LABELS[r]}</span>
-                ))}
-              </div>
-            </Link>
-          ))}
+
+      <section className="c-section">
+        <div className="c-wrap">
+          <div className="c-guide-grid">
+            {guides.map((g) => (
+              <Link key={g.slug} href={`/telimat/${g.slug}`} className="c-guide-card">
+                <span className="c-module-icon is-terracotta" aria-hidden="true" style={{ fontSize: 18 }}>
+                  {g.icon}
+                </span>
+                <h3>{g.title}</h3>
+                <p>{g.summary}</p>
+                <div className="c-tags">
+                  {g.roles.map((r) => (
+                    <span key={r}>{ROLE_LABELS[r]}</span>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
     </SiteShell>

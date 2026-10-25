@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { convertApplication, searchLaborCodeCases, type LaborCodeCase } from "../../lib/api/hr";
+import { useState } from "react";
+import { convertApplication, type LaborCodeCase } from "../../lib/api/hr";
 import { Modal } from "../Modal";
 import { LaborCaseSelect } from "./LaborCaseSelect";
 import { hrErrorMessage } from "./shared";
@@ -12,31 +12,25 @@ export function ConvertJobApplicationModal({
   accessToken,
   applicationId,
   applicantName,
+  data,
   onClose,
   onConverted,
 }: {
   accessToken: string;
   applicationId: string;
   applicantName: string;
+  /** Əmək Məcəlləsi maddələri — modal açılmazdan əvvəl yüklənir. */
+  data: LaborCodeCase[];
   onClose: () => void;
   onConverted: () => void;
 }) {
-  const [cases, setCases] = useState<LaborCodeCase[] | null>(null);
-  const [articles, setArticles] = useState<Map<string, LaborCodeCase>>(new Map());
+  const articles = new Map(data.filter((c) => c.parentId === null).map((c) => [c.id, c]));
+  const cases = data.filter((c) => c.parentId !== null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [caseId, setCaseId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    searchLaborCodeCases(accessToken, { pageSize: 100 })
-      .then((res) => {
-        setArticles(new Map(res.data.filter((c) => c.parentId === null).map((c) => [c.id, c])));
-        setCases(res.data.filter((c) => c.parentId !== null));
-      })
-      .catch((err) => setError(hrErrorMessage(err)));
-  }, [accessToken]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,11 +69,7 @@ export function ConvertJobApplicationModal({
           <p className="hr-note" style={{ margin: "0 0 8px" }}>
             Azərbaycan Respublikasının Əmək Məcəlləsinin müvafiq maddəsi və bəndi seçilməlidir.
           </p>
-          {!cases ? (
-            <p className="hr-note">Yüklənir…</p>
-          ) : (
-            <LaborCaseSelect cases={cases} articles={articles} value={caseId} onChange={setCaseId} />
-          )}
+          <LaborCaseSelect cases={cases} articles={articles} value={caseId} onChange={setCaseId} />
         </div>
         {error && <p className="form-error">{error}</p>}
         <div className="form-actions">

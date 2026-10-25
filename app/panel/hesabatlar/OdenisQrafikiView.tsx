@@ -240,7 +240,7 @@ export function OdenisQrafikiView() {
         </p>
       )}
 
-      <div className="data-table-wrap">
+      <div className="data-table-wrap hesabat-table-wrap">
         <div className="vendor-head">
           <h3>İllik ödəniş qrafiki</h3>
           <span className="vendor-count">{visibleRows.length} əmlak</span>

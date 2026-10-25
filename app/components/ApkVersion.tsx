@@ -45,5 +45,5 @@ export function ApkVersion() {
     };
   }, []);
 
-  return <span className="lp-android-meta">{meta ?? `${APK_MIN_ANDROID}+`}</span>;
+  return <span className="c-android-meta">{meta ?? `${APK_MIN_ANDROID}+`}</span>;
 }

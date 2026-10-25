@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { SiteShell } from "../components/SiteShell";
 import { PageHero } from "../components/PageHero";
-import { About, Contact } from "../components/Sections";
+import { About, Faq } from "../components/Sections";
 import { Stats } from "../components/Stats";
+import { Closing } from "../components/Closing";
 
 export const metadata: Metadata = { title: "Haqqımızda" };
 
@@ -21,8 +22,8 @@ export default function AboutPage() {
       />
       <About />
       <Stats />
-      <div style={{ height: 64 }} />
-      <Contact />
+      <Faq />
+      <Closing />
     </SiteShell>
   );
 }

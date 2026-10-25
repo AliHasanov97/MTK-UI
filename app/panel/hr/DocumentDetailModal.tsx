@@ -189,6 +189,7 @@ export function DocumentDetailModal({
   const [busy, setBusy] = useState<"pdf" | "convert" | "delete" | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [converting, setConverting] = useState(false);
+  const [convertCases, setConvertCases] = useState<LaborCodeCase[] | null>(null);
   const [signedCount, setSignedCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -308,7 +309,21 @@ export function DocumentDetailModal({
   async function handleConvert() {
     if (current.type !== "application") return;
     if (current.kind === "JobApplication") {
-      setConverting(true);
+      setBusy("convert");
+      setError(null);
+      try {
+        let cases = convertCases;
+        if (!cases) {
+          const res = await searchLaborCodeCases(accessToken, { pageSize: 100 });
+          cases = res.data;
+          setConvertCases(cases);
+        }
+        setConverting(true);
+      } catch (err) {
+        setError(hrErrorMessage(err));
+      } finally {
+        setBusy(null);
+      }
       return;
     }
     setBusy("convert");
@@ -420,7 +435,11 @@ export function DocumentDetailModal({
               )}
               {pending && (
                 <button type="button" className="panel-btn" disabled={busy !== null} onClick={handleConvert}>
-                  {busy === "convert" ? "Çevrilir…" : "Əmrə çevir"}
+                  {busy === "convert"
+                    ? current.kind === "JobApplication"
+                      ? "Hazırlanır…"
+                      : "Çevrilir…"
+                    : "Əmrə çevir"}
                 </button>
               )}
               {canPdf && (
@@ -439,6 +458,7 @@ export function DocumentDetailModal({
           accessToken={accessToken}
           applicationId={current.id}
           applicantName={`${detail.surname ?? ""} ${detail.name ?? ""}`.trim() || "Namizəd"}
+          data={convertCases ?? []}
           onClose={() => setConverting(false)}
           onConverted={afterConvert}
         />

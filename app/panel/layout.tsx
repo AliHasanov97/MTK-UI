@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../lib/auth/AuthContext";
 import { PanelShell } from "./PanelShell";
 import "../panel-dark.css";
+import "../panel-civic.css";
 
 export default function PanelLayout({ children }: LayoutProps<"/panel">) {
   const auth = useAuth();

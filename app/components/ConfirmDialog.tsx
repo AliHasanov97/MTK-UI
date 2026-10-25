@@ -85,7 +85,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               <button ref={cancelButton} type="button" className="panel-btn" onClick={() => settle(false)}>
                 {o.cancelLabel}
               </button>
-              <button type="button" className={o.tone === "danger" ? "panel-btn cd-danger" : "panel-btn panel-btn-primary"} onClick={() => settle(true)}>
+              <button type="button" className={o.tone === "danger" ? "panel-btn panel-btn-danger" : "panel-btn panel-btn-primary"} onClick={() => settle(true)}>
                 {o.confirmLabel}
               </button>
             </div>

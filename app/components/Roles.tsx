@@ -1,29 +1,23 @@
 import { roles } from "../content";
+import { SectionHead } from "./SectionHead";
 
 export function Roles() {
   return (
-    <section className="lp-roles section-wrap" id="rollar">
-      <div className="section-heading">
-        <div>
-          <div className="eyebrow">KİMLƏR ÜÇÜNDÜR</div>
-          <h2>
-            Bir komanda,
-            <br />
-            <span>hər kəs öz rolunda.</span>
-          </h2>
+    <section className="c-section" id="rollar">
+      <div className="c-wrap">
+        <SectionHead
+          title="Kimlər üçündür"
+          subtitle="Bir komanda, hər kəs öz rolunda"
+        />
+
+        <div className="c-role-grid">
+          {roles.map((r) => (
+            <article className="c-role" key={r.name}>
+              <h3>{r.name}</h3>
+              <p>{r.text}</p>
+            </article>
+          ))}
         </div>
-        <p>
-          Giriş rola görə məhdudlaşır: istifadəçi yalnız səlahiyyətinə aid
-          bölmələri görür.
-        </p>
-      </div>
-      <div className="lp-role-grid">
-        {roles.map((r) => (
-          <article key={r.name}>
-            <h3>{r.name}</h3>
-            <p>{r.text}</p>
-          </article>
-        ))}
       </div>
     </section>
   );

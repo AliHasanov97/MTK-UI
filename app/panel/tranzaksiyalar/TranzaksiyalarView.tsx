@@ -562,6 +562,9 @@ function TransactionDocumentModal({
     : isPurchase
       ? { purchaseId: row.referenceId }
       : { transactionId: row.id };
+  const showPaymentProperty = row.documentType !== "VendorPayment";
+  const showAllocationProperty =
+    row.documentType !== "VendorPayment" && allocations.some((allocation) => !!allocation.propertyLabel);
 
   return (
     <Modal
@@ -622,10 +625,12 @@ function TransactionDocumentModal({
 
         {payment && (
           <section className="data-table-wrap purchase-detail-card">
-            <h3>{row.documentType === "VendorPayment" ? "Tədarükçü ödənişi" : "Sakin ödənişi"}</h3>
+            <h3>Ödəniş məlumatı</h3>
             <dl className="purchase-meta">
               <div><dt>Ödəyən</dt><dd>{payment.partyName ?? "—"}</dd></div>
-              <div><dt>Əlaqəli əmlak</dt><dd>{payment.propertyLabel ?? "Ümumi ödəniş"}</dd></div>
+              {showPaymentProperty && (
+                <div><dt>Əlaqəli əmlak</dt><dd>{payment.propertyLabel ?? "Ümumi ödəniş"}</dd></div>
+              )}
               <div><dt>Tarix</dt><dd>{formatDateTime(payment.paymentDate)}</dd></div>
               <div><dt>Ödəniş üsulu</dt><dd>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(payment.paymentMethod)]}</dd></div>
               <div><dt>Status</dt><dd>{paymentStatusFromOrdinal(payment.status) === "Completed" ? "Tamamlanıb" : "Gözləyir"}</dd></div>
@@ -635,10 +640,17 @@ function TransactionDocumentModal({
             {allocations.length > 0 && (
               <div className="owner-table-scroll">
                 <table className="data-table">
-                  <thead><tr><th>Əmlak</th><th>Dövr</th><th>Haqq</th><th className="vendor-th-amount">Ödənilən</th></tr></thead>
+                  <thead>
+                    <tr>
+                      {showAllocationProperty && <th>Əmlak</th>}
+                      <th>Dövr</th>
+                      <th>Haqq</th>
+                      <th className="vendor-th-amount">Ödənilən</th>
+                    </tr>
+                  </thead>
                   <tbody>{allocations.map((allocation) => (
                     <tr key={allocation.id}>
-                      <td>{allocation.propertyLabel ?? "—"}</td>
+                      {showAllocationProperty && <td>{allocation.propertyLabel ?? "—"}</td>}
                       <td>{allocation.period ?? "—"}</td>
                       <td>{allocation.description ?? "Aylıq haqq"}</td>
                       <td className="vendor-amount">{formatMoney(allocation.allocatedAmount)}</td>

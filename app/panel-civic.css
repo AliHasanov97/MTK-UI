@@ -1,0 +1,2369 @@
+/* ============================================================
+   Civic Hearth — idarəetmə paneli
+   İctimai səhifələrin dizayn dili: kağız fon, tünd yaşıl yan panel,
+   narıncı hərəkətlər, laym vurğular, saç teli haşiyələr.
+   Bu fayl panel-dark.css-dən SONRA yüklənir və hər iki rejimi əhatə edir.
+   ============================================================ */
+
+html[data-area="panel"] {
+  --pc-bg: #fafaf8;
+  --pc-surface: #ffffff;
+  --pc-subtle: #f4f4ee;
+  --pc-container: #f8ebe6;
+  --pc-border: #e5e2d9;
+  --pc-border-soft: #eeece5;
+  --pc-ink: #201a18;
+  --pc-muted: #6b5a52;
+  --pc-soft: #947d72;
+  --pc-terracotta: #d9531e;
+  --pc-orange: #e85d04;
+  --pc-orange-hover: #cf4f00;
+  --pc-forest: #1b2d23;
+  --pc-forest-2: #284033;
+  --pc-forest-3: #1e3629;
+  --pc-sidebar: #1b2d23;
+  --pc-sidebar-2: #15231b;
+  --pc-lime: #d2ebb7;
+  --pc-danger: #b3402a;
+  --pc-danger-bg: #fbeeea;
+  --pc-success: #4f7a3a;
+  --pc-success-bg: #eef4e4;
+  --pc-warn: #9a6a12;
+  --pc-warn-bg: #fbf1dc;
+
+  /* Köhnə qlobal dəyişənləri də yeni palitra ilə əlaqələndiririk ki,
+     fərdi görünüşlərin stilləri də dizaynla uyğun qalsın. */
+  --ink: var(--pc-ink);
+  --muted: var(--pc-muted);
+  --green: var(--pc-forest-2);
+  --lime: var(--pc-lime);
+  --paper: var(--pc-bg);
+  --line: var(--pc-border);
+
+  color-scheme: light;
+}
+
+html[data-theme="dark"][data-area="panel"] {
+  --pc-bg: #0f1512;
+  --pc-surface: #16211c;
+  --pc-subtle: #1b2a24;
+  --pc-container: #33231d;
+  --pc-border: #2a3a32;
+  --pc-border-soft: #223129;
+  --pc-ink: #f3efe9;
+  --pc-muted: #cdbbb2;
+  --pc-soft: #a98f85;
+  --pc-terracotta: #ff7a45;
+  --pc-orange: #ff7a2f;
+  --pc-orange-hover: #ff8d4d;
+  --pc-forest: #101a15;
+  --pc-forest-2: #1b2d23;
+  --pc-forest-3: #152019;
+  --pc-sidebar: #0d1712;
+  --pc-sidebar-2: #111d17;
+  --pc-lime: #d2ebb7;
+  --pc-danger: #e58a74;
+  --pc-danger-bg: #2a1714;
+  --pc-success: #a6c98a;
+  --pc-success-bg: #1b2a18;
+  --pc-warn: #e0be7c;
+  --pc-warn-bg: #2a2415;
+
+  --ink: var(--pc-ink);
+  --muted: var(--pc-muted);
+  --green: var(--pc-forest-2);
+  --lime: var(--pc-lime);
+  --paper: var(--pc-bg);
+  --line: var(--pc-border);
+
+  color-scheme: dark;
+}
+
+html[data-area="panel"] body {
+  background: var(--pc-bg);
+  color: var(--pc-ink);
+  font-family: var(--font-sans);
+}
+
+html[data-area="panel"] ::selection {
+  background: color-mix(in srgb, var(--pc-terracotta) 18%, transparent);
+  color: inherit;
+}
+
+/* ---------- Karkas ---------- */
+
+html[data-area="panel"] .panel-shell {
+  background: var(--pc-bg);
+  color: var(--pc-ink);
+  grid-template-columns: 264px minmax(0, 1fr);
+}
+
+html[data-area="panel"] .panel-shell .panel-main {
+  background:
+    radial-gradient(760px 340px at 100% 0%, rgba(217, 83, 30, 0.05), transparent 72%),
+    var(--pc-bg);
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 22px 16px;
+  gap: 20px;
+  border-right: 0;
+  color: rgba(255, 255, 255, 0.72);
+  background:
+    radial-gradient(420px 280px at 100% 0%, rgba(210, 235, 183, 0.1), transparent 68%),
+    linear-gradient(180deg, var(--pc-sidebar) 0%, var(--pc-sidebar-2) 100%);
+  isolation: isolate;
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, #000 0%, transparent 68%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 68%);
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar-top {
+  align-items: flex-start;
+}
+
+html[data-area="panel"] .panel-sidebar-brand {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar .brand {
+  gap: 10px;
+  color: #fff;
+  font-size: 17px;
+  letter-spacing: -0.4px;
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar .brand-mark {
+  height: 34px;
+}
+
+html[data-area="panel"] .panel-sidebar-brand small {
+  padding-left: 2px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar-close {
+  display: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-radius: 10px;
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+html[data-area="panel"] .panel-shell .panel-nav {
+  gap: 5px;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+html[data-area="panel"] .panel-shell .panel-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+html[data-area="panel"] .panel-shell .panel-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+}
+
+html[data-area="panel"] .panel-shell .panel-nav-item {
+  gap: 10px;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 12.5px;
+  font-weight: 600;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+html[data-area="panel"] .panel-shell .panel-nav-item > span {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--pc-lime);
+  font-size: 15px;
+  line-height: 1;
+}
+
+html[data-area="panel"] .panel-shell .panel-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+html[data-area="panel"] .panel-shell .panel-nav-item.active {
+  border-color: transparent;
+  background: var(--pc-lime);
+  color: var(--pc-forest);
+  font-weight: 750;
+}
+
+html[data-area="panel"] .panel-shell .panel-nav-item.active > span {
+  background: rgba(27, 45, 35, 0.12);
+  color: var(--pc-forest);
+}
+
+html[data-area="panel"] .panel-sidebar-foot {
+  display: grid;
+  gap: 6px;
+  margin-top: auto;
+}
+
+html[data-area="panel"] .panel-shell .panel-site-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 650;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+html[data-area="panel"] .panel-shell .panel-site-link:hover {
+  border-color: rgba(210, 235, 183, 0.36);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+html[data-area="panel"] .panel-shell .panel-site-link svg {
+  flex: none;
+  color: var(--pc-lime);
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar-logout {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.68);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar-logout:hover {
+  border-color: rgba(255, 138, 116, 0.38);
+  background: rgba(217, 83, 30, 0.16);
+  color: #ffd9ce;
+}
+
+html[data-area="panel"] .panel-shell .panel-sidebar-logout svg {
+  flex: none;
+  color: #f0a28a;
+}
+
+html[data-area="panel"] .panel-shell .panel-backdrop {
+  background: rgba(10, 18, 14, 0.58);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* ---------- Yuxarı zolaq ---------- */
+
+html[data-area="panel"] .panel-shell .panel-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  min-height: 64px;
+  gap: 14px;
+  padding-inline: 30px;
+  border-bottom: 1px solid var(--pc-border);
+  background: var(--pc-bg);
+}
+
+html[data-area="panel"] .panel-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+html[data-area="panel"] .panel-topbar-context {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pc-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+html[data-area="panel"] .panel-topbar-context::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pc-terracotta);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc-terracotta) 14%, transparent);
+}
+
+html[data-area="panel"] .panel-shell .panel-menu-toggle {
+  display: none;
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .panel-shell .panel-menu-toggle span {
+  background: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .panel-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+html[data-area="panel"] .panel-shell .theme-toggle {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .theme-toggle:hover {
+  background: var(--pc-subtle);
+}
+
+/* ---------- İstifadəçi menyusu ---------- */
+
+html[data-area="panel"] .panel-shell .panel-user-trigger {
+  gap: 9px;
+  padding: 4px 10px 4px 5px;
+  border: 1px solid var(--pc-border);
+  border-radius: 12px;
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+html[data-area="panel"] .panel-shell .panel-user-trigger:hover {
+  border-color: color-mix(in srgb, var(--pc-terracotta) 34%, var(--pc-border));
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .panel-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--pc-lime);
+  color: var(--pc-forest);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+html[data-area="panel"] .panel-shell .panel-user-info strong {
+  color: var(--pc-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+html[data-area="panel"] .panel-shell .panel-role-tag {
+  border-radius: 999px;
+  background: var(--pc-container);
+  color: var(--pc-terracotta);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+html[data-area="panel"] .panel-shell .panel-user-caret {
+  color: var(--pc-soft);
+}
+
+html[data-area="panel"] .panel-shell .panel-user-dropdown {
+  top: calc(100% + 8px);
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid var(--pc-border);
+  border-radius: 14px;
+  background: var(--pc-surface);
+  box-shadow: 0 22px 48px -26px rgba(27, 45, 35, 0.5);
+}
+
+html[data-area="panel"] .panel-shell .panel-user-dropdown-item {
+  padding: 10px 12px;
+  border-radius: 9px;
+  color: var(--pc-ink);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+html[data-area="panel"] .panel-shell .panel-user-dropdown-item:hover {
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .panel-user-dropdown-danger {
+  color: var(--pc-danger);
+}
+
+html[data-area="panel"] .panel-shell .panel-user-dropdown-danger:hover {
+  background: var(--pc-danger-bg);
+}
+
+/* ---------- Bölmə tabları ---------- */
+
+html[data-area="panel"] .panel-shell .panel-tabs {
+  gap: 2px;
+  padding-inline: 30px;
+  border-bottom: 1px solid var(--pc-border);
+  background: var(--pc-bg);
+}
+
+html[data-area="panel"] .panel-shell .panel-tab {
+  padding: 12px 14px;
+  border-bottom: 2px solid transparent;
+  border-radius: 9px 9px 0 0;
+  color: var(--pc-muted);
+  font-size: 12.5px;
+  font-weight: 650;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+html[data-area="panel"] .panel-shell .panel-tab:hover {
+  background: var(--pc-subtle);
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .panel-tab.active {
+  border-bottom-color: transparent;
+  background: var(--pc-container);
+  color: var(--pc-terracotta);
+  font-weight: 750;
+}
+
+/* ---------- Məzmun ---------- */
+
+html[data-area="panel"] .panel-shell .panel-content {
+  padding: 32px 30px 52px;
+  /* Global `main{overflow:hidden}` creates a scroll container, which would stop
+     sticky table headers from sticking to the viewport. `clip` still clips
+     horizontal overflow without becoming a scroll container. */
+  overflow: clip;
+}
+
+html[data-area="panel"] .panel-page h1,
+html[data-area="panel"] .panel-page-head h1 {
+  margin: 0 0 10px;
+  color: var(--pc-ink);
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+html[data-area="panel"] .panel-page-lead {
+  max-width: 640px;
+  margin: 0 0 26px;
+  color: var(--pc-muted);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+html[data-area="panel"] .panel-page-head {
+  margin-bottom: 22px;
+}
+
+html[data-area="panel"] .panel-page-head .panel-page-lead {
+  margin-bottom: 0;
+}
+
+html[data-area="panel"] .panel-loading {
+  color: var(--pc-muted);
+  background: var(--pc-bg);
+}
+
+html[data-area="panel"] .panel-shell .detail-section h3 {
+  color: var(--pc-soft);
+  font-size: 11px;
+  letter-spacing: 0.09em;
+}
+
+/* ---------- Modul kartları ---------- */
+
+html[data-area="panel"] .panel-shell .panel-card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+  max-width: 1200px;
+}
+
+html[data-area="panel"] .panel-shell .panel-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 206px;
+  padding: 18px 18px 15px;
+  overflow: hidden;
+  border: 1px solid var(--pc-border);
+  border-radius: 16px;
+  background: var(--pc-surface);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+html[data-area="panel"] .panel-shell .panel-card > :not(.panel-card-ghost) {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-area="panel"] .panel-shell .panel-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--pc-terracotta),
+    color-mix(in srgb, var(--pc-terracotta) 18%, transparent) 72%
+  );
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+html[data-area="panel"] .panel-shell a.panel-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--pc-terracotta) 46%, var(--pc-border));
+  box-shadow: 0 22px 40px -32px rgba(27, 45, 35, 0.55);
+}
+
+html[data-area="panel"] .panel-shell a.panel-card:hover::before {
+  opacity: 1;
+}
+
+html[data-area="panel"] .panel-shell a.panel-card:focus-visible {
+  outline: 2px solid var(--pc-terracotta);
+  outline-offset: 2px;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--pc-container);
+  color: var(--pc-terracotta);
+  font-size: 17px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+html[data-area="panel"] .panel-shell a.panel-card:hover .panel-card-icon {
+  background: var(--pc-terracotta);
+  color: #fff;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-index {
+  color: color-mix(in srgb, var(--pc-ink) 26%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-area="panel"] .panel-shell .panel-card h3 {
+  margin: 0;
+  color: var(--pc-ink);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.25px;
+  line-height: 1.35;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-tabs {
+  display: block;
+  margin-top: 13px;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-tabs-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--pc-soft);
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--pc-border-soft);
+  border-radius: 999px;
+  background: var(--pc-subtle);
+  color: var(--pc-muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-desc {
+  margin: 7px 0 0;
+  color: var(--pc-muted);
+  font-size: 11.5px;
+  line-height: 1.65;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-cta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--pc-border-soft);
+  color: var(--pc-terracotta);
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html[data-area="panel"] .panel-shell .panel-card-cta > span {
+  transition: transform 0.2s ease;
+}
+
+html[data-area="panel"] .panel-shell a.panel-card:hover .panel-card-cta > span {
+  transform: translateX(3px);
+}
+
+html[data-area="panel"] .panel-shell .panel-card-ghost {
+  position: absolute;
+  right: 14px;
+  bottom: 42px;
+  z-index: 0;
+  color: var(--pc-ink);
+  font-size: 56px;
+  line-height: 1;
+  opacity: 0.05;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+html[data-area="panel"] .panel-shell a.panel-card:hover .panel-card-ghost {
+  opacity: 0.09;
+  transform: translateY(-2px);
+}
+
+html[data-area="panel"] .panel-shell .panel-denied {
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, var(--pc-danger) 32%, var(--pc-border));
+  border-radius: 14px;
+  background: var(--pc-danger-bg);
+  color: var(--pc-danger);
+}
+
+html[data-area="panel"] .panel-shell .panel-denied h2 {
+  margin: 0 0 8px;
+  color: var(--pc-danger);
+  font-size: 16px;
+}
+
+html[data-area="panel"] .panel-shell .panel-denied p {
+  margin: 0;
+  color: var(--pc-danger);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ---------- Detal səhifələri (satınalma, nomenklatura) ---------- */
+
+html[data-area="panel"] .panel-shell .purchase-detail {
+  gap: 18px;
+}
+
+html[data-area="panel"] .panel-shell .purchase-detail-grid {
+  align-items: start;
+  gap: 18px;
+}
+
+html[data-area="panel"] .panel-shell .purchase-detail-grid > * {
+  min-width: 0;
+}
+
+html[data-area="panel"] .panel-shell .purchase-detail-card,
+html[data-area="panel"] .panel-shell .purchase-lines {
+  padding: 22px;
+  border: 1px solid var(--pc-border);
+  border-radius: 16px;
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .panel-shell .purchase-detail-card h2,
+html[data-area="panel"] .panel-shell .purchase-lines h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  color: var(--pc-ink);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.2px;
+}
+
+html[data-area="panel"] .panel-shell .purchase-detail-card h2::before,
+html[data-area="panel"] .panel-shell .purchase-lines h2::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pc-terracotta);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc-terracotta) 12%, transparent);
+}
+
+html[data-area="panel"] .panel-shell .purchase-meta {
+  gap: 16px 24px;
+}
+
+html[data-area="panel"] .panel-shell .purchase-meta dt {
+  margin-bottom: 5px;
+  color: var(--pc-soft);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-area="panel"] .panel-shell .purchase-meta dd {
+  color: var(--pc-ink);
+  font-size: 13.5px;
+  font-weight: 650;
+}
+
+html[data-area="panel"] .panel-shell .purchase-total {
+  margin: 2px 0 10px;
+  color: var(--pc-terracotta);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -1.2px;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-area="panel"] .panel-shell .purchase-detail-card .panel-page-lead {
+  max-width: none;
+  margin-bottom: 0;
+}
+
+html[data-area="panel"] .panel-shell .purchase-detail-grid > .purchase-detail-card:has(.purchase-total) {
+  border-color: color-mix(in srgb, var(--pc-terracotta) 28%, var(--pc-border));
+  background:
+    radial-gradient(240px 170px at 100% 0%, rgba(217, 83, 30, 0.09), transparent 72%),
+    var(--pc-surface);
+}
+
+html[data-theme="dark"][data-area="panel"] .panel-shell .purchase-detail-grid > .purchase-detail-card:has(.purchase-total) {
+  background:
+    radial-gradient(240px 170px at 100% 0%, rgba(255, 122, 69, 0.12), transparent 72%),
+    var(--pc-surface);
+}
+
+html[data-area="panel"] .panel-shell .purchase-receive-actions {
+  margin: 0 0 16px;
+}
+
+html[data-area="panel"] .panel-shell .panel-page-head > div > .owner-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 11.5px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+/* ---------- Cədvəllər ---------- */
+
+html[data-area="panel"] .panel-shell .data-table-wrap,
+html[data-area="panel"] .panel-shell .debt-table-wrap,
+html[data-area="panel"] .panel-shell .em-table-wrap,
+html[data-area="panel"] .panel-shell .purchase-entry-table-wrap {
+  border: 1px solid var(--pc-border);
+  border-radius: 16px;
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .panel-shell .data-table {
+  color: var(--pc-ink);
+  font-size: 12.5px;
+}
+
+html[data-area="panel"] .panel-shell .data-table th {
+  border-bottom: 1px solid var(--pc-border);
+  background: var(--pc-subtle);
+  color: var(--pc-soft);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+html[data-area="panel"] .panel-shell .data-table td {
+  border-bottom: 1px solid var(--pc-border-soft);
+  color: var(--pc-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-area="panel"] .panel-shell .data-table .vendor-th-amount,
+html[data-area="panel"] .panel-shell .data-table .ledger-th-amount {
+  text-align: right;
+}
+
+html[data-area="panel"] .panel-shell .data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+html[data-area="panel"] .panel-shell .data-table-row-clickable:hover td,
+html[data-area="panel"] .panel-shell .data-table tbody tr:hover td,
+html[data-area="panel"] .panel-shell .debt-table tbody tr:hover td,
+html[data-area="panel"] .panel-shell .vendor-table tbody tr:hover td,
+html[data-area="panel"] .panel-shell .ledger-table tbody tr:not(.ledger-month-row):hover td {
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .data-table-subrow {
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .data-table-subrow td {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .debt-allocation-row > td {
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .ledger-month-row td {
+  background: var(--pc-subtle);
+  border-bottom: 1px solid var(--pc-border);
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .ledger-month-name,
+html[data-area="panel"] .panel-shell .ledger-month-net {
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .ledger-cell-date,
+html[data-area="panel"] .panel-shell .ledger-cell-note {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .hesabat-row-head,
+html[data-area="panel"] .panel-shell .hesabat-grid thead th.hesabat-row-head {
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .hesabat-cell {
+  border-left: 1px solid var(--pc-border-soft);
+}
+
+/* İllik ödəniş qrafiki — başlıq səhifə ilə birlikdə yuxarıda qalsın. */
+html[data-area="panel"] .panel-shell .hesabat-grid thead th {
+  position: sticky;
+  top: 64px;
+  z-index: 20;
+  background: var(--pc-subtle);
+  box-shadow: inset 0 -1px 0 var(--pc-border);
+}
+
+html[data-area="panel"] .panel-shell .hesabat-grid thead th.hesabat-row-head {
+  left: 0;
+  z-index: 21;
+}
+
+html[data-area="panel"] .panel-shell .hesabat-grid tbody td.hesabat-row-head {
+  z-index: 10;
+}
+
+@media (min-width: 1280px) {
+  html[data-area="panel"] .panel-shell .hesabat-table-wrap {
+    overflow: clip;
+  }
+
+  html[data-area="panel"] .panel-shell .hesabat-table-wrap .owner-table-scroll {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 1279px) {
+  html[data-area="panel"] .panel-shell .hesabat-table-wrap .owner-table-scroll {
+    max-height: calc(100vh - 230px);
+    overflow: auto;
+  }
+
+  html[data-area="panel"] .panel-shell .hesabat-grid thead th {
+    top: 0;
+  }
+}
+
+html[data-area="panel"] .panel-shell .purchase-entry-table tfoot th {
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .purchase-entry-table input {
+  border: 1px solid var(--pc-border);
+  border-radius: 8px;
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .purchase-entry-table input:focus {
+  border-color: var(--pc-terracotta);
+  outline: 2px solid color-mix(in srgb, var(--pc-terracotta) 22%, transparent);
+}
+
+html[data-area="panel"] .panel-shell .owner-table-scroll {
+  border-radius: 14px;
+}
+
+html[data-area="panel"] .panel-shell .owner-section-card {
+  margin-bottom: 16px;
+}
+
+html[data-area="panel"] .panel-shell .owner-section-card h4 {
+  color: var(--pc-ink);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+html[data-area="panel"] .panel-shell .owner-section-icon {
+  margin-right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--pc-container);
+  color: var(--pc-terracotta);
+  font-size: 14px;
+}
+
+/* ---------- Alətlər zolağı ---------- */
+
+html[data-area="panel"] .panel-shell .panel-toolbar {
+  gap: 9px;
+  margin-bottom: 16px;
+}
+
+html[data-area="panel"] .panel-shell .panel-search,
+html[data-area="panel"] .panel-shell .panel-select,
+html[data-area="panel"] .panel-shell .searchable-select-input,
+html[data-area="panel"] .panel-shell .col-filter-search {
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+  font-size: 12.5px;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+html[data-area="panel"] .panel-shell .panel-search:focus,
+html[data-area="panel"] .panel-shell .panel-select:focus,
+html[data-area="panel"] .panel-shell .searchable-select-input:focus,
+html[data-area="panel"] .panel-shell .col-filter-search:focus {
+  border-color: var(--pc-terracotta);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pc-terracotta) 13%, transparent);
+}
+
+html[data-area="panel"] .panel-shell .panel-search::placeholder,
+html[data-area="panel"] .panel-shell .searchable-select-input::placeholder {
+  color: var(--pc-soft);
+}
+
+/* ---------- Düymələr ---------- */
+
+html[data-area="panel"] .panel-shell .panel-btn,
+html[data-area="panel"] .modal-backdrop .panel-btn {
+  padding: 9px 15px;
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+html[data-area="panel"] .panel-shell .panel-btn:hover,
+html[data-area="panel"] .modal-backdrop .panel-btn:hover {
+  border-color: color-mix(in srgb, var(--pc-terracotta) 28%, var(--pc-border));
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .panel-btn:active,
+html[data-area="panel"] .modal-backdrop .panel-btn:active {
+  transform: translateY(1px);
+}
+
+html[data-area="panel"] .panel-shell .panel-btn:disabled,
+html[data-area="panel"] .modal-backdrop .panel-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+html[data-area="panel"] .panel-shell .panel-btn-primary,
+html[data-area="panel"] .modal-backdrop .panel-btn-primary {
+  border-color: var(--pc-terracotta);
+  background: var(--pc-terracotta);
+  color: #fff;
+}
+
+html[data-area="panel"] .panel-shell .panel-btn-primary:hover,
+html[data-area="panel"] .modal-backdrop .panel-btn-primary:hover {
+  border-color: var(--pc-orange-hover);
+  background: var(--pc-orange-hover);
+  color: #fff;
+}
+
+html[data-area="panel"] .panel-shell .panel-btn-primary:disabled,
+html[data-area="panel"] .modal-backdrop .panel-btn-primary:disabled {
+  border-color: var(--pc-border);
+  background: var(--pc-subtle);
+  color: var(--pc-soft);
+  opacity: 1;
+}
+
+html[data-area="panel"] .panel-shell .panel-btn-danger,
+html[data-area="panel"] .modal-backdrop .panel-btn-danger {
+  border-color: color-mix(in srgb, var(--pc-danger) 30%, var(--pc-border));
+  background: var(--pc-danger-bg);
+  color: var(--pc-danger);
+}
+
+html[data-area="panel"] .panel-shell .panel-btn-danger:hover,
+html[data-area="panel"] .modal-backdrop .panel-btn-danger:hover {
+  border-color: color-mix(in srgb, var(--pc-danger) 50%, var(--pc-border));
+  background: color-mix(in srgb, var(--pc-danger-bg) 70%, var(--pc-danger) 8%);
+  color: var(--pc-danger);
+}
+
+html[data-area="panel"] .panel-shell .panel-btn-sm,
+html[data-area="panel"] .modal-backdrop .panel-btn-sm {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+html[data-area="panel"] .panel-shell .panel-btn:focus-visible,
+html[data-area="panel"] .modal-backdrop .panel-btn:focus-visible {
+  outline: 2px solid var(--pc-terracotta);
+  outline-offset: 2px;
+}
+
+/* ---------- Formlar ---------- */
+
+html[data-area="panel"] .panel-shell .form-field label,
+html[data-area="panel"] .modal-backdrop .form-field label {
+  color: var(--pc-muted);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+html[data-area="panel"] .panel-shell .form-field input,
+html[data-area="panel"] .panel-shell .form-field textarea,
+html[data-area="panel"] .panel-shell .form-field select,
+html[data-area="panel"] .modal-backdrop .form-field input,
+html[data-area="panel"] .modal-backdrop .form-field textarea,
+html[data-area="panel"] .modal-backdrop .form-field select {
+  padding: 10px 12px;
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+  font-size: 12.5px;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+html[data-area="panel"] .panel-shell .form-field input:focus,
+html[data-area="panel"] .panel-shell .form-field textarea:focus,
+html[data-area="panel"] .panel-shell .form-field select:focus,
+html[data-area="panel"] .modal-backdrop .form-field input:focus,
+html[data-area="panel"] .modal-backdrop .form-field textarea:focus,
+html[data-area="panel"] .modal-backdrop .form-field select:focus {
+  border-color: var(--pc-terracotta);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pc-terracotta) 13%, transparent);
+}
+
+html[data-area="panel"] .panel-shell .form-field input::placeholder,
+html[data-area="panel"] .panel-shell .form-field textarea::placeholder,
+html[data-area="panel"] .modal-backdrop .form-field input::placeholder,
+html[data-area="panel"] .modal-backdrop .form-field textarea::placeholder {
+  color: var(--pc-soft);
+}
+
+html[data-area="panel"] .panel-shell .form-error,
+html[data-area="panel"] .modal-backdrop .form-error {
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--pc-danger) 26%, var(--pc-border));
+  border-radius: 9px;
+  background: var(--pc-danger-bg);
+  color: var(--pc-danger);
+  font-size: 11.5px;
+}
+
+html[data-area="panel"] .panel-shell .form-success,
+html[data-area="panel"] .modal-backdrop .form-success {
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--pc-success) 26%, var(--pc-border));
+  border-radius: 9px;
+  background: var(--pc-success-bg);
+  color: var(--pc-success);
+  font-size: 11.5px;
+}
+
+html[data-area="panel"] .panel-shell .checkbox-list {
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .panel-shell .checkbox-list label {
+  color: var(--pc-ink);
+  font-size: 12.5px;
+}
+
+html[data-area="panel"] .panel-shell .searchable-select-menu,
+html[data-area="panel"] .panel-shell .owner-picker-results,
+html[data-area="panel"] .panel-shell .col-filter-panel {
+  border: 1px solid var(--pc-border);
+  border-radius: 12px;
+  background: var(--pc-surface);
+  box-shadow: 0 20px 44px -28px rgba(27, 45, 35, 0.5);
+}
+
+html[data-area="panel"] .panel-shell .searchable-select-option,
+html[data-area="panel"] .panel-shell .owner-picker-result,
+html[data-area="panel"] .panel-shell .col-filter-option {
+  border-radius: 8px;
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .searchable-select-option:hover,
+html[data-area="panel"] .panel-shell .owner-picker-result:hover,
+html[data-area="panel"] .panel-shell .col-filter-option:hover {
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .searchable-select-option small,
+html[data-area="panel"] .panel-shell .owner-picker-result span,
+html[data-area="panel"] .panel-shell .searchable-select-empty {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .owner-picker-selected {
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .owner-picker-selected span {
+  color: var(--pc-muted);
+}
+
+/* ---------- Modallar ---------- */
+
+@keyframes panel-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes panel-modal-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes panel-modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-confirm-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+html[data-area="panel"] .modal-backdrop {
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(720px 480px at 50% 0%, rgba(217, 83, 30, 0.09), transparent 72%),
+    rgba(10, 18, 14, 0.56);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: panel-modal-backdrop-in 0.18s ease-out;
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(560px, calc(100vw - 36px));
+  max-width: none;
+  height: auto;
+  max-height: calc(100vh - 36px);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--pc-border);
+  border-radius: 24px;
+  background:
+    radial-gradient(480px 260px at 100% 0%, color-mix(in srgb, var(--pc-terracotta) 7%, transparent), transparent 72%),
+    var(--pc-surface);
+  box-shadow: 0 30px 90px -30px rgba(10, 18, 14, 0.55);
+  animation: panel-modal-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+  height: 4px;
+  background: linear-gradient(90deg, var(--pc-terracotta), var(--pc-lime));
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card-wide {
+  width: min(860px, calc(100vw - 36px));
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card-head {
+  flex: none;
+  align-items: flex-start;
+  gap: 16px;
+  margin: 0;
+  padding: 26px 26px 18px;
+  border-bottom: 1px solid var(--pc-border-soft);
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card-heading {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+html[data-area="panel"] .modal-backdrop .modal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--pc-terracotta);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+html[data-area="panel"] .modal-backdrop .modal-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card h2 {
+  color: var(--pc-ink);
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+html[data-area="panel"] .modal-backdrop .modal-close {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--pc-border);
+  border-radius: 11px;
+  background: var(--pc-surface);
+  color: var(--pc-muted);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+html[data-area="panel"] .modal-backdrop .modal-close:hover {
+  border-color: color-mix(in srgb, var(--pc-terracotta) 28%, var(--pc-border));
+  background: var(--pc-container);
+  color: var(--pc-terracotta);
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding: 22px 26px 26px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pc-border) transparent;
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card-body > .form-actions {
+  margin-top: auto;
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card-body:has(> form),
+html[data-area="panel"] .modal-backdrop .modal-card-body:has(> .form-actions) {
+  padding-bottom: 0;
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card-body > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card-body > .form-actions,
+html[data-area="panel"] .modal-backdrop .modal-card-body > form > .form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: auto -26px 0;
+  padding: 16px 26px 18px;
+  border-top: 1px solid var(--pc-border-soft);
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .modal-backdrop .modal-card-body > .form-actions::before,
+html[data-area="panel"] .modal-backdrop .modal-card-body > form > .form-actions::before {
+  content: "";
+  position: absolute;
+  inset: -18px 0 auto;
+  height: 18px;
+  background: linear-gradient(180deg, transparent, var(--pc-surface));
+  pointer-events: none;
+}
+
+/* Təsdiq dialoqu — kiçik, mərkəzləşdirilmiş kart */
+html[data-area="panel"] .modal-backdrop.cd-backdrop {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+html[data-area="panel"] .modal-backdrop .cd-card {
+  display: block;
+  width: min(440px, calc(100vw - 32px));
+  height: auto;
+  max-height: none;
+  margin: 0;
+  padding: 30px 28px 24px;
+  overflow: hidden;
+  border-radius: 22px;
+  text-align: center;
+  animation: panel-confirm-in 0.2s ease-out;
+}
+
+html[data-area="panel"] .modal-backdrop .cd-icon {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 16px;
+  border-radius: 16px;
+  font-size: 24px;
+}
+
+html[data-area="panel"] .modal-backdrop .cd-icon-danger {
+  background: var(--pc-danger-bg);
+  color: var(--pc-danger);
+}
+
+html[data-area="panel"] .modal-backdrop .cd-icon-primary {
+  background: var(--pc-success-bg);
+  color: var(--pc-success);
+}
+
+html[data-area="panel"] .modal-backdrop .cd-card h2 {
+  margin: 0 0 8px;
+  color: var(--pc-ink);
+  font-size: 19px;
+}
+
+html[data-area="panel"] .modal-backdrop .cd-message {
+  color: var(--pc-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+html[data-area="panel"] .modal-backdrop .cd-actions {
+  gap: 10px;
+  margin-top: 24px;
+}
+
+html[data-area="panel"] .modal-backdrop .cd-actions .panel-btn {
+  min-height: 40px;
+}
+
+/* Tranzaksiya / ödəniş sənədi modalı */
+html[data-area="panel"] .modal-backdrop .modal-card:has(.transaction-document-modal) {
+  width: min(800px, calc(100vw - 36px));
+}
+
+/* Ərizə / əmr detalları — daha kompakt modal */
+html[data-area="panel"] .modal-backdrop .modal-card:has(.doc-head) {
+  width: min(700px, calc(100vw - 36px));
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-document-modal h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pc-ink);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.2px;
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-document-modal > section > h3 {
+  margin: 0 0 16px;
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-document-heading h3 {
+  margin: 0;
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-document-modal h3::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pc-terracotta);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc-terracotta) 12%, transparent);
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-document-modal .purchase-meta {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-document-modal .purchase-detail-card,
+html[data-area="panel"] .modal-backdrop .transaction-document-modal .purchase-lines {
+  padding: 20px;
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-files-card {
+  padding: 14px 18px;
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-files-card .signed-documents {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-files-card .payment-document-section-title {
+  margin: 0;
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-files-card .signed-documents-list {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+html[data-area="panel"] .modal-backdrop .transaction-files-card .form-actions {
+  margin: 0 !important;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+@media (max-width: 760px) {
+  html[data-area="panel"] .modal-backdrop {
+    align-items: center;
+    padding: 16px;
+  }
+
+  html[data-area="panel"] .modal-backdrop .modal-card {
+    width: calc(100vw - 32px);
+    height: auto;
+    max-height: calc(100vh - 32px);
+    border-radius: 22px;
+    border-bottom: 1px solid var(--pc-border);
+    animation: panel-modal-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  html[data-area="panel"] .modal-backdrop .modal-card:has(.transaction-document-modal) {
+    width: calc(100vw - 32px);
+  }
+
+  html[data-area="panel"] .modal-backdrop .modal-card-head {
+    padding: 22px 18px 16px;
+  }
+
+  html[data-area="panel"] .modal-backdrop .modal-card-body {
+    padding: 18px 18px 24px;
+  }
+
+  html[data-area="panel"] .modal-backdrop .modal-card-body > .form-actions,
+  html[data-area="panel"] .modal-backdrop .modal-card-body > form > .form-actions {
+    margin-inline: -18px;
+    padding: 14px 18px 18px;
+  }
+
+  html[data-area="panel"] .modal-backdrop.cd-backdrop {
+    align-items: center;
+    padding: 18px;
+  }
+
+  html[data-area="panel"] .modal-backdrop .cd-card {
+    width: min(440px, calc(100vw - 32px));
+    height: auto;
+    border-radius: 22px;
+    border-bottom: 1px solid var(--pc-border);
+  }
+}
+
+@media (max-width: 640px) {
+  html[data-area="panel"] .modal-backdrop .transaction-document-modal .purchase-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- HR detalı: tünd rejim kontrastı ---------- */
+
+html[data-theme="dark"][data-area="panel"] .panel-shell .hr-section-title,
+html[data-theme="dark"][data-area="panel"] .modal-backdrop .hr-section-title {
+  color: var(--pc-lime);
+}
+
+html[data-theme="dark"][data-area="panel"] .panel-shell .hr-tab-active,
+html[data-theme="dark"][data-area="panel"] .modal-backdrop .hr-tab-active {
+  color: var(--pc-lime);
+  border-bottom-color: var(--pc-lime);
+}
+
+html[data-theme="dark"][data-area="panel"] .panel-shell .hr-avatar {
+  color: var(--pc-lime);
+}
+
+html[data-theme="dark"][data-area="panel"] .panel-shell .em-name:hover {
+  color: var(--pc-lime);
+}
+
+/* ---------- Statistika kartları ---------- */
+
+html[data-area="panel"] .panel-shell .ledger-stats {
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+html[data-area="panel"] .panel-shell .ledger-stat,
+html[data-area="panel"] .panel-shell .vendor-stat {
+  padding: 17px 20px;
+  border: 1px solid var(--pc-border);
+  border-radius: 16px;
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .panel-shell .ledger-stat::before,
+html[data-area="panel"] .panel-shell .vendor-stat::before {
+  width: 3px;
+  background: var(--pc-border);
+}
+
+html[data-area="panel"] .panel-shell .ledger-stat-in::before,
+html[data-area="panel"] .panel-shell .vendor-stat-ok::before {
+  background: var(--pc-success);
+}
+
+html[data-area="panel"] .panel-shell .ledger-stat-out::before,
+html[data-area="panel"] .panel-shell .vendor-stat-danger::before {
+  background: var(--pc-danger);
+}
+
+html[data-area="panel"] .panel-shell .ledger-stat-net::before,
+html[data-area="panel"] .panel-shell .vendor-stat-warn::before {
+  background: var(--pc-terracotta);
+}
+
+html[data-area="panel"] .panel-shell .ledger-stat-label,
+html[data-area="panel"] .panel-shell .vendor-stat-label {
+  color: var(--pc-soft);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+}
+
+html[data-area="panel"] .panel-shell .ledger-stat strong,
+html[data-area="panel"] .panel-shell .vendor-stat strong {
+  color: var(--pc-ink);
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+}
+
+html[data-area="panel"] .panel-shell .ledger-stat-caption,
+html[data-area="panel"] .panel-shell .vendor-stat-caption {
+  color: var(--pc-muted);
+  font-size: 10.5px;
+}
+
+/* ---------- Sahib / bina hero ---------- */
+
+html[data-area="panel"] .panel-shell .owner-hero {
+  border: 1px solid var(--pc-border);
+  border-radius: 18px;
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .panel-shell .owner-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--pc-forest);
+  color: var(--pc-lime);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+html[data-area="panel"] .panel-shell .owner-hero-body h2 {
+  color: var(--pc-ink);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+html[data-area="panel"] .panel-shell .owner-hero-meta {
+  color: var(--pc-muted);
+  font-size: 11.5px;
+}
+
+html[data-area="panel"] .panel-shell .owner-hero-stats {
+  border-top: 1px solid var(--pc-border);
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .owner-hero-stat:not(:last-child) {
+  border-right: 1px solid var(--pc-border);
+}
+
+html[data-area="panel"] .panel-shell .owner-hero-stat strong {
+  color: var(--pc-ink);
+  font-size: 19px;
+  font-weight: 800;
+}
+
+html[data-area="panel"] .panel-shell .owner-stat-label {
+  color: var(--pc-soft);
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+}
+
+/* ---------- Seqmentlər və çiplər ---------- */
+
+html[data-area="panel"] .panel-shell .ledger-segmented,
+html[data-area="panel"] .panel-shell .vendor-segments {
+  padding: 3px;
+  border: 1px solid var(--pc-border);
+  border-radius: 11px;
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .ledger-segmented button,
+html[data-area="panel"] .panel-shell .vendor-segments button {
+  border-radius: 8px;
+  color: var(--pc-muted);
+  font-size: 12px;
+}
+
+html[data-area="panel"] .panel-shell .ledger-segmented button:hover,
+html[data-area="panel"] .panel-shell .vendor-segments button:hover {
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .ledger-segmented button.active,
+html[data-area="panel"] .panel-shell .vendor-segments button.active {
+  background: var(--pc-surface);
+  color: var(--pc-terracotta);
+  box-shadow: 0 1px 2px rgba(27, 45, 35, 0.08);
+}
+
+html[data-area="panel"] .panel-shell .ledger-chip {
+  border: 1px solid var(--pc-border);
+  border-radius: 999px;
+  background: var(--pc-surface);
+  color: var(--pc-muted);
+  font-size: 11px;
+}
+
+html[data-area="panel"] .panel-shell .ledger-chip:hover {
+  background: var(--pc-subtle);
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .ledger-chip.active {
+  border-color: var(--pc-terracotta);
+  background: var(--pc-terracotta);
+  color: #fff;
+}
+
+html[data-area="panel"] .panel-shell .vendor-segment-count,
+html[data-area="panel"] .panel-shell .ledger-count,
+html[data-area="panel"] .panel-shell .vendor-count {
+  border-radius: 999px;
+  background: var(--pc-subtle);
+  color: var(--pc-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+html[data-area="panel"] .panel-shell .vendor-segments button.active .vendor-segment-count {
+  background: var(--pc-container);
+  color: var(--pc-terracotta);
+}
+
+/* ---------- Nişanlar ---------- */
+
+html[data-area="panel"] .panel-shell .panel-role-tag-good,
+html[data-area="panel"] .panel-shell .vendor-status-active,
+html[data-area="panel"] .panel-shell .vendor-status-paid,
+html[data-area="panel"] .panel-shell .ledger-type-income,
+html[data-area="panel"] .panel-shell .owner-balance-tag-credit {
+  background: var(--pc-success-bg);
+  color: var(--pc-success);
+}
+
+html[data-area="panel"] .panel-shell .panel-role-tag-bad,
+html[data-area="panel"] .panel-shell .panel-role-tag-inactive,
+html[data-area="panel"] .panel-shell .vendor-status-open,
+html[data-area="panel"] .panel-shell .ledger-type-expense,
+html[data-area="panel"] .panel-shell .owner-balance-tag-debt {
+  background: var(--pc-danger-bg);
+  color: var(--pc-danger);
+}
+
+html[data-area="panel"] .panel-shell .panel-role-tag-warn,
+html[data-area="panel"] .panel-shell .vendor-status-suspended,
+html[data-area="panel"] .panel-shell .vendor-status-partial,
+html[data-area="panel"] .panel-shell .owner-detail-demo-badge {
+  background: var(--pc-warn-bg);
+  color: var(--pc-warn);
+}
+
+html[data-area="panel"] .panel-shell .vendor-status-cancelled,
+html[data-area="panel"] .panel-shell .owner-balance-tag-clear {
+  background: var(--pc-subtle);
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .ledger-badge {
+  border: 1px solid color-mix(in srgb, var(--pc-success) 26%, var(--pc-border));
+  background: var(--pc-success-bg);
+  color: var(--pc-success);
+}
+
+html[data-area="panel"] .panel-shell .ledger-type {
+  border-radius: 999px;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+}
+
+html[data-area="panel"] .panel-shell .owner-link {
+  color: var(--pc-terracotta);
+  text-decoration-color: transparent;
+}
+
+html[data-area="panel"] .panel-shell .owner-link:hover {
+  text-decoration-color: var(--pc-terracotta);
+}
+
+html[data-area="panel"] .panel-shell .owner-back-link {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .owner-back-link:hover {
+  color: var(--pc-terracotta);
+}
+
+/* ---------- Ümumi hesabat ---------- */
+
+html[data-area="panel"] .panel-shell .umumi-grid {
+  --band-bg: var(--pc-container);
+  --band-ink: var(--pc-terracotta);
+  --band-line: var(--pc-border);
+  --cell-line: var(--pc-border-soft);
+  max-width: 900px;
+  padding: 30px 34px 24px;
+  border: 1px solid var(--pc-border);
+  border-radius: 16px;
+  background: var(--pc-surface);
+  box-shadow: none;
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-title {
+  color: var(--pc-ink);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-table th,
+html[data-area="panel"] .panel-shell .umumi-grid-table td {
+  border-color: var(--cell-line);
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-band {
+  background: var(--band-bg);
+  border-color: var(--band-line);
+  color: var(--band-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-colheads th {
+  background: var(--pc-subtle);
+  border-color: var(--band-line);
+  color: var(--pc-soft);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-table tbody tr:hover td {
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-table tfoot td {
+  background: var(--pc-subtle);
+  border-color: var(--band-line);
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-col-num {
+  color: var(--pc-soft);
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-category {
+  background: var(--pc-subtle);
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-emphasis {
+  color: var(--pc-terracotta);
+  font-weight: 800;
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-emphasis.vendor-value-danger {
+  color: var(--pc-danger);
+}
+
+html[data-area="panel"] .panel-shell .umumi-grid-footer {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .umumi-period-arrow {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-surface);
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .umumi-period-arrow:hover {
+  border-color: color-mix(in srgb, var(--pc-ink) 14%, var(--pc-border));
+  background: var(--pc-subtle);
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .umumi-period-input {
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+  font-size: 12.5px;
+}
+
+html[data-area="panel"] .panel-shell .umumi-period-input:focus {
+  border-color: var(--pc-terracotta);
+  outline: 2px solid color-mix(in srgb, var(--pc-terracotta) 20%, transparent);
+}
+
+html[data-area="panel"] .panel-shell .umumi-balance-pill {
+  border: 1px solid var(--pc-border);
+  border-radius: 999px;
+  background: var(--pc-subtle);
+  color: var(--pc-muted);
+  font-size: 11.5px;
+}
+
+html[data-area="panel"] .panel-shell .umumi-balance-pill strong {
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .umumi-balance-pill .vendor-value-danger {
+  color: var(--pc-danger);
+}
+
+html[data-area="panel"] .panel-shell .umumi-balance-pill .vendor-value-ok {
+  color: var(--pc-success);
+}
+
+@media (max-width: 760px) {
+  html[data-area="panel"] .panel-shell .umumi-income-table td::before {
+    color: var(--pc-soft);
+  }
+}
+
+/* ---------- Müraciətlər ---------- */
+
+html[data-area="panel"] .panel-shell .ap-card {
+  padding: 20px 22px;
+  border: 1px solid var(--pc-border);
+  border-radius: 16px;
+  background: var(--pc-surface);
+}
+
+html[data-area="panel"] .panel-shell .ap-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  color: var(--pc-terracotta);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+}
+
+html[data-area="panel"] .panel-shell .ap-card h2::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+html[data-area="panel"] .panel-shell .ap-desc {
+  color: var(--pc-ink);
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+html[data-area="panel"] .panel-shell .ap-meta {
+  gap: 14px;
+}
+
+html[data-area="panel"] .panel-shell .ap-meta dt {
+  color: var(--pc-soft);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+html[data-area="panel"] .panel-shell .ap-meta dd {
+  color: var(--pc-ink);
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+html[data-area="panel"] .panel-shell .ap-back {
+  color: var(--pc-terracotta);
+  font-size: 11.5px;
+  font-weight: 750;
+}
+
+html[data-area="panel"] .panel-shell .ap-back:hover {
+  color: var(--pc-orange-hover);
+}
+
+html[data-area="panel"] .panel-shell .ap-tabs {
+  gap: 6px;
+}
+
+html[data-area="panel"] .panel-shell .ap-tab {
+  border: 1px solid var(--pc-border);
+  border-radius: 999px;
+  background: var(--pc-surface);
+  color: var(--pc-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+html[data-area="panel"] .panel-shell .ap-tab:hover {
+  background: var(--pc-subtle);
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .ap-tab.active {
+  border-color: var(--pc-terracotta);
+  background: var(--pc-terracotta);
+  color: #fff;
+}
+
+html[data-area="panel"] .panel-shell .ap-title {
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .ap-sub {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .ap-empty {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .ap-empty strong {
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .ap-none,
+html[data-area="panel"] .panel-shell .ap-hint {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .ap-ok {
+  color: var(--pc-success);
+}
+
+html[data-area="panel"] .panel-shell .ap-status-1 {
+  background: var(--pc-container);
+  color: var(--pc-terracotta);
+}
+
+html[data-area="panel"] .panel-shell .ap-status-2,
+html[data-area="panel"] .panel-shell .ap-prio-2 {
+  background: var(--pc-warn-bg);
+  color: var(--pc-warn);
+}
+
+html[data-area="panel"] .panel-shell .ap-status-3 {
+  background: var(--pc-success-bg);
+  color: var(--pc-success);
+}
+
+html[data-area="panel"] .panel-shell .ap-status-4,
+html[data-area="panel"] .panel-shell .ap-prio-1 {
+  background: var(--pc-subtle);
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .ap-status-5,
+html[data-area="panel"] .panel-shell .ap-prio-3 {
+  background: var(--pc-danger-bg);
+  color: var(--pc-danger);
+}
+
+html[data-area="panel"] .panel-shell .ap-msg {
+  border: 1px solid var(--pc-border-soft);
+  border-radius: 14px;
+  background: var(--pc-subtle);
+  color: var(--pc-ink);
+  font-size: 12.5px;
+}
+
+html[data-area="panel"] .panel-shell .ap-msg.mine {
+  border-color: color-mix(in srgb, var(--pc-lime) 42%, var(--pc-border));
+  background: color-mix(in srgb, var(--pc-lime) 22%, var(--pc-surface));
+}
+
+html[data-area="panel"] .panel-shell .ap-msg-head {
+  color: var(--pc-muted);
+  font-size: 10.5px;
+}
+
+html[data-area="panel"] .panel-shell .ap-msg-head b {
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .ap-compose textarea {
+  border: 1px solid var(--pc-border);
+  border-radius: 12px;
+  background: var(--pc-surface);
+  color: var(--pc-ink);
+  font-size: 12.5px;
+}
+
+html[data-area="panel"] .panel-shell .ap-compose textarea:focus {
+  border-color: var(--pc-terracotta);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pc-terracotta) 13%, transparent);
+}
+
+html[data-area="panel"] .panel-shell .ap-compose textarea::placeholder {
+  color: var(--pc-soft);
+}
+
+/* ---------- Xəbərdarlıqlar və boş vəziyyətlər ---------- */
+
+html[data-area="panel"] .panel-shell .ledger-alert {
+  padding: 11px 14px;
+  border: 1px solid color-mix(in srgb, var(--pc-danger) 28%, var(--pc-border));
+  border-radius: 11px;
+  background: var(--pc-danger-bg);
+  color: var(--pc-danger);
+  font-size: 11.5px;
+}
+
+html[data-area="panel"] .panel-shell .ledger-empty,
+html[data-area="panel"] .panel-shell .vendor-empty {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .ledger-empty span,
+html[data-area="panel"] .panel-shell .vendor-empty span {
+  color: var(--pc-soft);
+}
+
+html[data-area="panel"] .panel-shell .ledger-empty strong,
+html[data-area="panel"] .panel-shell .vendor-empty strong {
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .ledger-empty p,
+html[data-area="panel"] .panel-shell .vendor-empty p {
+  color: var(--pc-muted);
+}
+
+html[data-area="panel"] .panel-shell .ledger-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--pc-subtle) 25%,
+    var(--pc-border-soft) 37%,
+    var(--pc-subtle) 63%
+  );
+  background-size: 400% 100%;
+}
+
+html[data-area="panel"] .panel-shell .signed-documents-item {
+  border: 1px solid var(--pc-border);
+  border-radius: 10px;
+  background: var(--pc-subtle);
+}
+
+html[data-area="panel"] .panel-shell .signed-documents-name {
+  color: var(--pc-ink);
+}
+
+html[data-area="panel"] .panel-shell .signed-documents-meta {
+  color: var(--pc-muted);
+}
+
+/* ---------- Səhifələmə ---------- */
+
+html[data-area="panel"] .panel-shell .panel-pagination {
+  padding: 12px 16px;
+  color: var(--pc-muted);
+  font-size: 11.5px;
+}
+
+html[data-area="panel"] .panel-shell .panel-pagination-bordered {
+  border-top: 1px solid var(--pc-border-soft);
+}
+
+html[data-area="panel"] .panel-shell .panel-pagination .panel-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+/* ---------- Mobil ---------- */
+
+@media (max-width: 760px) {
+  html[data-area="panel"] .panel-shell {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-area="panel"] .panel-shell .panel-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 284px;
+    max-width: 84vw;
+    height: auto;
+    padding: 20px 14px;
+    z-index: 70;
+    box-shadow: 0 0 50px rgba(10, 18, 14, 0.45);
+  }
+
+  html[data-area="panel"] .panel-shell .panel-sidebar-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  html[data-area="panel"] .panel-shell .panel-menu-toggle {
+    display: flex;
+  }
+
+  html[data-area="panel"] .panel-shell .panel-topbar {
+    padding-inline: 16px;
+  }
+
+  html[data-area="panel"] .panel-shell .panel-tabs {
+    padding-inline: 16px;
+  }
+
+  html[data-area="panel"] .panel-shell .panel-content {
+    padding: 22px 16px 42px;
+  }
+
+  html[data-area="panel"] .panel-page h1,
+  html[data-area="panel"] .panel-page-head h1 {
+    font-size: 23px;
+  }
+
+  html[data-area="panel"] .panel-shell .panel-topbar-context {
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+  }
+}
+
+@media (max-width: 640px) {
+  html[data-area="panel"] .panel-shell .data-table-mobile-cards > tbody > tr {
+    border: 1px solid var(--pc-border);
+    border-radius: 12px;
+    background: var(--pc-surface);
+  }
+
+  html[data-area="panel"] .panel-shell .data-table-mobile-cards > tbody > tr > td::before {
+    color: var(--pc-soft);
+  }
+
+  html[data-area="panel"] .panel-shell .debt-table-mobile-cards > tbody > .debt-allocation-row {
+    background: var(--pc-subtle);
+  }
+
+  html[data-area="panel"] .panel-shell .owner-hero-stat:not(:last-child) {
+    border-right: none;
+    border-bottom: 1px solid var(--pc-border);
+  }
+
+}
+
+@media (max-width: 420px) {
+  html[data-area="panel"] .panel-shell .panel-user-info {
+    display: none;
+  }
+
+  html[data-area="panel"] .panel-shell .panel-user-menu {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-area="panel"] .panel-shell *,
+  html[data-area="panel"] .modal-backdrop * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

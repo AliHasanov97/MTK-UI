@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteShell } from "../../components/SiteShell";
 import { BBCode } from "../../components/BBCode";
+import { ArrowRightIcon } from "../../components/icons";
 import { formatArticleDate, getPublishedArticle, publicArticleFileUrl } from "../../lib/api/articles";
 
 type Props = { params: Promise<{ id: string }> };
@@ -27,32 +28,32 @@ export default async function NewsItemPage({ params }: Props) {
 
   return (
     <SiteShell>
-      <header className="lp-article-head section-wrap">
-        <Link className="lp-article-back" href="/xeberler">
+      <header className="c-article-head">
+        <Link className="c-article-back" href="/xeberler">
           <span aria-hidden="true">←</span> Bütün xəbərlər
         </Link>
-        <div className="lp-article-kicker">
-          <span className="lp-article-dot" aria-hidden="true" />
+        <div className="c-article-kicker">
+          <span className="c-article-dot" aria-hidden="true" />
           Xəbərlər
-          <span className="lp-article-kicker-separator">/</span>
+          <span className="c-article-kicker-separator">/</span>
           <time dateTime={publishedAt}>{dateLabel}</time>
         </div>
         <h1>{article.title}</h1>
-        {article.summary && <p className="lp-article-summary">{article.summary}</p>}
+        {article.summary && <p className="c-article-summary">{article.summary}</p>}
         {article.createdByFullName && (
-          <p className="lp-article-byline">
+          <p className="c-article-byline">
             Müəllif <strong>{article.createdByFullName}</strong>
           </p>
         )}
       </header>
 
-      <main className="lp-article-layout section-wrap">
-        <article className="lp-article-card">
-          <BBCode source={article.content} className="lp-article-content" />
+      <main className="c-article-layout">
+        <article className="c-article-card">
+          <BBCode source={article.content} className="c-article-content" />
           {imageFiles.length > 0 && (
-            <div className="lp-article-images" aria-label="Xəbər şəkilləri">
+            <div className="c-article-images" aria-label="Xəbər şəkilləri">
               {imageFiles.map((file) => (
-                <figure className="lp-article-image-item" key={file.id}>
+                <figure className="c-article-image-item" key={file.id}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={publicArticleFileUrl(file.id)} alt={file.fileName} loading="lazy" />
                   <figcaption>{file.fileName}</figcaption>
@@ -61,9 +62,11 @@ export default async function NewsItemPage({ params }: Props) {
             </div>
           )}
           {downloadableFiles.length > 0 && (
-            <section className="lp-files" aria-label="Əlavə fayllar">
-              <div className="lp-files-heading">
-                <span className="lp-files-icon" aria-hidden="true">↳</span>
+            <section className="c-files" aria-label="Əlavə fayllar">
+              <div className="c-files-heading">
+                <span className="c-files-icon" aria-hidden="true">
+                  ↳
+                </span>
                 <div>
                   <h2>Əlavə fayllar</h2>
                   <p>Xəbərlə bağlı sənədlər və materiallar</p>
@@ -73,19 +76,23 @@ export default async function NewsItemPage({ params }: Props) {
                 {downloadableFiles.map((file) => (
                   <li key={file.id}>
                     <a href={publicArticleFileUrl(file.id)} download>
-                      <span className="lp-file-type" aria-hidden="true">{file.fileName.split(".").pop()?.toUpperCase() ?? "FILE"}</span>
-                      <span className="lp-file-name">{file.fileName}</span>
+                      <span className="c-file-type" aria-hidden="true">
+                        {file.fileName.split(".").pop()?.toUpperCase() ?? "FILE"}
+                      </span>
+                      <span className="c-file-name">{file.fileName}</span>
                       {file.mimeType && <small>{file.mimeType.toUpperCase()}</small>}
-                      <span className="lp-file-dl">Endir <span aria-hidden="true">↓</span></span>
+                      <span className="c-file-dl">Endir ↓</span>
                     </a>
                   </li>
                 ))}
               </ul>
             </section>
           )}
-          <footer className="lp-article-footer">
+          <footer className="c-article-footer">
             <span>MTK · Xəbərlər və elanlar</span>
-            <Link href="/xeberler">Digər xəbərlərə bax <span aria-hidden="true">→</span></Link>
+            <Link href="/xeberler">
+              Digər xəbərlərə bax <ArrowRightIcon size={13} />
+            </Link>
           </footer>
         </article>
       </main>

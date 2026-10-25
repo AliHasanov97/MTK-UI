@@ -1,75 +1,49 @@
-import { Arrow } from "./Arrow";
+import { ArrowRightIcon } from "./icons";
 import { LoginButton } from "./LoginButton";
-import { getCompanyName } from "../lib/api/company";
 
-const bars = [38, 56, 44, 72, 60, 86, 68];
+const heroStats = [
+  { value: "8", label: "Modul" },
+  { value: "5", label: "Rol" },
+  { value: "1", label: "Baza" },
+  { value: "100%", label: "Tarixçə" },
+];
 
-export async function Hero() {
-  const name = await getCompanyName();
+export function Hero() {
   return (
-    <section className="lp-hero section-wrap">
-      <div className="lp-hero-copy">
-        <div className="eyebrow">
-          <span className="live-dot" /> {name.toLocaleUpperCase("az")} · İDARƏETMƏ SİSTEMİ
-        </div>
+    <section className="c-hero">
+      <div className="c-wrap c-hero-inner">
+        <span className="c-badge c-badge-lime">MƏNZİL-TİKİNTİ KOOPERATİVİ</span>
+
         <h1>
           Bütün işlər
           <br />
           <span>bir sistemdə.</span>
         </h1>
-        <p>
-          Binalar, mənzillər və kommunal hesablardan inventar, maliyyə, HR və
-          sakin müraciətlərinə qədər — hər rol üçün ayrıca giriş, hər əməliyyat
-          üçün aydın tarixçə.
+
+        <p className="c-hero-lead">
+          Binalar, mənzillər, hesablar, maliyyə, inventar və işçi heyəti — hamısı
+          bir yerdə. Şəffaf, dəqiq və sadə.
         </p>
-        <div className="hero-actions">
-          <LoginButton className="button button-dark">
-            Sistemə daxil ol <Arrow />
+
+        <div className="c-hero-actions">
+          <LoginButton className="c-btn c-btn-orange">
+            Sistemə daxil ol
+            <span className="c-btn-arrow">
+              <ArrowRightIcon size={17} />
+            </span>
           </LoginButton>
-          <a className="text-link" href="#imkanlar">
-            İmkanlara bax <span>↓</span>
+          <a className="c-hero-hint" href="#imkanlar">
+            İmkanlara bax ↓
           </a>
         </div>
-      </div>
 
-      <div className="lp-preview" aria-hidden="true">
-        <div className="lp-preview-bar">
-          <i />
-          <i />
-          <i />
-          <span>Ümumi baxış</span>
-        </div>
-        <div className="lp-preview-body">
-          <div className="lp-preview-kpis">
-            <div>
-              <small>Aylıq gəlir</small>
-              <strong>24 580 ₼</strong>
+        <div className="c-hero-stats">
+          {heroStats.map((s) => (
+            <div className="c-hero-stat" key={s.label}>
+              <strong>{s.value}</strong>
+              <span>{s.label}</span>
             </div>
-            <div>
-              <small>Açıq borc</small>
-              <strong>3 940 ₼</strong>
-            </div>
-            <div>
-              <small>Müraciət</small>
-              <strong>12</strong>
-            </div>
-          </div>
-          <div className="lp-preview-chart">
-            {bars.map((h, i) => (
-              <span key={i} style={{ height: `${h}%` }} />
-            ))}
-          </div>
-          <ul className="lp-preview-list">
-            <li>
-              <b>⌂</b> Bina 87 · Mənzil 14 <em>Ödənilib</em>
-            </li>
-            <li>
-              <b>⇄</b> Lift təmiri · xərc <em>Qeydə alındı</em>
-            </li>
-            <li>
-              <b>✳</b> Su sızması müraciəti <em>İcrada</em>
-            </li>
-          </ul>
+          ))}
         </div>
       </div>
     </section>

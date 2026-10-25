@@ -47,7 +47,10 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
 
       <aside className={mobileNavOpen ? "panel-sidebar open" : "panel-sidebar"}>
         <div className="panel-sidebar-top">
-          <Logo name={companyName} variant="header" />
+          <div className="panel-sidebar-brand">
+            <Logo name={companyName} href="/panel" variant="header" />
+            <small>İdarəetmə paneli</small>
+          </div>
           <button
             type="button"
             className="panel-sidebar-close"
@@ -70,23 +73,43 @@ export function PanelShell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
-        <button type="button" className="panel-sidebar-logout" onClick={logout}>
-          <span aria-hidden="true">⎋</span> Çıxış
-        </button>
+        <div className="panel-sidebar-foot">
+          <Link className="panel-site-link" href="/">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M14 4h6v6" />
+              <path d="M20 4 10 14" />
+              <path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+            </svg>
+            Sayta bax
+          </Link>
+          <button type="button" className="panel-sidebar-logout" onClick={logout}>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+            Çıxış
+          </button>
+        </div>
       </aside>
 
       <div className="panel-main">
         <header className="panel-topbar">
-          <button
-            type="button"
-            className="panel-menu-toggle"
-            aria-label="Menyunu aç"
-            onClick={() => setMobileNavOpen(true)}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
+          <div className="panel-topbar-left">
+            <button
+              type="button"
+              className="panel-menu-toggle"
+              aria-label="Menyunu aç"
+              onClick={() => setMobileNavOpen(true)}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+            <span className="panel-topbar-context">
+              {activeModule?.label ?? "İdarəetmə paneli"}
+            </span>
+          </div>
           <div className="panel-topbar-actions">
             <ThemeToggle />
             <UserMenu />

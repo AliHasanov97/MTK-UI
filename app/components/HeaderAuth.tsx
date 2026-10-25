@@ -1,6 +1,6 @@
 "use client";
 
-import { Arrow } from "./Arrow";
+import { LoginIcon } from "./icons";
 import { UserMenu } from "./UserMenu";
 import { useAuth } from "../lib/auth/AuthContext";
 
@@ -18,7 +18,8 @@ export function HeaderAuth() {
       onClick={() => auth.login()}
       disabled={auth.status === "loading"}
     >
-      Daxil ol <Arrow />
+      <LoginIcon size={16} />
+      Daxil ol
     </button>
   );
 }
