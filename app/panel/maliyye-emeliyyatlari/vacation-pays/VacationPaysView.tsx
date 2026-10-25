@@ -16,6 +16,7 @@ import {
 import { QueryComparisonType } from "../../../lib/api/buildings";
 import { Modal } from "../../Modal";
 import { DateInput } from "../../../components/DateInput";
+import { EntityLink, entityHref } from "../../EntityLinks";
 
 const PAGE_SIZE = 20;
 
@@ -88,7 +89,8 @@ function PayVacationPayModal({
 
         <div style={{ marginBottom: 16 }}>
           <p>
-            <strong>İşçi:</strong> {vacationPay.employeeFullName}
+            <strong>İşçi:</strong>{" "}
+            <EntityLink href={entityHref.employee(vacationPay.employeeId)}>{vacationPay.employeeFullName}</EntityLink>
           </p>
           <p>
             <strong>Dövr:</strong> {formatPeriod(vacationPay.vacationStartDate, vacationPay.vacationEndDate)}
@@ -287,7 +289,7 @@ export function VacationPaysView() {
                   const overdue = isOverdue(vp.dueDate, vp.status);
                   return (
                     <tr key={vp.id} style={overdue ? { backgroundColor: "#ffebee" } : undefined}>
-                      <td>{vp.employeeFullName}</td>
+                      <td><EntityLink href={entityHref.employee(vp.employeeId)}>{vp.employeeFullName}</EntityLink></td>
                       <td>{formatPeriod(vp.vacationStartDate, vp.vacationEndDate)}</td>
                       <td>{vp.vacationDays}</td>
                       <td>{vp.averageMonthlyWage.toFixed(2)} ₼</td>

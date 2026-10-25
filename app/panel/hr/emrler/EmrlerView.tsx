@@ -17,6 +17,7 @@ import { DocumentDetailModal, type DocTarget } from "../DocumentDetailModal";
 import { CreateOrderModal } from "../CreateDocumentModals";
 import { Pagination } from "../Pagination";
 import { PAGE_SIZE, hrErrorMessage } from "../shared";
+import { EntityLink, entityHref } from "../../EntityLinks";
 
 const ORDER_KEYS = Object.keys(ORDER_KINDS) as OrderKind[];
 const typeOptions = ORDER_KEYS.map((k) => ({ value: ORDER_KINDS[k].value as number, label: ORDER_KINDS[k].label }));
@@ -137,7 +138,7 @@ export function EmrlerView() {
                     >
                       <td>{o.orderNumber}</td>
                       <td>{kind ? ORDER_KINDS[kind].label : o.type}</td>
-                      <td>{o.employee?.name ?? o.jobApplicant?.name ?? "Bütün işçilər"}</td>
+                      <td>{o.employee ? <EntityLink href={entityHref.employee(o.employee.id)}>{o.employee.name}</EntityLink> : (o.jobApplicant?.name ?? "Bütün işçilər")}</td>
                       <td>{o.createdBy?.name ?? "—"}</td>
                       <td>{formatDateTime(o.createdAt)}</td>
                     </tr>

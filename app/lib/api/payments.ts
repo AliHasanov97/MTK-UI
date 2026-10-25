@@ -112,7 +112,15 @@ export type PaymentResponse = {
   // no need to separately fetch from Buildings/Identity just to label a payment.
   partyName: string | null;
   propertyLabel: string | null;
+  // Sequential receipt number (Qəbz №) printed on the receipt PDF. Optional so
+  // the UI still renders against a backend that doesn't send it yet.
+  receiptNumber?: number;
 };
+
+/** "Qəbz № 00000141" — same format as the receipt PDF; null when unknown. */
+export function receiptNumberLabel(receiptNumber: number | null | undefined) {
+  return receiptNumber ? `Qəbz № ${String(receiptNumber).padStart(8, "0")}` : null;
+}
 
 export type PaymentAllocationDetailResponse = {
   id: string;

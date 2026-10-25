@@ -19,6 +19,7 @@ import {
 } from "../../../lib/api/payments";
 import { DateInput } from "../../../components/DateInput";
 import { useConfirm } from "../../../components/ConfirmDialog";
+import { EntityLink, entityHref } from "../../EntityLinks";
 
 const MONTHS = [
   "Yanvar",
@@ -434,7 +435,7 @@ export function EmekHaqqiView() {
                       slip.paymentMethod === 0 ? "Cash" : slip.paymentMethod === 1 ? "BankTransfer" : "Card";
                     return (
                       <tr key={slip.employeeId}>
-                        <td>{slip.employeeFullName}</td>
+                        <td><EntityLink href={entityHref.employee(slip.employeeId)}>{slip.employeeFullName}</EntityLink></td>
                         <td className="emek-amount">{money(slip.baseSalary)}</td>
                         <td className="emek-amount">{slip.bonusAmount > 0 ? money(slip.bonusAmount) : "—"}</td>
                         <td className="emek-amount">

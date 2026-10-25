@@ -19,6 +19,7 @@ import {
   type AppealDetail,
 } from "../../../lib/api/appeals";
 import "../appeals.css";
+import { EntityLink, entityHref, useOwnerIdsByUser } from "../../EntityLinks";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -52,6 +53,8 @@ export function AppealDetailView({ appealId }: { appealId: string }) {
 
   const isStaff = auth.status === "authenticated" && hasAnyRole(auth.user.roles, [ROLES.ADMIN, ROLES.BUILDING_MANAGER]);
   const accessToken = auth.status === "authenticated" ? auth.accessToken : null;
+  const submitterOwnerIds = useOwnerIdsByUser(accessToken ?? "", [appeal?.submitterId], isStaff);
+  const submitterOwnerId = appeal ? submitterOwnerIds[appeal.submitterId] : null;
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -220,7 +223,11 @@ export function AppealDetailView({ appealId }: { appealId: string }) {
               </div>
               <div>
                 <dt>Müraciətçi</dt>
-                <dd>{appeal.submitterName ?? "—"}</dd>
+                <dd>
+                  <EntityLink href={submitterOwnerId ? entityHref.owner(submitterOwnerId) : null}>
+                    {appeal.submitterName}
+                  </EntityLink>
+                </dd>
               </div>
               {appeal.assignedToName && (
                 <div>

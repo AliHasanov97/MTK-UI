@@ -26,6 +26,7 @@ import {
   usePropertyDebtGate,
   usePropertyFinance,
 } from "../../finance";
+import { EntityLink, entityHref } from "../../../EntityLinks";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -127,7 +128,8 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
           <div className="owner-avatar">⌂</div>
           <div className="owner-hero-body">
             <h2>
-              {apartment.building.name} — Mənzil {apartment.apartmentNumber}
+              <EntityLink href={canManage ? entityHref.building(apartment.building.id) : null}>{apartment.building.name}</EntityLink> — Mənzil{" "}
+              {apartment.apartmentNumber}
             </h2>
             <div className="owner-hero-meta">
               <span>{apartment.floor}-cü mərtəbə</span>
@@ -219,8 +221,8 @@ export function ApartmentDetailView({ apartmentId }: { apartmentId: string }) {
                 {ownershipHistory.map((h) => (
                   <tr key={h.id}>
                     <td>{formatDateTime(h.transferDate)}</td>
-                    <td>{h.previousOwnerName ?? "—"}</td>
-                    <td>{h.newOwnerName}</td>
+                    <td><EntityLink href={canManage && h.previousOwnerId ? entityHref.owner(h.previousOwnerId) : null}>{h.previousOwnerName}</EntityLink></td>
+                    <td><EntityLink href={canManage ? entityHref.owner(h.newOwnerId) : null}>{h.newOwnerName}</EntityLink></td>
                     <td>{transferCreators[h.id] ?? "—"}</td>
                   </tr>
                 ))}

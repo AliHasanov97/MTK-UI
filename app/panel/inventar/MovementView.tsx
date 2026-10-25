@@ -22,6 +22,7 @@ import {
 } from "../../lib/api/inventory";
 import { Modal } from "../Modal";
 import { errorMessage, formatMoney, formatQuantity } from "./shared";
+import { EntityLink, entityHref } from "../EntityLinks";
 
 const PAGE_SIZE = 10;
 // The transaction search returns no total count and has no text search, so every
@@ -246,7 +247,7 @@ export function MovementView({ transactionType }: { transactionType: Transaction
                   return (
                     <tr key={r.id} className="data-table-row-clickable" onClick={() => router.push(`/panel/inventar/materiallar/${r.nomenclatureId}`)}>
                       <td>{formatDateTime(r.transactionDate)}</td>
-                      <td>{n?.code ?? "—"}</td>
+                      <td><EntityLink href={entityHref.nomenclature(r.nomenclatureId)}>{n?.code}</EntityLink></td>
                       <td className="vendor-cell-vendor">
                         <Link className="owner-link" href={`/panel/inventar/materiallar/${r.nomenclatureId}`} onClick={(event) => event.stopPropagation()}>{r.nomenclatureName}</Link>
                         {n && <span className="vendor-cell-sub">{NOMENCLATURE_CATEGORY_LABELS[categoryFromOrdinal(n.category)]}</span>}

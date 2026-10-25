@@ -17,6 +17,7 @@ import {
 import { BalanceTag } from "../binalar/finance";
 import { ColumnFilter } from "../ColumnFilter";
 import { FilterChip, MobileFilterBar } from "../MobileFilterBar";
+import { EntityLink, entityHref } from "../EntityLinks";
 
 // One big pull for the property lists — same pattern as Borclar/Tranzaksiyalar: the
 // server-side filter can only express one comparison and the grid needs every
@@ -371,7 +372,7 @@ export function OdenisQrafikiView() {
                   const months = propertyReport?.months;
                   return (
                     <tr key={r.key}>
-                      {isApartments && <td>{r.buildingName ?? "—"}</td>}
+                      {isApartments && <td><EntityLink href={r.buildingId ? entityHref.building(r.buildingId) : null}>{r.buildingName}</EntityLink></td>}
                       <td className="hesabat-row-head">
                         <Link className="owner-link" href={r.href}>
                           {r.label}

@@ -32,6 +32,7 @@ import {
 import { formatDateTime } from "../../../lib/format";
 import { errorMessage, formatMoney, formatQuantity } from "../shared";
 import { useConfirm } from "../../../components/ConfirmDialog";
+import { EntityLink, entityHref } from "../../EntityLinks";
 
 const PAGE_SIZE = 10;
 
@@ -180,7 +181,7 @@ export function MateriallarView() {
                 )}
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.code}</td>
+                    <td><EntityLink href={entityHref.nomenclature(item.id)}>{item.code}</EntityLink></td>
                     <td className="vendor-cell-vendor">
                       <Link className="owner-link" href={`/panel/inventar/materiallar/${item.id}`}>
                         {item.name}
@@ -326,8 +327,8 @@ function NomenclaturePurchaseHistoryModal({
               {history.map((entry, index) => (
                 <tr key={`${entry.purchaseId}-${index}`}>
                   <td>{formatDateTime(entry.purchaseDate)}</td>
-                  <td>{entry.vendorName ?? "—"}</td>
-                  <td>{entry.invoiceNumber ?? "—"}</td>
+                  <td><EntityLink href={entityHref.vendor(entry.vendorId)}>{entry.vendorName}</EntityLink></td>
+                  <td><EntityLink href={entityHref.purchase(entry.purchaseId)}>{entry.invoiceNumber ?? "Qaiməyə bax"}</EntityLink></td>
                   <td>{purchaseStatusLabel(entry.status)}</td>
                   <td className="vendor-amount">{formatQuantity(entry.quantity)}</td>
                   <td className="vendor-amount">{formatMoney(entry.unitPrice)}</td>

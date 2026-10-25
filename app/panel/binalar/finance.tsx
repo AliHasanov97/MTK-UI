@@ -31,7 +31,9 @@ import {
   searchAuditLogs,
   searchCharges,
   searchPayments,
+  receiptNumberLabel,
 } from "../../lib/api/payments";
+import { EntityLink, propertyHref } from "../EntityLinks";
 
 const AZ_MONTHS = [
   "Yanvar", "Fevral", "Mart", "Aprel", "May", "İyun",
@@ -459,7 +461,7 @@ export function ChargesTable({
                 const remaining = c.amount - c.paidAmount;
                 return (
                   <tr key={c.id} className="data-table-row-clickable" onClick={() => setOpenCharge(c)}>
-                    {showPropertyColumn && <td>{c.propertyLabel ?? "—"}</td>}
+                    {showPropertyColumn && <td><EntityLink href={propertyHref(c)}>{c.propertyLabel}</EntityLink></td>}
                     <td>{formatDateTime(c.createdAt)}</td>
                     <td>{chargeDescription(c)}</td>
                     <td>{c.amount.toFixed(2)}</td>
@@ -761,7 +763,7 @@ export function PaymentDetailModal({
       <div className="transaction-document-modal">
         <section className="data-table-wrap purchase-detail-card">
           <div className="transaction-document-heading">
-            <h3>Ödəniş sənədi {payment.id.slice(0, 8).toUpperCase()}</h3>
+            <h3>{receiptNumberLabel(payment.receiptNumber) ?? "Ödəniş sənədi"}</h3>
             {!hasDocument && canUploadDocuments && (
               <button type="button" className="panel-btn panel-btn-sm" disabled={downloading} onClick={handleDownload}>
                 {downloading ? "Yüklənir…" : "Qəbzi yüklə (PDF)"}
@@ -815,7 +817,7 @@ export function PaymentDetailModal({
                   <tbody>
                     {rows.map((r) => (
                       <tr key={r.chargeId}>
-                        {showPropertyColumn && <td>{r.propertyLabel ?? "—"}</td>}
+                        {showPropertyColumn && <td><EntityLink href={propertyHref(r)}>{r.propertyLabel}</EntityLink></td>}
                         <td>{r.description ?? formatPeriod(r.period)}</td>
                         <td className="vendor-amount">{r.chargeAmount.toFixed(2)}</td>
                         <td className="vendor-amount">{r.allocatedAmount.toFixed(2)}</td>
@@ -931,7 +933,7 @@ export function OwnerChargesPanel({ accessToken, ownerId }: { accessToken: strin
                   const remaining = c.amount - c.paidAmount;
                   return (
                     <tr key={c.id} className="data-table-row-clickable" onClick={() => setOpenCharge(c)}>
-                      <td className="owner-charge-col-property">{c.propertyLabel ?? "—"}</td>
+                      <td className="owner-charge-col-property"><EntityLink href={propertyHref(c)}>{c.propertyLabel}</EntityLink></td>
                       <td className="owner-charge-col-desc">{chargeDescription(c)}</td>
                       <td>{formatDateTime(c.createdAt)}</td>
                       <td className={remaining > 0.005 ? "owner-balance-tag-debt" : undefined}>
@@ -1060,7 +1062,7 @@ export function OwnerPaymentsPanel({
                   return (
                     <tr key={p.id} className="data-table-row-clickable" onClick={() => setOpenPayment(p)}>
                       <td>{formatDateTime(p.paymentDate)}</td>
-                      <td>{p.propertyLabel ?? "—"}</td>
+                      <td><EntityLink href={propertyHref(p)}>{p.propertyLabel}</EntityLink></td>
                       <td>{p.amount.toFixed(2)}</td>
                     </tr>
                   );

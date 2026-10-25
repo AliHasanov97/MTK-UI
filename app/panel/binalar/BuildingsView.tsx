@@ -13,6 +13,7 @@ import {
 } from "../../lib/api/buildings";
 import { ColumnFilter, SortIcon } from "../ColumnFilter";
 import { FilterChip, MobileFilterBar } from "../MobileFilterBar";
+import { EntityLink, entityHref } from "../EntityLinks";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -395,7 +396,9 @@ export function BuildingsView() {
             )}
             {apartments.map((a) => (
               <tr key={a.id}>
-                <td>{a.building.name}</td>
+                <td>
+                  <EntityLink href={entityHref.building(a.building.id)}>{a.building.name}</EntityLink>
+                </td>
                 <td>
                   <Link className="owner-link" href={`/panel/binalar/menzil/${a.id}`}>
                     {a.apartmentNumber}

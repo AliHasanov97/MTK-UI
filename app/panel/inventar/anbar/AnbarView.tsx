@@ -19,6 +19,7 @@ import {
   type StockResponse,
 } from "../../../lib/api/inventory";
 import { errorMessage, formatQuantity } from "../shared";
+import { EntityLink, entityHref } from "../../EntityLinks";
 
 type Segment = "stock" | "low";
 
@@ -243,7 +244,7 @@ function StockSegment() {
                   const unit = UNIT_LABELS[unitFromOrdinal(item.unit)];
                   return (
                     <tr key={item.id}>
-                      <td>{item.code}</td>
+                      <td><EntityLink href={entityHref.nomenclature(item.id)}>{item.code}</EntityLink></td>
                       <td className="vendor-cell-vendor">
                         <Link className="owner-link" href={`/panel/inventar/materiallar/${item.id}`}>
                           {item.name}

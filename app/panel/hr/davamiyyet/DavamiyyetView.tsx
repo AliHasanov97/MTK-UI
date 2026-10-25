@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../lib/auth/AuthContext";
 import { downloadTimesheet, getTimesheet, type Timesheet } from "../../../lib/api/hr";
 import { hrErrorMessage } from "../shared";
+import { EntityLink, entityHref } from "../../EntityLinks";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -300,7 +301,9 @@ export function DavamiyyetView() {
                   <tr key={row.employee.id}>
                     <td className="tb-sticky tb-col-no">{row.registerNumber}</td>
                     <td className="tb-sticky tb-col-name">
-                      <strong>{row.employee.name}</strong>
+                      <strong>
+                        <EntityLink href={entityHref.employee(row.employee.id)}>{row.employee.name}</EntityLink>
+                      </strong>
                       {row.position && <small>{row.position.name}</small>}
                     </td>
                     {days.map((d) => {

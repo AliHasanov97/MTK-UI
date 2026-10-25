@@ -19,6 +19,7 @@ import { searchVendors, type VendorListResult } from "../../lib/api/vendors";
 import { Modal } from "../Modal";
 import { SearchableSelect } from "../SearchableSelect";
 import { DateInput } from "../../components/DateInput";
+import { EntityLink, partyHref } from "../EntityLinks";
 
 const PAGE_SIZE = 10;
 
@@ -173,7 +174,7 @@ export function MuqavilelerView() {
                       </Link>
                     </td>
                     <td>
-                      {c.vendorName ?? c.customerName ?? "—"}
+                      <EntityLink href={partyHref(c)}>{c.vendorName ?? c.customerName}</EntityLink>
                       <span className="vendor-cell-sub">{c.customerId ? "Müştəri" : "Tədarükçü"}</span>
                     </td>
                     <td>

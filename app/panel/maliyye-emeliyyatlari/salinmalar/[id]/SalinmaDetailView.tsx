@@ -17,6 +17,7 @@ import { dateOnly } from "../../../../lib/format";
 import { SignedDocumentsPanel } from "../../../SignedDocuments";
 import { CreatePurchaseModal } from "../CreatePurchaseModal";
 import { useConfirm } from "../../../../components/ConfirmDialog";
+import { EntityLink, entityHref } from "../../../EntityLinks";
 
 function errorMessage(error: unknown) {
   if (error instanceof ApiError) {
@@ -160,7 +161,7 @@ export function SalinmaDetailView({ purchaseId }: { purchaseId: string }) {
           <h2>Ümumi məlumat</h2>
           <dl className="purchase-meta">
             <div><dt>Qaimə nömrəsi</dt><dd>{purchase.invoiceNumber || "—"}</dd></div>
-            <div><dt>Tədarükçü</dt><dd>{purchase.vendorName || "—"}</dd></div>
+            <div><dt>Tədarükçü</dt><dd><EntityLink href={entityHref.vendor(purchase.vendorId)}>{purchase.vendorName}</EntityLink></dd></div>
             <div><dt>Satınalma tarixi</dt><dd>{dateOnly(purchase.purchaseDate)}</dd></div>
             <div><dt>Qəbul tarixi</dt><dd>{dateOnly(purchase.receivedOnUtc)}</dd></div>
             <div><dt>Status</dt><dd>{purchaseStatusLabel(purchase.status)}</dd></div>
@@ -187,7 +188,7 @@ export function SalinmaDetailView({ purchaseId }: { purchaseId: string }) {
               <tbody>
                 {purchase.lines.map((line, index) => (
                   <tr key={line.id || `${line.nomenclatureId}-${index}`}>
-                    <td>{line.nomenclatureName ?? "—"}{line.nomenclatureCode ? <span className="vendor-cell-sub">{line.nomenclatureCode}</span> : null}</td>
+                    <td><EntityLink href={entityHref.nomenclature(line.nomenclatureId)}>{line.nomenclatureName}</EntityLink>{line.nomenclatureCode ? <span className="vendor-cell-sub">{line.nomenclatureCode}</span> : null}</td>
                     <td className="vendor-amount">{line.quantity}</td>
                     <td className="vendor-amount">{money(line.unitPrice)}</td>
                     <td className="vendor-amount">{money(line.lineTotal)}</td>

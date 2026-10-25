@@ -24,6 +24,7 @@ import {
 } from "../../lib/api/appeals";
 import { CreateAppealModal } from "./CreateAppealModal";
 import "./appeals.css";
+import { EntityLink, entityHref, useOwnerIdsByUser } from "../EntityLinks";
 
 const PAGE_SIZE = 15;
 
@@ -49,6 +50,11 @@ export function AppealsView() {
   const [showCreate, setShowCreate] = useState(false);
 
   const isStaff = auth.status === "authenticated" && hasAnyRole(auth.user.roles, [ROLES.ADMIN, ROLES.BUILDING_MANAGER]);
+  const submitterOwnerIds = useOwnerIdsByUser(
+    auth.status === "authenticated" ? auth.accessToken : "",
+    result?.appeals.map((a) => a.submitterId) ?? [],
+    isStaff,
+  );
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -224,7 +230,15 @@ export function AppealsView() {
                   <td>
                     <span className={appealPriorityClass(a.priority)}>{appealPriorityLabel(a.priority)}</span>
                   </td>
-                  {isStaff && <td>{a.submitterName ?? "—"}</td>}
+                  {isStaff && (
+                    <td>
+                      <EntityLink
+                        href={submitterOwnerIds[a.submitterId] ? entityHref.owner(submitterOwnerIds[a.submitterId]!) : null}
+                      >
+                        {a.submitterName}
+                      </EntityLink>
+                    </td>
+                  )}
                   <td>{a.commentsCount}</td>
                   <td>{new Date(a.createdAt).toLocaleDateString("az-AZ")}</td>
                 </tr>

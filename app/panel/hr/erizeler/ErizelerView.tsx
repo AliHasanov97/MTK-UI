@@ -18,6 +18,7 @@ import { DocumentDetailModal, type DocTarget } from "../DocumentDetailModal";
 import { CreateApplicationModal } from "../CreateDocumentModals";
 import { Pagination } from "../Pagination";
 import { PAGE_SIZE, hrErrorMessage } from "../shared";
+import { EntityLink, entityHref } from "../../EntityLinks";
 
 const KINDS = Object.keys(APPLICATION_KINDS) as ApplicationKind[];
 const typeOptions = KINDS.map((k) => ({ value: APPLICATION_KINDS[k].value as number, label: APPLICATION_KINDS[k].label }));
@@ -166,7 +167,7 @@ export function ErizelerView() {
                     >
                       <td>{a.applicationNumber}</td>
                       <td>{kind ? APPLICATION_KINDS[kind].label : a.type}</td>
-                      <td>{a.employee?.name ?? a.jobApplicant?.name ?? "—"}</td>
+                      <td>{a.employee ? <EntityLink href={entityHref.employee(a.employee.id)}>{a.employee.name}</EntityLink> : (a.jobApplicant?.name ?? "—")}</td>
                       <td>{a.createdBy?.name ?? "—"}</td>
                       <td>{formatDateTime(a.createdAt)}</td>
                       <td>

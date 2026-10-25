@@ -29,6 +29,7 @@ import { SignedDocumentsPanel } from "../SignedDocuments";
 import { exportPurchasePdf, getPurchase, purchaseStatusLabel, type PurchaseResponse } from "../../lib/api/purchases-client";
 import type { PaymentAllocationDetailResponse, PaymentResponse } from "../../lib/api/payments";
 import { DateInput } from "../../components/DateInput";
+import { EntityLink, propertyHref, partyHref } from "../EntityLinks";
 
 // Fetched unfiltered/unpaged from the API (large flat pull, sorted newest first) —
 // the date range below is applied client-side. The generic QueryFilter mechanism
@@ -689,9 +690,12 @@ function TransactionDocumentModal({
               )}
             </div>
             <dl className="purchase-meta">
-              <div><dt>Ödəyən</dt><dd>{payment.partyName ?? "—"}</dd></div>
+              {payment.receiptNumber ? (
+                <div><dt>Qəbz №</dt><dd>{String(payment.receiptNumber).padStart(8, "0")}</dd></div>
+              ) : null}
+              <div><dt>Ödəyən</dt><dd><EntityLink href={partyHref(payment)}>{payment.partyName}</EntityLink></dd></div>
               {showPaymentProperty && (
-                <div><dt>Əlaqəli əmlak</dt><dd>{payment.propertyLabel ?? "Ümumi ödəniş"}</dd></div>
+                <div><dt>Əlaqəli əmlak</dt><dd><EntityLink href={propertyHref(payment)} fallback="Ümumi ödəniş">{payment.propertyLabel}</EntityLink></dd></div>
               )}
               <div><dt>Tarix</dt><dd>{formatDateTime(payment.paymentDate)}</dd></div>
               <div><dt>Ödəniş üsulu</dt><dd>{PAYMENT_METHOD_LABELS[paymentMethodFromOrdinal(payment.paymentMethod)]}</dd></div>
@@ -712,7 +716,7 @@ function TransactionDocumentModal({
                   </thead>
                   <tbody>{allocations.map((allocation) => (
                     <tr key={allocation.id}>
-                      {showAllocationProperty && <td>{allocation.propertyLabel ?? "—"}</td>}
+                      {showAllocationProperty && <td><EntityLink href={propertyHref(allocation)}>{allocation.propertyLabel}</EntityLink></td>}
                       <td>{allocation.period ?? "—"}</td>
                       <td>{allocation.description ?? "Aylıq haqq"}</td>
                       <td className="vendor-amount">{formatMoney(allocation.allocatedAmount)}</td>

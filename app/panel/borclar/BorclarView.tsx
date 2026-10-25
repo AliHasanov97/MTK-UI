@@ -23,6 +23,7 @@ import { Modal } from "../Modal";
 import { OwnerPicker } from "../binalar/OwnerPicker";
 import { GenerateChargesModal } from "./GenerateChargesModal";
 import { PayButton, useCreatedBy, useCreatedByMap } from "../binalar/finance";
+import { EntityLink, propertyHref, partyHref } from "../EntityLinks";
 
 const PAGE_SIZE = 20;
 
@@ -275,7 +276,7 @@ export function BorclarView() {
                         return (
                           <tr key={c.id}>
                             <td data-label="Əmlak">
-                              {c.propertyLabel ?? "—"}
+                              <EntityLink href={propertyHref(c)}>{c.propertyLabel}</EntityLink>
                               {c.description && <div className="vendor-note">{c.description}</div>}
                               {fromAdvance && <div className="debt-advance-note">Avansdan ödənilib</div>}
                             </td>
@@ -348,8 +349,8 @@ export function BorclarView() {
             <section className="data-table-wrap purchase-detail-card">
               <h3>Haqq məlumatı</h3>
               <dl className="purchase-meta">
-                <div><dt>Sakin</dt><dd>{selectedCharge.partyName ?? "—"}</dd></div>
-                <div><dt>Əmlak və dövr</dt><dd>{selectedCharge.propertyLabel ?? "—"} · {selectedCharge.period ?? "—"}</dd></div>
+                <div><dt>Sakin</dt><dd><EntityLink href={partyHref(selectedCharge)}>{selectedCharge.partyName}</EntityLink></dd></div>
+                <div><dt>Əmlak və dövr</dt><dd><EntityLink href={propertyHref(selectedCharge)}>{selectedCharge.propertyLabel}</EntityLink> · {selectedCharge.period ?? "—"}</dd></div>
                 <div><dt>Haqqın məbləği</dt><dd>{formatMoney(selectedCharge.amount)}</dd></div>
                 <div><dt>Qalıq borc</dt><dd>{formatMoney(selectedCharge.amount - selectedCharge.paidAmount)}</dd></div>
               </dl>

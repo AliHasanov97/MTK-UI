@@ -28,6 +28,7 @@ import {
   type ChargeResponse,
 } from "../../../../lib/api/payments";
 import { useCreatedBy } from "../../auditHooks";
+import { EntityLink, entityHref } from "../../../EntityLinks";
 
 type Tab = "apartments" | "garages" | "charges" | "payments";
 
@@ -250,7 +251,7 @@ export function OwnerDetailView({ ownerId }: { ownerId: string }) {
               <tbody>
                 {owner.apartments.map((a) => (
                   <tr key={a.id}>
-                    <td>{a.building.name}</td>
+                    <td><EntityLink href={entityHref.building(a.building.id)}>{a.building.name}</EntityLink></td>
                     <td>
                       <Link className="owner-link" href={`/panel/binalar/menzil/${a.id}`}>
                         {a.apartmentNumber}

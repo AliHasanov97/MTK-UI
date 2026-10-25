@@ -16,6 +16,7 @@ import {
 import { ApiError } from "../../../lib/api/client";
 import { CreatePurchaseModal } from "./CreatePurchaseModal";
 import { useConfirm } from "../../../components/ConfirmDialog";
+import { EntityLink, entityHref } from "../../EntityLinks";
 
 const PAGE_SIZE = 12;
 
@@ -144,7 +145,7 @@ export function SalinmalarView() {
                       {p.invoiceNumber ?? "—"}
                     </Link>
                   </td>
-                  <td>{p.vendorName ?? "—"}</td>
+                  <td><EntityLink href={entityHref.vendor(p.vendorId)}>{p.vendorName}</EntityLink></td>
                   <td>{dateOnly(p.purchaseDate)}</td>
                   <td>{dateOnly(p.receivedOnUtc) ?? "—"}</td>
                   <td>

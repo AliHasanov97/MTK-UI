@@ -47,6 +47,7 @@ import { Modal } from "../../Modal";
 import { SignedDocumentsPanel } from "../../SignedDocuments";
 import { DateInput } from "../../../components/DateInput";
 import { useConfirm } from "../../../components/ConfirmDialog";
+import { EntityLink, partyHref } from "../../EntityLinks";
 
 function errorMessage(err: unknown) {
   if (err instanceof ApiError) {
@@ -240,7 +241,7 @@ export function MuqavileDetailView({ contractId }: { contractId: string }) {
           <h2>Ümumi məlumat</h2>
           <dl className="purchase-meta">
             <div><dt>Nömrə</dt><dd>{contract.number}</dd></div>
-            <div><dt>{contract.customerId ? "Müştəri" : "Tədarükçü"}</dt><dd>{contract.vendorName ?? contract.customerName ?? "Tərəf tapılmadı"}</dd></div>
+            <div><dt>{contract.customerId ? "Müştəri" : "Tədarükçü"}</dt><dd><EntityLink href={partyHref(contract)} fallback="Tərəf tapılmadı">{contract.vendorName ?? contract.customerName}</EntityLink></dd></div>
             <div><dt>Müddət</dt><dd>{dateOnly(contract.startDate)} — {dateOnly(contract.endDate)}</dd></div>
             <div>
               <dt>Status</dt>
