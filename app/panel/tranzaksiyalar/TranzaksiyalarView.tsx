@@ -35,6 +35,7 @@ import { DateInput } from "../../components/DateInput";
 // doesn't reliably convert date strings server-side, so this sidesteps that
 // entirely instead of shipping a range picker that silently does nothing.
 const FETCH_SIZE = 500;
+const PAGE_SIZE = 10;
 
 const MONTHS_AZ = [
   "Yanvar",
@@ -194,6 +195,7 @@ export function TranzaksiyalarView() {
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
   const [docTarget, setDocTarget] = useState<Row | null>(null);
+  const [pageNumber, setPageNumber] = useState(1);
   const transactionCreators = useCreatedByMap(auth.status === "authenticated" ? auth.accessToken : "", "Transaction");
 
   const load = useCallback(() => {
@@ -213,6 +215,14 @@ export function TranzaksiyalarView() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Any filter change restarts pagination from the first page.
+  const filterSignature = JSON.stringify([search, startDate, endDate, kindFilter, categoryFilter]);
+  const [prevFilterSignature, setPrevFilterSignature] = useState(filterSignature);
+  if (filterSignature !== prevFilterSignature) {
+    setPrevFilterSignature(filterSignature);
+    setPageNumber(1);
+  }
 
   if (auth.status !== "authenticated") return null;
 
@@ -256,6 +266,17 @@ export function TranzaksiyalarView() {
   const totalExpense = rows.reduce((sum, r) => (r.amount < 0 ? sum + Math.abs(r.amount) : sum), 0);
   const net = totalIncome - totalExpense;
   const groups = groupByMonth(rows);
+
+  // Paged client-side: totals and month headers stay computed over every filtered
+  // row, only the visible rows are limited to the current page.
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const currentPage = Math.min(pageNumber, pageCount);
+  const pageRowKeys = new Set(
+    rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((row) => row.key),
+  );
+  const pageGroups = groups
+    .map((group) => ({ ...group, pageRows: group.rows.filter((row) => pageRowKeys.has(row.key)) }))
+    .filter((group) => group.pageRows.length > 0);
 
   const periodCaption = (() => {
     if (!startDate && !endDate) return "Bütün tarix";
@@ -415,7 +436,7 @@ export function TranzaksiyalarView() {
                 </tr>
               </thead>
               <tbody>
-                {groups.map((group) => {
+                {pageGroups.map((group) => {
                   const groupNet = group.income - group.expense;
                   return (
                     <Fragment key={group.key}>
@@ -431,7 +452,7 @@ export function TranzaksiyalarView() {
                           </span>
                         </td>
                       </tr>
-                      {group.rows.map((row) => (
+                      {group.pageRows.map((row) => (
                         <tr
                           key={row.key}
                           className="data-table-row-clickable"
@@ -459,6 +480,32 @@ export function TranzaksiyalarView() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {!loading && rows.length > 0 && (
+          <div className="panel-pagination">
+            <span>
+              Səhifə {currentPage}/{pageCount}
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm"
+                disabled={currentPage <= 1}
+                onClick={() => setPageNumber(Math.max(1, currentPage - 1))}
+              >
+                Əvvəlki
+              </button>
+              <button
+                type="button"
+                className="panel-btn panel-btn-sm"
+                disabled={currentPage >= pageCount}
+                onClick={() => setPageNumber(currentPage + 1)}
+              >
+                Növbəti
+              </button>
+            </div>
           </div>
         )}
       </div>
