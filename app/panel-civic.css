@@ -497,8 +497,10 @@ html[data-area="panel"] .panel-shell .panel-content {
   padding: 32px 30px 52px;
   /* Global `main{overflow:hidden}` creates a scroll container, which would stop
      sticky table headers from sticking to the viewport. `clip` still clips
-     horizontal overflow without becoming a scroll container. */
-  overflow: clip;
+     horizontal overflow without becoming a scroll container. Only the x axis is
+     clipped so dropdowns near the bottom of the page aren't cut off. */
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 html[data-area="panel"] .panel-page h1,
@@ -589,6 +591,15 @@ html[data-area="panel"] .panel-shell .panel-card {
     transform 0.2s ease,
     border-color 0.2s ease,
     box-shadow 0.2s ease;
+}
+
+/* Kart forma kimi istifadə olunanda (məs. Xərclər) açılan siyahı kartın kənarında kəsilməsin. */
+html[data-area="panel"] .panel-shell .panel-card:has(.searchable-select) {
+  overflow: visible;
+}
+
+html[data-area="panel"] .panel-shell .panel-card:has(.searchable-select-menu) {
+  z-index: 5;
 }
 
 html[data-area="panel"] .panel-shell .panel-card > :not(.panel-card-ghost, .modal-backdrop) {
