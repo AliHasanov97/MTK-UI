@@ -429,31 +429,34 @@ html[data-theme=dark] .lp-article-image-item figcaption{border-color:#2b3c33;col
 .lp-android-points{display:flex;flex-wrap:wrap;gap:9px 20px;list-style:none;margin:26px 0 0;padding:0;font-size:12px;color:#d7e3d3}
 .lp-android-points li{display:flex;align-items:center;gap:7px}
 .lp-android-points li::before{content:"";width:5px;height:5px;flex:none;border-radius:50%;background:var(--lime)}
-.lp-android-visual{position:relative;display:flex;justify-content:flex-end;perspective:1500px}
-.lp-android-visual::before{content:"";position:absolute;left:-8%;right:2%;bottom:-16%;height:64%;border-radius:50%;background:radial-gradient(closest-side,#a9cd7f33,transparent 72%);pointer-events:none}
-.lp-android-visual::after{content:"";position:absolute;left:8%;right:0;bottom:-30px;height:36px;border-radius:50%;background:radial-gradient(closest-side,#000000b3,transparent 74%);filter:blur(10px);pointer-events:none}
-.lp-phone{position:relative;z-index:1;width:296px;max-width:100%;padding:4px;border-radius:32px;
-  background:linear-gradient(152deg,#a7b3aa 0%,#46544b 12%,#1a241e 34%,#101914 58%,#2c3931 78%,#7e8d82 94%,#3e4b43 100%);
+.lp-android-visual{position:relative;display:flex;justify-content:flex-end;perspective:1600px}
+.lp-android-visual::before{content:"";position:absolute;left:-16%;right:-4%;top:4%;bottom:-4%;border-radius:50%;background:radial-gradient(closest-side,#a9cd7f40,#a9cd7f12 56%,transparent 78%);pointer-events:none}
+.lp-android-visual::after{content:"";position:absolute;left:12%;right:2%;bottom:-34px;height:44px;border-radius:50%;background:radial-gradient(closest-side,#000000d9,transparent 76%);filter:blur(12px);pointer-events:none}
+.lp-phone{position:relative;z-index:1;width:312px;max-width:100%;padding:4px;border-radius:34px;
+  background:linear-gradient(180deg,#94a399 0%,#3b4841 8%,#212d26 28%,#111a15 50%,#25322a 73%,#5f6e64 92%,#2b382f 100%);
   box-shadow:
-    0 0 0 1px #0a110d,
-    inset 0 1px 0 #ffffff45,
-    inset 0 -1px 0 #00000080,
-    0 1px 1px #ffffff1f,
-    0 34px 54px -26px #000000d9,
-    0 74px 110px -64px #000000e6;
-  transform:rotateY(-7deg) rotateX(1.5deg) rotate(-1deg);
+    0 0 0 1px #060b08,
+    0 0 0 2px #ffffff0a,
+    inset 1px 0 0 #ffffff2e,
+    inset -1px 0 0 #00000070,
+    inset 0 1px 0 #ffffff42,
+    inset 0 -1px 0 #000000a6,
+    0 2px 3px #000000b3,
+    0 36px 60px -30px #000000e6,
+    0 82px 120px -70px #000000f2;
+  transform:rotateY(-8deg) rotateX(2deg) rotate(-1deg);
   transform-origin:center center;
 }
-.lp-phone-key{position:absolute;right:-2px;width:2.5px;border-radius:2px;background:linear-gradient(180deg,#84938a,#33413a 26%,#18211c 72%,#5b6a61);box-shadow:1px 0 2px #000000a6}
-.lp-phone-key--vol{top:78px;height:54px}
-.lp-phone-key--pwr{top:144px;height:34px}
-.lp-phone-screen{position:relative;overflow:hidden;border-radius:28px;background:#070c09;line-height:0;
-  box-shadow:inset 0 0 0 2px #040807,inset 0 0 26px #00000066;
+.lp-phone-key{position:absolute;right:-1.5px;width:2.5px;border-radius:2px;background:linear-gradient(180deg,#9dab9f 0%,#3c4b42 30%,#19221d 68%,#6d7c72 100%);box-shadow:0 0 0 .5px #000000a6,1px 1px 3px #000000b3}
+.lp-phone-key--vol{top:96px;height:56px}
+.lp-phone-key--pwr{top:164px;height:36px}
+.lp-phone-screen{position:relative;overflow:hidden;border-radius:31px;background:#050908;line-height:0;
+  box-shadow:inset 0 0 0 2px #030605,inset 0 0 30px #00000073;
 }
-.lp-phone-screen img{display:block;width:100%;height:auto;border-radius:26px}
-.lp-phone-screen::after{content:"";position:absolute;left:50%;top:8px;width:9px;height:9px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle at 34% 30%,#1d2a24,#05090b 62%);box-shadow:0 0 0 1px #ffffff17,inset 0 0 2px #000;z-index:3}
+.lp-phone-screen img{display:block;width:100%;height:auto;border-radius:29px}
+.lp-phone-screen::after{content:"";position:absolute;left:50%;top:7px;width:8.5px;height:8.5px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle at 34% 30%,#22302a,#040708 62%);box-shadow:0 0 0 1px #ffffff1f,inset 0 0 1.5px #000;z-index:3}
 .lp-phone-glare{position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;
-  background:linear-gradient(122deg,#ffffff24 0%,#ffffff0d 15%,transparent 31%,transparent 64%,#ffffff0b 87%,transparent 100%);
+  background:linear-gradient(122deg,#ffffff1f 0%,#ffffff09 15%,transparent 32%,transparent 66%,#ffffff08 88%,transparent 100%);
 }
 html[data-theme=dark] .lp-root .lp-android{background:linear-gradient(115deg,#101c16,#16281f 55%,#1c3327)}
 @media(max-width:1000px){
@@ -466,5 +469,5 @@ html[data-theme=dark] .lp-root .lp-android{background:linear-gradient(115deg,#10
   .lp-android h2{letter-spacing:-1.6px}
   .lp-android-actions{gap:10px}
   .lp-android-button{width:100%}
-  .lp-phone{width:min(330px,100%)}
+  .lp-phone{width:min(340px,100%)}
 }

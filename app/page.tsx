@@ -11,10 +11,10 @@ export default function Home() {
     <SiteShell>
       <Hero />
       <Stats />
+      <AndroidApp />
       <Modules />
       <Residents />
       <LatestNews />
-      <AndroidApp />
       <Closing />
     </SiteShell>
   );
