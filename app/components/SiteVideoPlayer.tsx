@@ -60,6 +60,39 @@ const YT_STATE = {
   BUFFERING: 3,
 } as const;
 
+type LockableScreenOrientation = ScreenOrientation & {
+  lock?: (orientation: "landscape" | "portrait") => Promise<void>;
+  unlock?: () => void;
+};
+
+function lockLandscapeOrientation() {
+  if (typeof window === "undefined") return;
+
+  const orientation = window.screen?.orientation as
+    | LockableScreenOrientation
+    | undefined;
+
+  if (!orientation?.lock) return;
+
+  void orientation.lock("landscape").catch(() => {
+    // Bəzi brauzerlər (məsələn, iOS Safari) orientasiya kilidini dəstəkləmir.
+  });
+}
+
+function unlockOrientation() {
+  if (typeof window === "undefined") return;
+
+  const orientation = window.screen?.orientation as
+    | LockableScreenOrientation
+    | undefined;
+
+  try {
+    orientation?.unlock?.();
+  } catch {
+    // Orientasiya kilidi artıq açıqdırsa, əlavə heç nə etmək lazım deyil.
+  }
+}
+
 let youtubeApiPromise: Promise<YouTubeNamespace> | null = null;
 
 function loadYouTubeApi(): Promise<YouTubeNamespace> {
@@ -240,12 +273,22 @@ export function SiteVideoPlayer({
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === wrapperRef.current);
+      const isPlayerFullscreen =
+        document.fullscreenElement === wrapperRef.current;
+      setIsFullscreen(isPlayerFullscreen);
+
+      if (isPlayerFullscreen) {
+        lockLandscapeOrientation();
+      } else {
+        unlockOrientation();
+      }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
+    return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      unlockOrientation();
+    };
   }, []);
 
   const clearHideControlsTimer = useCallback(() => {
@@ -495,11 +538,13 @@ export function SiteVideoPlayer({
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
+        unlockOrientation();
         return;
       }
 
       if (player.requestFullscreen) {
         await player.requestFullscreen();
+        lockLandscapeOrientation();
       }
     } catch {
       // Brauzer tam ekranı bloklayıbsa, pleyer normal rejimdə qalır.
