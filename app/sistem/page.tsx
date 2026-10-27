@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SiteShell } from "../components/SiteShell";
 import { PageHero } from "../components/PageHero";
+import { VideoFeature } from "../components/VideoFeature";
 import { Modules } from "../components/Modules";
 import { Flow } from "../components/Flow";
 import { Roles } from "../components/Roles";
@@ -22,6 +23,11 @@ export default function SystemPage() {
         lead="Modullar, iş axını, rollar və təhlükəsizlik — bir səhifədə."
         crumbs={[{ label: "Sistem haqqında" }]}
       />
+      <section className="c-section c-section-tight">
+        <div className="c-wrap">
+          <VideoFeature />
+        </div>
+      </section>
       <Modules detailed />
       <Compare />
       <Flow />

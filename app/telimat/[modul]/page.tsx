@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { SiteShell } from "../../components/SiteShell";
 import { PageHero } from "../../components/PageHero";
 import { LoginButton } from "../../components/LoginButton";
+import { GuideVideoPlayer } from "../../components/GuideVideoPlayer";
 import { getGuide, guides } from "../../guides";
 import { ROLE_LABELS } from "../../lib/auth/roleConstants";
+import { formatVideoTime, getGuideVideo } from "../../video";
 
 type Props = { params: Promise<{ modul: string }> };
 
@@ -23,6 +25,7 @@ export default async function GuidePage({ params }: Props) {
   if (!guide) notFound();
 
   const related = guide.related.map((s) => getGuide(s)).filter((g) => g !== undefined);
+  const video = getGuideVideo(guide.slug);
 
   return (
     <SiteShell>
@@ -51,6 +54,31 @@ export default async function GuidePage({ params }: Props) {
         </aside>
 
         <article className="c-prose">
+          {video && (
+            <section
+              className="c-guide-video"
+              id="video"
+              aria-labelledby="guide-video-title"
+            >
+              <div className="c-guide-video-head">
+                <div>
+                  <span className="c-badge c-badge-terracotta">
+                    VİDEO TƏLİMAT
+                  </span>
+                  <h2 id="guide-video-title">{video.title}</h2>
+                  <p>{video.summary}</p>
+                </div>
+                <span className="c-guide-video-time">
+                  {formatVideoTime(video.duration)}
+                </span>
+              </div>
+              <GuideVideoPlayer
+                video={video}
+                title={`${video.title} — video təlimat`}
+              />
+            </section>
+          )}
+
           {guide.sections.map((s) => (
             <section key={s.title}>
               <h2>{s.title}</h2>

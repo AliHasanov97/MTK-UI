@@ -20,6 +20,13 @@
 # production
 /build
 
+# Large self-hosted video files are not committed to GitHub. Upload them to
+# the server separately; the app expects them under /public/video/.
+/public/video/**/*.mp4
+
+# Raw video export workspace (clips, archives and upload metadata).
+/video-chapters/
+
 # misc
 .DS_Store
 *.pem

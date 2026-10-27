@@ -40,6 +40,22 @@ npm run dev
 
 Sayt `http://localhost:3000` ünvanında açılacaq.
 
+## Video faylları
+
+Saytın video pleyeri öz serverində saxlanılan MP4 fayllarından istifadə edir.
+Böyük video faylları GitHub-a yüklənmir (`.gitignore`-da
+`/public/video/**/*.mp4`). Onları serverə ayrıca yükləmək və ya lokal olaraq
+`public/video/` qovluğuna yerləşdirmək lazımdır:
+
+- `public/video/mtk-taqdimat.mp4` — tam 24 dəqiqəlik təqdimat
+- `public/video/mtk-taqdimat.jpg` — tam videonun afişası
+- `public/video/chapters/05-binalar.mp4` … `13-mobil.mp4` — təlimat videoları
+- `public/video/chapters/05-binalar.jpg` … `13-mobil.jpg` — onların afişaları
+
+`app/video.ts` faylındakı `GUIDE_VIDEOS` hansı təlimatın hansı videonu
+göstərdiyini müəyyən edir. Docker ilə deploy edərkən MP4 fayllarının build
+context-də olduğuna əmin olun; onlar git-dən gəlmir.
+
 ## Keycloak konfiqurasiyası
 
 `mtk-web` public client-də aşağıdakılar təyin olunmalıdır:

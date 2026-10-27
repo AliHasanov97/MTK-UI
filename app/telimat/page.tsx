@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteShell } from "../components/SiteShell";
 import { PageHero } from "../components/PageHero";
+import { VideoFeature } from "../components/VideoFeature";
 import { guides } from "../guides";
 import { ROLE_LABELS } from "../lib/auth/roleConstants";
 
@@ -23,6 +24,9 @@ export default function GuidesPage() {
 
       <section className="c-section">
         <div className="c-wrap">
+          <div className="c-video-feature-wrap">
+            <VideoFeature />
+          </div>
           <div className="c-guide-grid">
             {guides.map((g) => (
               <Link key={g.slug} href={`/telimat/${g.slug}`} className="c-guide-card">

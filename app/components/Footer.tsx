@@ -30,6 +30,7 @@ export async function Footer() {
         <nav className="c-footer-col" aria-label="Məhsul">
           <h4>Məhsul</h4>
           <Link href="/sistem">Sistem haqqında</Link>
+          <Link href="/taqdimat">Video təqdimat</Link>
           <Link href="/telimat">Təlimat</Link>
           <Link href="/xeberler">Xəbərlər</Link>
           <Link href="/faq">FAQ</Link>
