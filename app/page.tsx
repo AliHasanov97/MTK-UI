@@ -1,6 +1,7 @@
 import { SiteShell } from "./components/SiteShell";
 import { Hero } from "./components/Hero";
 import { Modules } from "./components/Modules";
+import { PromoVideo } from "./components/PromoVideo";
 import { Flow } from "./components/Flow";
 import { AndroidApp } from "./components/AndroidApp";
 import { Closing } from "./components/Closing";
@@ -11,6 +12,7 @@ export default function Home() {
     <SiteShell>
       <Hero />
       <Modules />
+      <PromoVideo />
       <Residents />
       <Flow />
       <AndroidApp />

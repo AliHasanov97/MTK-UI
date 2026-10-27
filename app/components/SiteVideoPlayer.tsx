@@ -11,6 +11,8 @@ type SiteVideoPlayerProps = {
   duration?: number;
   start?: number;
   eyebrow?: string;
+  /** Pleyer hazır olan kimi videonu başladır (istifadəçi klikindən sonra). */
+  autoPlay?: boolean;
 };
 
 type YouTubePlayer = {
@@ -250,6 +252,7 @@ export function SiteVideoPlayer({
   duration: initialDuration,
   start = 0,
   eyebrow,
+  autoPlay = false,
 }: SiteVideoPlayerProps) {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const playerHostRef = useRef<HTMLDivElement>(null);
@@ -425,6 +428,9 @@ export function SiteVideoPlayer({
 
               setIsMuted(event.target.isMuted());
               setIsReady(true);
+              if (autoPlay) {
+                event.target.playVideo();
+              }
               interval = window.setInterval(syncProgress, 250);
             },
             onStateChange: (event) => {
@@ -482,7 +488,7 @@ export function SiteVideoPlayer({
       }
       host.replaceChildren();
     };
-  }, [youtubeId, segmentStart, initialDuration]);
+  }, [youtubeId, segmentStart, initialDuration, autoPlay]);
 
   const togglePlay = useCallback(() => {
     const player = playerRef.current;

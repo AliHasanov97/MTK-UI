@@ -20,6 +20,17 @@ export const VIDEO_YOUTUBE_URL = `https://www.youtube.com/watch?v=${VIDEO_YOUTUB
 export const VIDEO_EMBED_URL = `https://www.youtube.com/embed/${VIDEO_YOUTUBE_ID}`;
 export const VIDEO_POSTER = "/video/mtk-taqdimat.jpg";
 
+/**
+ * Ana səhifədə reklam xarakterli qısa təqdimat videosu.
+ * Ölçü: 2:24.
+ */
+export const PROMO_VIDEO_TITLE =
+  "MTK — Mənzil Təsərrüfatı Kompleksi İdarəetmə Sistemi | Qısa təqdimat";
+export const PROMO_VIDEO_YOUTUBE_ID = "xKXjGQqH-XA";
+export const PROMO_VIDEO_DURATION = "2:24";
+export const PROMO_VIDEO_DURATION_SECONDS = 144;
+export const PROMO_VIDEO_POSTER = "/video/mtk-qisa-teqdimat.jpg";
+
 export type GuideVideo = {
   title: string;
   summary: string;
