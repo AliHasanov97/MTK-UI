@@ -7,10 +7,11 @@ import { VideoExperience } from "../components/VideoExperience";
 import { getGuide } from "../guides";
 import {
   VIDEO_DESCRIPTION,
+  VIDEO_EMBED_URL,
   VIDEO_POSTER,
-  VIDEO_SRC,
   VIDEO_TITLE,
   VIDEO_UPLOAD_DATE,
+  VIDEO_YOUTUBE_URL,
 } from "../video";
 
 export const metadata: Metadata = {
@@ -53,7 +54,8 @@ const videoSchema = {
   thumbnailUrl: [VIDEO_POSTER],
   uploadDate: VIDEO_UPLOAD_DATE,
   duration: "PT24M",
-  contentUrl: VIDEO_SRC,
+  contentUrl: VIDEO_YOUTUBE_URL,
+  embedUrl: VIDEO_EMBED_URL,
   inLanguage: "az",
   isFamilyFriendly: true,
   publisher: {

@@ -42,19 +42,20 @@ Sayt `http://localhost:3000` ünvanında açılacaq.
 
 ## Video faylları
 
-Saytın video pleyeri öz serverində saxlanılan MP4 fayllarından istifadə edir.
-Böyük video faylları GitHub-a yüklənmir (`.gitignore`-da
-`/public/video/**/*.mp4`). Onları serverə ayrıca yükləmək və ya lokal olaraq
-`public/video/` qovluğuna yerləşdirmək lazımdır:
+Sayt videoları [YouTube playlistindən](https://www.youtube.com/playlist?list=PLTn3ZY-dq2xA)
+götürür, amma YouTube-un standart pleyeri göstərilmir: video YouTube IFrame API
+ilə yüklənir və saytın öz pleyer qatı, düymələri və dizaynı istifadə olunur.
 
-- `public/video/mtk-taqdimat.mp4` — tam 24 dəqiqəlik təqdimat
-- `public/video/mtk-taqdimat.jpg` — tam videonun afişası
-- `public/video/chapters/05-binalar.mp4` … `13-mobil.mp4` — təlimat videoları
-- `public/video/chapters/05-binalar.jpg` … `13-mobil.jpg` — onların afişaları
+- Tam təqdimat: `fPo59r8XuUc`
+- Təlimat videoları: `app/video.ts` faylındakı `GUIDE_VIDEOS`
 
-`app/video.ts` faylındakı `GUIDE_VIDEOS` hansı təlimatın hansı videonu
-göstərdiyini müəyyən edir. Docker ilə deploy edərkən MP4 fayllarının build
-context-də olduğuna əmin olun; onlar git-dən gəlmir.
+Bəzi təlimatlar üçün ayrıca YouTube videosu yoxdur; onlar tam təqdimatın uyğun
+hissəsindən (`start` saniyəsi ilə) göstərilir. Afişa JPG-ləri
+`public/video/` qovluğunda saxlanılır. MP4 faylları repo-ya daxil edilmir
+(`.gitignore`-da `/public/video/**/*.mp4`).
+
+YouTube videolarında embed icazəsi aktiv olmalıdır; əks halda pleyer xəta
+mesajı göstərəcək.
 
 ## Keycloak konfiqurasiyası
 

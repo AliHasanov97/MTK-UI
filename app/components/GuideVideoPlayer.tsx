@@ -11,7 +11,8 @@ export function GuideVideoPlayer({
   return (
     <div className="c-video-frame c-video-frame-native">
       <SiteVideoPlayer
-        src={video.src}
+        youtubeId={video.youtubeId}
+        start={video.start}
         poster={video.poster}
         title={title ?? video.title}
         duration={video.duration}

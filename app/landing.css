@@ -3053,6 +3053,64 @@ html[data-theme="dark"] .lp-root .c-contact-card.is-mail .c-feature-icon {
   outline-offset: 3px;
 }
 
+.c-player-embed {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #000;
+}
+
+.c-player-embed iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  pointer-events: none;
+}
+
+.c-player-poster {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-position: center;
+  background-size: cover;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
+.c-player-poster.is-hidden {
+  opacity: 0;
+}
+
+.c-player-hitarea {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.c-player-hitarea:disabled {
+  cursor: default;
+}
+
+.c-player-error {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(11, 18, 14, 0.78);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .c-player-video {
   position: absolute;
   inset: 0;
@@ -3068,7 +3126,7 @@ html[data-theme="dark"] .lp-root .c-contact-card.is-mail .c-feature-icon {
 .c-player-overlay {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 3;
   display: grid;
   place-items: center;
   background:
@@ -3172,7 +3230,7 @@ html[data-theme="dark"] .lp-root .c-contact-card.is-mail .c-feature-icon {
   position: absolute;
   top: 50%;
   left: 50%;
-  z-index: 2;
+  z-index: 4;
   width: 38px;
   height: 38px;
   margin: -19px 0 0 -19px;
@@ -3193,7 +3251,7 @@ html[data-theme="dark"] .lp-root .c-contact-card.is-mail .c-feature-icon {
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 3;
+  z-index: 5;
   padding: 24px 14px 12px;
   background: linear-gradient(
     180deg,
@@ -3201,6 +3259,14 @@ html[data-theme="dark"] .lp-root .c-contact-card.is-mail .c-feature-icon {
     rgba(11, 18, 14, 0.7) 30%,
     rgba(11, 18, 14, 0.94) 100%
   );
+  opacity: 1;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.c-player-controls.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
 }
 
 .c-player-range {

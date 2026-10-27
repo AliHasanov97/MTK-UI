@@ -1,21 +1,116 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  CSSProperties,
-  ChangeEvent,
-  KeyboardEvent,
-  SyntheticEvent,
-} from "react";
+import type { CSSProperties, ChangeEvent, KeyboardEvent } from "react";
 import { formatVideoTime } from "../video";
 
 type SiteVideoPlayerProps = {
-  src: string;
+  youtubeId: string;
   poster: string;
   title: string;
   duration?: number;
+  start?: number;
   eyebrow?: string;
 };
+
+type YouTubePlayer = {
+  playVideo: () => void;
+  pauseVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+  mute: () => void;
+  unMute: () => void;
+  isMuted: () => boolean;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  getPlayerState: () => number;
+  destroy: () => void;
+};
+
+type YouTubePlayerEvent = {
+  target: YouTubePlayer;
+  data?: number;
+};
+
+type YouTubeNamespace = {
+  Player: new (
+    element: HTMLElement,
+    options: {
+      videoId: string;
+      playerVars?: Record<string, string | number | undefined>;
+      events?: {
+        onReady?: (event: YouTubePlayerEvent) => void;
+        onStateChange?: (event: YouTubePlayerEvent) => void;
+        onError?: () => void;
+      };
+    },
+  ) => YouTubePlayer;
+};
+
+declare global {
+  interface Window {
+    YT?: YouTubeNamespace;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+const YT_STATE = {
+  ENDED: 0,
+  PLAYING: 1,
+  PAUSED: 2,
+  BUFFERING: 3,
+} as const;
+
+let youtubeApiPromise: Promise<YouTubeNamespace> | null = null;
+
+function loadYouTubeApi(): Promise<YouTubeNamespace> {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("YouTube API yalnız brauzerdə yüklənir."));
+  }
+
+  if (window.YT?.Player) {
+    return Promise.resolve(window.YT);
+  }
+
+  if (youtubeApiPromise) {
+    return youtubeApiPromise;
+  }
+
+  youtubeApiPromise = new Promise<YouTubeNamespace>((resolve, reject) => {
+    const previous = window.onYouTubeIframeAPIReady;
+    const timer = window.setTimeout(() => {
+      reject(new Error("YouTube API yüklənmədi."));
+    }, 15000);
+
+    window.onYouTubeIframeAPIReady = () => {
+      previous?.();
+      window.clearTimeout(timer);
+
+      if (window.YT?.Player) {
+        resolve(window.YT);
+      } else {
+        reject(new Error("YouTube API hazır deyil."));
+      }
+    };
+
+    if (
+      !document.querySelector('script[src="https://www.youtube.com/iframe_api"]')
+    ) {
+      const script = document.createElement("script");
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      script.onerror = () => {
+        window.clearTimeout(timer);
+        reject(new Error("YouTube API yüklənmədi."));
+      };
+      document.head.appendChild(script);
+    }
+  }).catch((error: unknown) => {
+    youtubeApiPromise = null;
+    throw error;
+  });
+
+  return youtubeApiPromise;
+}
 
 function PlayIcon() {
   return (
@@ -116,27 +211,36 @@ function ExitFullscreenIcon() {
 }
 
 export function SiteVideoPlayer({
-  src,
+  youtubeId,
   poster,
   title,
   duration: initialDuration,
+  start = 0,
   eyebrow,
 }: SiteVideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const playerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<YouTubePlayer | null>(null);
+  const playerHostRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const segmentStart = Math.max(0, start);
+  const segmentDurationRef = useRef(initialDuration ?? 0);
+  const endedRef = useRef(false);
 
+  const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [isEnded, setIsEnded] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [isError, setIsError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(initialDuration ?? 0);
+  const [showControls, setShowControls] = useState(true);
+  const hideControlsTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === playerRef.current);
+      setIsFullscreen(document.fullscreenElement === wrapperRef.current);
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -144,45 +248,249 @@ export function SiteVideoPlayer({
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  const togglePlay = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
+  const clearHideControlsTimer = useCallback(() => {
+    if (hideControlsTimer.current !== undefined) {
+      window.clearTimeout(hideControlsTimer.current);
+      hideControlsTimer.current = undefined;
+    }
+  }, []);
 
-    if (video.ended) {
-      video.currentTime = 0;
+  const scheduleHideControls = useCallback(() => {
+    clearHideControlsTimer();
+    if (!isPlaying || isEnded || isError) return;
+
+    hideControlsTimer.current = window.setTimeout(() => {
+      setShowControls(false);
+    }, 2600);
+  }, [clearHideControlsTimer, isEnded, isError, isPlaying]);
+
+  const revealControls = useCallback(() => {
+    setShowControls(true);
+    scheduleHideControls();
+  }, [scheduleHideControls]);
+
+  useEffect(() => {
+    if (!isPlaying || isEnded || isError) {
+      clearHideControlsTimer();
+      setShowControls(true);
+      return;
+    }
+
+    scheduleHideControls();
+    return clearHideControlsTimer;
+  }, [
+    clearHideControlsTimer,
+    isEnded,
+    isError,
+    isPlaying,
+    scheduleHideControls,
+  ]);
+
+  useEffect(() => {
+    const host = playerHostRef.current;
+    if (!host) return;
+
+    let cancelled = false;
+    let player: YouTubePlayer | null = null;
+    let interval: number | undefined;
+
+    segmentDurationRef.current = initialDuration ?? 0;
+    endedRef.current = false;
+    setIsReady(false);
+    setIsPlaying(false);
+    setHasStarted(false);
+    setIsEnded(false);
+    setIsBuffering(false);
+    setIsError(false);
+    setCurrentTime(0);
+    setDuration(initialDuration ?? 0);
+
+    const syncProgress = () => {
+      if (!player || cancelled) return;
+
+      const raw = player.getCurrentTime();
+      if (!Number.isFinite(raw)) return;
+
+      const max = segmentDurationRef.current;
+      const local = Math.max(0, Math.min(max || 0, raw - segmentStart));
+      setCurrentTime(local);
+
+      if (!segmentStart) {
+        const actual = player.getDuration();
+        if (Number.isFinite(actual) && actual > 0 && actual !== max) {
+          segmentDurationRef.current = actual;
+          setDuration(actual);
+        }
+      }
+
+      if (
+        segmentStart > 0 &&
+        max > 0 &&
+        raw >= segmentStart + max - 0.25 &&
+        !endedRef.current
+      ) {
+        endedRef.current = true;
+        player.pauseVideo();
+        setIsPlaying(false);
+        setIsBuffering(false);
+        setIsEnded(true);
+        setCurrentTime(max);
+      }
+    };
+
+    const mount = document.createElement("div");
+    mount.className = "c-player-youtube";
+    host.replaceChildren(mount);
+
+    loadYouTubeApi()
+      .then((YT) => {
+        if (cancelled || !host.isConnected) return;
+
+        player = new YT.Player(mount, {
+          videoId: youtubeId,
+          playerVars: {
+            autohide: 1,
+            autoplay: 0,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            iv_load_policy: 3,
+            modestbranding: 1,
+            playsinline: 1,
+            rel: 0,
+            showinfo: 0,
+            start: segmentStart || undefined,
+            origin: window.location.origin,
+          },
+          events: {
+            onReady: (event) => {
+              if (cancelled) return;
+
+              playerRef.current = event.target;
+              const actual = event.target.getDuration();
+
+              if (segmentStart > 0) {
+                segmentDurationRef.current = initialDuration ?? 0;
+                setDuration(initialDuration ?? 0);
+                event.target.seekTo(segmentStart, true);
+                event.target.pauseVideo();
+                setCurrentTime(0);
+              } else if (Number.isFinite(actual) && actual > 0) {
+                segmentDurationRef.current = actual;
+                setDuration(actual);
+              }
+
+              setIsMuted(event.target.isMuted());
+              setIsReady(true);
+              interval = window.setInterval(syncProgress, 250);
+            },
+            onStateChange: (event) => {
+              if (cancelled) return;
+
+              if (event.data === YT_STATE.PLAYING) {
+                endedRef.current = false;
+                setHasStarted(true);
+                setIsPlaying(true);
+                setIsEnded(false);
+                setIsBuffering(false);
+              } else if (event.data === YT_STATE.PAUSED) {
+                setIsPlaying(false);
+                setIsBuffering(false);
+              } else if (event.data === YT_STATE.BUFFERING) {
+                setIsBuffering(true);
+              } else if (event.data === YT_STATE.ENDED) {
+                setIsPlaying(false);
+                setIsBuffering(false);
+                setIsEnded(true);
+                setCurrentTime(segmentDurationRef.current);
+                // YouTube-un son ekranındakı tövsiyələri göstərmək əvəzinə
+                // videonu başlanğıc kadra qaytarırıq; replay düyməsi görünür.
+                event.target.seekTo(segmentStart, true);
+                event.target.pauseVideo();
+              }
+            },
+            onError: () => {
+              if (cancelled) return;
+
+              setIsError(true);
+              setIsPlaying(false);
+              setIsBuffering(false);
+            },
+          },
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setIsError(true);
+          setIsBuffering(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (interval !== undefined) {
+        window.clearInterval(interval);
+      }
+      playerRef.current = null;
+      try {
+        player?.destroy();
+      } catch {
+        // Pleyer artıq dağıdılıbsa, əlavə heç nə etmək lazım deyil.
+      }
+      host.replaceChildren();
+    };
+  }, [youtubeId, segmentStart, initialDuration]);
+
+  const togglePlay = useCallback(() => {
+    const player = playerRef.current;
+    if (!player || !isReady || isError) return;
+
+    if (endedRef.current || isEnded) {
+      endedRef.current = false;
+      player.seekTo(segmentStart, true);
+      setCurrentTime(0);
       setIsEnded(false);
     }
 
-    if (video.paused) {
-      void video.play().catch(() => {});
+    const state = player.getPlayerState();
+    if (state === YT_STATE.PLAYING || state === YT_STATE.BUFFERING) {
+      player.pauseVideo();
     } else {
-      video.pause();
+      player.playVideo();
     }
-  }, []);
+  }, [isEnded, isError, isReady, segmentStart]);
 
-  const seekBy = useCallback((seconds: number) => {
-    const video = videoRef.current;
-    if (!video) return;
+  const seekBy = useCallback(
+    (seconds: number) => {
+      const player = playerRef.current;
+      if (!player || !isReady || isError) return;
 
-    const max = Number.isFinite(video.duration) ? video.duration : 0;
-    const next = Math.max(0, Math.min(max, video.currentTime + seconds));
-    video.currentTime = next;
-    setCurrentTime(next);
-    setIsEnded(false);
-  }, []);
+      const max = duration || 0;
+      const next = Math.max(0, Math.min(max, currentTime + seconds));
+      player.seekTo(segmentStart + next, true);
+      setCurrentTime(next);
+      setIsEnded(false);
+      endedRef.current = false;
+    },
+    [currentTime, duration, isError, isReady, segmentStart],
+  );
 
   const toggleMute = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    const player = playerRef.current;
+    if (!player || !isReady || isError) return;
 
-    video.muted = !video.muted;
-    setIsMuted(video.muted);
-  }, []);
+    const muted = player.isMuted();
+    if (muted) {
+      player.unMute();
+    } else {
+      player.mute();
+    }
+    setIsMuted(!muted);
+  }, [isError, isReady]);
 
   const toggleFullscreen = useCallback(async () => {
-    const player = playerRef.current;
-    const video = videoRef.current;
-    if (!player || !video) return;
+    const player = wrapperRef.current;
+    if (!player) return;
 
     try {
       if (document.fullscreenElement) {
@@ -192,38 +500,21 @@ export function SiteVideoPlayer({
 
       if (player.requestFullscreen) {
         await player.requestFullscreen();
-        return;
       }
-
-      const webkitVideo = video as HTMLVideoElement & {
-        webkitEnterFullscreen?: () => void;
-      };
-      webkitVideo.webkitEnterFullscreen?.();
     } catch {
       // Brauzer tam ekranı bloklayıbsa, pleyer normal rejimdə qalır.
     }
   }, []);
 
-  const handleMetadata = (event: SyntheticEvent<HTMLVideoElement>) => {
-    const video = event.currentTarget;
-    if (Number.isFinite(video.duration)) {
-      setDuration(video.duration);
-    }
-    setIsMuted(video.muted);
-  };
-
-  const handleTimeUpdate = (event: SyntheticEvent<HTMLVideoElement>) => {
-    setCurrentTime(event.currentTarget.currentTime);
-  };
-
   const handleSeek = (event: ChangeEvent<HTMLInputElement>) => {
-    const video = videoRef.current;
-    if (!video) return;
+    const player = playerRef.current;
+    if (!player || !isReady || isError) return;
 
     const next = Number(event.target.value);
-    video.currentTime = next;
+    player.seekTo(segmentStart + next, true);
     setCurrentTime(next);
     setIsEnded(false);
+    endedRef.current = false;
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -272,70 +563,68 @@ export function SiteVideoPlayer({
 
   return (
     <div
-      ref={playerRef}
+      ref={wrapperRef}
       className="c-player"
       role="group"
       aria-label={title}
       tabIndex={0}
       onKeyDown={handleKeyDown}
+      onMouseEnter={revealControls}
+      onMouseMove={revealControls}
+      onMouseLeave={scheduleHideControls}
+      onFocusCapture={revealControls}
+      onBlurCapture={scheduleHideControls}
     >
-      <video
-        ref={videoRef}
-        className="c-player-video"
-        poster={poster}
-        preload="metadata"
-        playsInline
-        aria-label={title}
-        onClick={togglePlay}
-        onDoubleClick={() => void toggleFullscreen()}
-        onLoadedMetadata={handleMetadata}
-        onDurationChange={handleMetadata}
-        onTimeUpdate={handleTimeUpdate}
-        onPlay={() => {
-          setHasStarted(true);
-          setIsPlaying(true);
-          setIsEnded(false);
-          setIsBuffering(false);
-        }}
-        onPause={() => {
-          setIsPlaying(false);
-          setIsBuffering(false);
-        }}
-        onEnded={() => {
-          setIsPlaying(false);
-          setIsEnded(true);
-          setIsBuffering(false);
-        }}
-        onWaiting={() => setIsBuffering(true)}
-        onCanPlay={() => setIsBuffering(false)}
-        onPlaying={() => setIsBuffering(false)}
-        onVolumeChange={(event) => setIsMuted(event.currentTarget.muted)}
-      >
-        <source src={src} type="video/mp4" />
-        Brauzeriniz videonu dəstəkləmir.
-      </video>
-
-      <div
-        className={`c-player-overlay${
-          isPlaying ? " is-hidden" : ""
-        }${hasStarted ? " is-started" : ""}`}
-      >
-        {eyebrow ? <span className="c-player-eyebrow">{eyebrow}</span> : null}
-        <button
-          type="button"
-          className="c-player-center"
-          onClick={togglePlay}
-          aria-label={isEnded ? "Videonu yenidən oynat" : "Videonu oynat"}
-        >
-          {isEnded ? <ReplayIcon /> : <PlayIcon />}
-        </button>
+      <div className="c-player-embed" aria-hidden="true">
+        <div ref={playerHostRef} />
       </div>
 
-      {isBuffering && isPlaying && (
+      <div
+        className={`c-player-poster${hasStarted ? " is-hidden" : ""}`}
+        style={{ backgroundImage: `url("${poster}")` }}
+        aria-hidden="true"
+      />
+
+      <button
+        type="button"
+        className="c-player-hitarea"
+        onClick={togglePlay}
+        onDoubleClick={() => void toggleFullscreen()}
+        disabled={!isReady || isError}
+        tabIndex={-1}
+        aria-label={isPlaying ? "Fasilə ver" : "Oynat"}
+      />
+
+      {isError ? (
+        <div className="c-player-error" role="alert">
+          Video yüklənmədi. YouTube bağlantısını və embed icazəsini yoxlayın.
+        </div>
+      ) : (
+        <div
+          className={`c-player-overlay${isPlaying ? " is-hidden" : ""}${
+            hasStarted ? " is-started" : ""
+          }`}
+        >
+          {eyebrow ? <span className="c-player-eyebrow">{eyebrow}</span> : null}
+          <button
+            type="button"
+            className="c-player-center"
+            onClick={togglePlay}
+            disabled={!isReady}
+            aria-label={isEnded ? "Videonu yenidən oynat" : "Videonu oynat"}
+          >
+            {isEnded ? <ReplayIcon /> : <PlayIcon />}
+          </button>
+        </div>
+      )}
+
+      {isBuffering && isReady && !isError && (
         <span className="c-player-spinner" aria-hidden="true" />
       )}
 
-      <div className="c-player-controls">
+      <div
+        className={`c-player-controls${showControls ? "" : " is-hidden"}`}
+      >
         <input
           type="range"
           className="c-player-range"
@@ -344,7 +633,7 @@ export function SiteVideoPlayer({
           step="0.1"
           value={Math.min(currentTime, safeDuration)}
           onChange={handleSeek}
-          disabled={!safeDuration}
+          disabled={!isReady || !safeDuration || isError}
           aria-label="Video mövqeyi"
           aria-valuetext={`${formatVideoTime(currentTime)} / ${formatVideoTime(
             safeDuration,
@@ -357,6 +646,7 @@ export function SiteVideoPlayer({
             type="button"
             className="c-player-btn"
             onClick={togglePlay}
+            disabled={!isReady || isError}
             aria-label={isPlaying ? "Fasilə ver" : "Oynat"}
             title={isPlaying ? "Fasilə ver" : "Oynat"}
           >
@@ -367,6 +657,7 @@ export function SiteVideoPlayer({
             type="button"
             className="c-player-btn"
             onClick={toggleMute}
+            disabled={!isReady || isError}
             aria-label={isMuted ? "Səsi aç" : "Səsi söndür"}
             title={isMuted ? "Səsi aç" : "Səsi söndür"}
           >
