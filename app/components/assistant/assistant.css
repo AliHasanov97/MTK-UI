@@ -137,6 +137,7 @@
 /* ---------- Söhbət karkası ---------- */
 
 .ai-chat {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -516,6 +517,217 @@
   font-weight: 800;
 }
 
+/* ---------- PDF yükləmə kartı ---------- */
+
+.ai-download {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--pc-border);
+  border-radius: 12px;
+  background: var(--pc-subtle);
+  animation: ai-msg-in 0.18s ease-out;
+}
+
+.ai-download-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ai-download-text strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pc-ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ai-download-text span {
+  overflow: hidden;
+  font-size: 10.5px;
+  color: var(--pc-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ai-download-btn {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--pc-forest);
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.ai-download-btn:hover:not(:disabled) {
+  background: var(--pc-forest-2);
+}
+
+.ai-download-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.ai-download-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pc-soft);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease;
+}
+
+.ai-download-close:hover {
+  background: color-mix(in srgb, var(--pc-ink) 8%, transparent);
+  color: var(--pc-ink);
+}
+
+.ai-download-error {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pc-danger);
+}
+
+/* ---------- Ödəniş təsdiqi ---------- */
+
+/* Bütün səhifəni əhatə edən ümumi modal — köməkçi panelinin içində deyil,
+   body-yə portal edilir ki, panelin ölçüsü və overflow-u onu kəsməsin. */
+.ai-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--pc-forest) 46%, transparent);
+  backdrop-filter: blur(3px);
+  animation: ai-fade 0.16s ease-out;
+}
+
+.ai-confirm {
+  width: 100%;
+  max-width: 380px;
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  padding: 22px 20px 18px;
+  border: 1px solid var(--pc-border);
+  border-radius: 16px;
+  background: var(--pc-surface);
+  text-align: center;
+  box-shadow: 0 28px 64px -28px rgba(20, 35, 28, 0.65);
+  animation: ai-pop 0.18s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.ai-confirm-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  border-radius: 12px;
+  background: var(--pc-lime);
+  color: var(--pc-forest);
+}
+
+.ai-confirm-title {
+  margin: 10px 0 6px;
+  font-size: 14.5px;
+  font-weight: 750;
+  color: var(--pc-ink);
+}
+
+.ai-confirm-desc {
+  margin: 0 0 16px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--pc-muted);
+}
+
+.ai-confirm-error {
+  margin: 0 0 12px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--pc-danger);
+}
+
+.ai-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.ai-confirm-actions button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.ai-confirm-cancel {
+  border: 1px solid var(--pc-border);
+  background: transparent;
+  color: var(--pc-ink);
+}
+
+.ai-confirm-cancel:hover:not(:disabled) {
+  background: var(--pc-subtle);
+}
+
+.ai-confirm-ok {
+  border: 0;
+  background: var(--pc-terracotta);
+  color: #fff;
+}
+
+.ai-confirm-ok:hover:not(:disabled) {
+  background: var(--pc-orange);
+}
+
+.ai-confirm-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@keyframes ai-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* ---------- Kompozitor ---------- */
 
 .ai-chat-composer {
@@ -616,6 +828,23 @@
 
 .ai-chat-foot-sep {
   opacity: 0.5;
+}
+
+@media (max-width: 560px) {
+  .ai-confirm-backdrop {
+    padding: 12px;
+  }
+
+  .ai-confirm {
+    max-width: none;
+    max-height: calc(100dvh - 24px);
+    padding: 20px 16px 16px;
+    border-radius: 18px;
+  }
+
+  .ai-confirm-actions {
+    flex-direction: column-reverse;
+  }
 }
 
 @media (max-width: 720px) {

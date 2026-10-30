@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../../lib/auth/AuthContext";
-import { ApiError } from "../../lib/api/client";
-import { sendAssistantMessage, type AssistantMessage } from "../../lib/api/assistant";
+import { ApiError, apiFetchFile, saveBlobAsFile } from "../../lib/api/client";
+import { createPayment, type PaymentMethodKey } from "../../lib/api/payments";
+import {
+  sendAssistantMessage,
+  type AssistantDownloadPayload,
+  type AssistantMessage,
+  type AssistantPaymentPayload,
+  type AssistantPendingAction,
+} from "../../lib/api/assistant";
 import "./assistant.css";
 
 const SUGGESTIONS = [
@@ -59,6 +67,10 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Backend-in təsdiq gözləyən əməliyyatı: ödəniş modalı və ya PDF yükləmə kartı.
+  const [pendingAction, setPendingAction] = useState<AssistantPendingAction | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -72,6 +84,23 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
+
+  // Təsdiq modalı açıqkən Escape yalnız modalı bağlayır — bütün köməkçini yox.
+  useEffect(() => {
+    if (pendingAction?.type !== "create_payment") return;
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setPendingAction(null);
+      setActionError(null);
+    }
+
+    window.addEventListener("keydown", handleEscape, true);
+    return () => window.removeEventListener("keydown", handleEscape, true);
+  }, [pendingAction]);
 
   async function submit(text: string) {
     const content = text.trim();
@@ -101,6 +130,8 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
           content: reply.reply,
         },
       ]);
+      setPendingAction(reply.pendingAction ?? null);
+      setActionError(null);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -111,6 +142,8 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
   function resetConversation() {
     setMessages([]);
     setError(null);
+    setPendingAction(null);
+    setActionError(null);
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "";
     inputRef.current?.focus();
@@ -125,6 +158,75 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       void submit(input);
+    }
+  }
+
+  /** Təsdiqlənmiş ödənişi mövcud Payments endpoint-i ilə yazır. */
+  async function confirmPayment() {
+    if (!accessToken || !pendingAction) return;
+
+    const payload = pendingAction.payload as AssistantPaymentPayload | null;
+
+    if (!payload?.ownerId || !(payload.amount > 0)) {
+      setActionError("Ödəniş məlumatı natamamdır. Sualı yenidən verin.");
+      return;
+    }
+
+    setActionBusy(true);
+    setActionError(null);
+
+    try {
+      const paymentId = await createPayment(accessToken, {
+        ownerId: payload.ownerId,
+        amount: payload.amount,
+        paymentMethod: payload.paymentMethod as PaymentMethodKey,
+        notes: payload.notes ?? null,
+        apartmentId: payload.apartmentId ?? null,
+        garageId: payload.garageId ?? null,
+      });
+
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: `Ödəniş qeydə alındı: ${payload.amount} ₼. Qəbzi aşağıdan yükləyə bilərsiniz.`,
+        },
+      ]);
+
+      setPendingAction({
+        type: "download",
+        title: "Ödəniş qəbzi",
+        description: `${payload.amount} ₼`,
+        payload: {
+          path: `api/payments/payments/${paymentId}/receipt`,
+          label: "Qəbzi yüklə (PDF)",
+        } satisfies AssistantDownloadPayload,
+      });
+    } catch (err) {
+      setActionError(errorMessage(err));
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  /** Təsdiq paketindəki API yolundan PDF-i tokenlə yükləyir. */
+  async function downloadFromAction() {
+    if (!accessToken || !pendingAction) return;
+
+    const payload = pendingAction.payload as AssistantDownloadPayload | null;
+
+    if (!payload?.path) return;
+
+    setActionBusy(true);
+    setActionError(null);
+
+    try {
+      const { blob, fileName } = await apiFetchFile(payload.path, accessToken);
+      saveBlobAsFile(blob, fileName);
+    } catch (err) {
+      setActionError(errorMessage(err));
+    } finally {
+      setActionBusy(false);
     }
   }
 
@@ -237,6 +339,34 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
         </div>
       )}
 
+      {pendingAction?.type === "download" && (
+        <div className="ai-download">
+          <div className="ai-download-text">
+            <strong>{pendingAction.title}</strong>
+            {pendingAction.description && <span>{pendingAction.description}</span>}
+          </div>
+          <button
+            type="button"
+            className="ai-download-btn"
+            onClick={() => void downloadFromAction()}
+            disabled={actionBusy}
+          >
+            {actionBusy
+              ? "Yüklənir…"
+              : ((pendingAction.payload as AssistantDownloadPayload | null)?.label ?? "PDF yüklə")}
+          </button>
+          <button
+            type="button"
+            className="ai-download-close"
+            onClick={() => setPendingAction(null)}
+            aria-label="Yükləmə kartını bağla"
+          >
+            ×
+          </button>
+          {actionError && <p className="ai-download-error">{actionError}</p>}
+        </div>
+      )}
+
       <div className="ai-chat-composer">
         <div className="ai-chat-composer-box">
           <textarea
@@ -277,9 +407,61 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
         <p className="ai-chat-foot">
           <span>Enter — göndər</span>
           <span className="ai-chat-foot-sep">·</span>
-          <span>Yalnız oxuyur, ödəniş yaratmır</span>
+          <span>Ödəniş yalnız təsdiqlə qeydə alınır</span>
         </p>
       </div>
+
+      {pendingAction?.type === "create_payment" &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="ai-confirm-backdrop"
+            onClick={(event) => {
+              // Fon klikində modal bağlanır — əməliyyat təsdiqlənmir.
+              if (event.target !== event.currentTarget || actionBusy) return;
+              setPendingAction(null);
+              setActionError(null);
+            }}
+          >
+            <div
+              className="ai-confirm"
+              role="dialog"
+              aria-modal="true"
+              aria-label={pendingAction.title}
+            >
+              <span className="ai-confirm-icon" aria-hidden="true">
+                <SparkleIcon size={18} />
+              </span>
+              <h3 className="ai-confirm-title">{pendingAction.title}</h3>
+              {pendingAction.description && (
+                <p className="ai-confirm-desc">{pendingAction.description}</p>
+              )}
+              {actionError && <p className="ai-confirm-error">{actionError}</p>}
+              <div className="ai-confirm-actions">
+                <button
+                  type="button"
+                  className="ai-confirm-cancel"
+                  onClick={() => {
+                    setPendingAction(null);
+                    setActionError(null);
+                  }}
+                  disabled={actionBusy}
+                >
+                  Ləğv et
+                </button>
+                <button
+                  type="button"
+                  className="ai-confirm-ok"
+                  onClick={() => void confirmPayment()}
+                  disabled={actionBusy}
+                >
+                  {actionBusy ? "Qeydə alınır…" : "Təsdiq et"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
