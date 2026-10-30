@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../lib/auth/AuthContext";
+import { AssistantWidget } from "../components/assistant/AssistantWidget";
 import { PanelShell } from "./PanelShell";
 import "../panel-dark.css";
 import "../panel-civic.css";
@@ -92,5 +93,10 @@ export default function PanelLayout({ children }: LayoutProps<"/panel">) {
     );
   }
 
-  return <PanelShell>{children}</PanelShell>;
+  return (
+    <>
+      <PanelShell>{children}</PanelShell>
+      <AssistantWidget />
+    </>
+  );
 }
