@@ -19,7 +19,7 @@ export type AssistantToolTrace = {
  * `download` → göstərilən API yolundan PDF yüklənir.
  */
 export type AssistantPendingAction = {
-  type: "create_payment" | "download" | (string & {});
+  type: "create_payment" | "download" | "confirm" | (string & {});
   title: string;
   description?: string | null;
   payload?: Record<string, unknown> | null;
@@ -37,6 +37,18 @@ export type AssistantPaymentPayload = {
 export type AssistantDownloadPayload = {
   path: string;
   label?: string;
+};
+
+/**
+ * Ümumi təsdiq paketi: backend tool-u heç nə yazmır, yalnız hansı endpoint-in
+ * hansı body ilə çağırılacağını qaytarır. İstifadəçi təsdiqləyəndə frontend
+ * həmin çağırışı özü edir.
+ */
+export type AssistantConfirmPayload = {
+  method: "POST" | "PUT" | "PATCH" | "DELETE";
+  path: string;
+  body?: unknown;
+  successMessage?: string;
 };
 
 export type AssistantReply = {

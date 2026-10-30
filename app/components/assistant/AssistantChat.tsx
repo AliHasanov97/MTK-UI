@@ -3,15 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../lib/auth/AuthContext";
-import { ApiError, apiFetchFile, saveBlobAsFile } from "../../lib/api/client";
+import { ApiError, apiFetch, apiFetchFile, saveBlobAsFile } from "../../lib/api/client";
 import { createPayment, type PaymentMethodKey } from "../../lib/api/payments";
 import {
   sendAssistantMessage,
+  type AssistantConfirmPayload,
   type AssistantDownloadPayload,
   type AssistantMessage,
   type AssistantPaymentPayload,
   type AssistantPendingAction,
 } from "../../lib/api/assistant";
+import { AssistantMessageText } from "./AssistantMessageText";
+import { useSpeechRecognition } from "./useSpeechRecognition";
 import "./assistant.css";
 
 const SUGGESTIONS = [
@@ -76,6 +79,19 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
 
   const accessToken = auth.status === "authenticated" ? auth.accessToken : null;
 
+  // Danışmağa başlayanda mövcud mətni saxlayırıq, nitq onun arxasına yazılır.
+  const voiceBaseRef = useRef("");
+
+  const {
+    listening: voiceListening,
+    error: voiceError,
+    start: startVoice,
+    stop: stopVoice,
+  } = useSpeechRecognition((text) => {
+    const base = voiceBaseRef.current;
+    setInput(base ? `${base} ${text}` : text);
+  });
+
   useEffect(() => {
     // Yeni mesaj gələndə siyahını sona sürüşdür.
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -85,9 +101,18 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
     inputRef.current?.focus();
   }, []);
 
+  // Səsli yazı birbaşa `input`-a düşdüyü üçün sahəni burada da böyüdürük.
+  useEffect(() => {
+    const element = inputRef.current;
+    if (!element) return;
+
+    element.style.height = "auto";
+    element.style.height = `${Math.min(element.scrollHeight, 96)}px`;
+  }, [input]);
+
   // Təsdiq modalı açıqkən Escape yalnız modalı bağlayır — bütün köməkçini yox.
   useEffect(() => {
-    if (pendingAction?.type !== "create_payment") return;
+    if (pendingAction?.type !== "create_payment" && pendingAction?.type !== "confirm") return;
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
@@ -106,6 +131,8 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
     const content = text.trim();
 
     if (!content || pending || !accessToken) return;
+
+    stopVoice();
 
     const nextMessages: AssistantMessage[] = [...messages, { role: "user", content }];
 
@@ -140,6 +167,7 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
   }
 
   function resetConversation() {
+    stopVoice();
     setMessages([]);
     setError(null);
     setPendingAction(null);
@@ -202,6 +230,44 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
           label: "Qəbzi yüklə (PDF)",
         } satisfies AssistantDownloadPayload,
       });
+    } catch (err) {
+      setActionError(errorMessage(err));
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  /**
+   * Ümumi təsdiq: backend-in qaytardığı metod/yol/body ilə mövcud endpoint-i çağırır.
+   * Uğurlu cavabdan sonra söhbətə backend-in mesajını yazır.
+   */
+  async function confirmAction() {
+    if (!accessToken || !pendingAction) return;
+
+    const payload = pendingAction.payload as AssistantConfirmPayload | null;
+
+    if (!payload?.path || !payload.method) {
+      setActionError("Əməliyyat məlumatı natamamdır. Sualı yenidən verin.");
+      return;
+    }
+
+    setActionBusy(true);
+    setActionError(null);
+
+    try {
+      const response = await apiFetch<{ message?: string }>(payload.path, accessToken, {
+        method: payload.method,
+        body: payload.body === undefined ? undefined : JSON.stringify(payload.body),
+      });
+
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: response?.message ?? payload.successMessage ?? "Əməliyyat yerinə yetirildi.",
+        },
+      ]);
+      setPendingAction(null);
     } catch (err) {
       setActionError(errorMessage(err));
     } finally {
@@ -312,7 +378,15 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
               </span>
             )}
             <div className="ai-msg-body">
-              <div className="ai-msg-bubble">{message.content}</div>
+              <div
+                className={`ai-msg-bubble${message.role === "assistant" ? " ai-msg-rich" : ""}`}
+              >
+                {message.role === "assistant" ? (
+                  <AssistantMessageText text={message.content} />
+                ) : (
+                  message.content
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -386,6 +460,51 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
           />
           <button
             type="button"
+            className={`ai-chat-mic${voiceListening ? " is-listening" : ""}`}
+            onClick={() => {
+              if (voiceListening) {
+                stopVoice();
+                return;
+              }
+
+              voiceBaseRef.current = input.trimEnd();
+              startVoice();
+            }}
+            disabled={pending}
+            aria-pressed={voiceListening}
+            aria-label={voiceListening ? "Səsi dayandır" : "Səslə yaz"}
+            title={voiceListening ? "Dayandır" : "Səslə yaz"}
+          >
+            {voiceListening ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <rect x="6.5" y="6.5" width="11" height="11" rx="2.2" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M12 3.2a3 3 0 0 0-3 3v5.6a3 3 0 0 0 6 0V6.2a3 3 0 0 0-3-3Z"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M5.6 11.4a6.4 6.4 0 0 0 12.8 0M12 17.8v3"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                />
+              </svg>
+            )}
+          </button>
+          <button
+            type="button"
             className="ai-chat-send"
             onClick={() => void submit(input)}
             disabled={pending || input.trim().length === 0}
@@ -404,14 +523,27 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
             </svg>
           </button>
         </div>
+        {voiceListening && (
+          <p className="ai-chat-voice-status" role="status">
+            <span className="ai-chat-voice-dot" aria-hidden="true" />
+            Dinlənirəm… danışın
+          </p>
+        )}
+        {voiceError && (
+          <p className="ai-chat-voice-error" role="alert">
+            {voiceError}
+          </p>
+        )}
         <p className="ai-chat-foot">
           <span>Enter — göndər</span>
+          <span className="ai-chat-foot-sep">·</span>
+          <span>Mikrofon — səslə yaz</span>
           <span className="ai-chat-foot-sep">·</span>
           <span>Ödəniş yalnız təsdiqlə qeydə alınır</span>
         </p>
       </div>
 
-      {pendingAction?.type === "create_payment" &&
+      {(pendingAction?.type === "create_payment" || pendingAction?.type === "confirm") &&
         typeof document !== "undefined" &&
         createPortal(
           <div
@@ -452,10 +584,14 @@ export function AssistantChat({ onClose }: { onClose?: () => void }) {
                 <button
                   type="button"
                   className="ai-confirm-ok"
-                  onClick={() => void confirmPayment()}
+                  onClick={() =>
+                    void (pendingAction.type === "create_payment"
+                      ? confirmPayment()
+                      : confirmAction())
+                  }
                   disabled={actionBusy}
                 >
-                  {actionBusy ? "Qeydə alınır…" : "Təsdiq et"}
+                  {actionBusy ? "İcra olunur…" : "Təsdiq et"}
                 </button>
               </div>
             </div>
