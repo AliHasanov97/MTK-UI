@@ -5,8 +5,10 @@ import { useAuth } from "../../lib/auth/AuthContext";
 import { ApiError } from "../../lib/api/client";
 import {
   AUDIT_ACTIONS,
+  AUDIT_ENTITY_TYPES,
   AUDIT_MODULES,
   auditActionLabel,
+  auditEntityLabel,
   searchModuleAuditLogs,
   type AuditModuleKey,
   type AuditSearchResult,
@@ -93,15 +95,22 @@ export function AuditLogView() {
             </option>
           ))}
         </select>
-        <input
-          className="panel-search"
-          placeholder="Entity növü (məs: Employee)…"
+        <select
+          className="panel-select"
+          aria-label="Nə dəyişib"
           value={entityType}
           onChange={(e) => {
             setEntityType(e.target.value);
             resetPage();
           }}
-        />
+        >
+          <option value="">Nə dəyişib? (hamısı)</option>
+          {AUDIT_ENTITY_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
+          ))}
+        </select>
         <select
           className="panel-select"
           aria-label="Əməliyyat"
@@ -151,7 +160,7 @@ export function AuditLogView() {
             <thead>
               <tr>
                 <th>Tarix</th>
-                <th>Entity</th>
+                <th>Obyekt</th>
                 <th>Əməliyyat</th>
                 <th>İstifadəçi</th>
                 <th></th>
@@ -172,9 +181,7 @@ export function AuditLogView() {
                       onClick={() => setExpandedId(isOpen ? null : log.id)}
                     >
                       <td>{new Date(log.timestamp).toLocaleString("az-AZ")}</td>
-                      <td>
-                        {log.entityType} <small>({log.entityId.slice(0, 8)}…)</small>
-                      </td>
+                      <td>{auditEntityLabel(log.entityType)}</td>
                       <td>{auditActionLabel(log.action)}</td>
                       <td>{log.userLabel ?? "—"}</td>
                       <td>{isOpen ? "▲" : "▼"}</td>
@@ -182,6 +189,9 @@ export function AuditLogView() {
                     {isOpen && (
                       <tr>
                         <td colSpan={5} className="data-table-subrow">
+                          <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--muted, #6b7280)" }}>
+                            Obyekt növü: {log.entityType} · ID: <code>{log.entityId}</code>
+                          </p>
                           <AuditDiff oldValues={log.oldValues} newValues={log.newValues} />
                         </td>
                       </tr>

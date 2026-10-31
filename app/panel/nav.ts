@@ -147,8 +147,7 @@ export const NAV_MODULES: NavModule[] = [
     icon: "⚙",
     roles: [ROLES.ADMIN],
     tabs: [
-      { href: "/panel/idareetme", label: "Sistem idarəetməsi" },
-      { href: "/panel/idareetme/muracietler", label: "Müraciətlər" },      { href: "/panel/audit", label: "Audit qeydləri" },
+      { href: "/panel/idareetme", label: "Sistem idarəetməsi" },  { href: "/panel/audit", label: "Dəyişiklik tarixçəsi" },
     ],
   },
 ];

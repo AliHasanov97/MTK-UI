@@ -24,6 +24,41 @@ export function auditActionLabel(action: string) {
   return AUDIT_ACTIONS.find((a) => a.value === action)?.label ?? action;
 }
 
+/**
+ * Backend EntityType texniki C# sinif adıdır (Charge, Contract…).
+ * İstifadəçiyə insan dilində göstərmək üçün lüğət; bilinməyən adlar olduğu kimi qalır.
+ */
+const ENTITY_LABELS: Record<string, string> = {
+  Charge: "Ödəniş tələbi",
+  Payment: "Ödəniş",
+  Contract: "Müqavilə",
+  Rate: "Tarif",
+  OwnerBalance: "Sahib balansı",
+  Owner: "Sahib",
+  Apartment: "Mənzil",
+  Garage: "Qaraj",
+  Building: "Bina",
+  Section: "Bölmə",
+  Floor: "Mərtəbə",
+  Employee: "İşçi",
+  User: "İstifadəçi",
+  Role: "Rol",
+  Invoice: "Hesab",
+  Nomenclature: "İnventar",
+  Purchase: "Alış",
+  PaymentSource: "Ödəniş mənbəyi",
+};
+
+export function auditEntityLabel(entityType: string) {
+  return ENTITY_LABELS[entityType] ?? entityType;
+}
+
+/** "Nə dəyişib?" filtri üçün bilinən obyekt növləri (backend-ə texniki ad göndərilir). */
+export const AUDIT_ENTITY_TYPES = Object.keys(ENTITY_LABELS).map((value) => ({
+  value,
+  label: ENTITY_LABELS[value],
+}));
+
 export type AuditModuleKey = (typeof AUDIT_MODULES)[number]["key"];
 
 export type AuditRow = {
